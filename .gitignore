@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop.ini
+scripts/
+storage/_backup*
+storage/output_pdf/*
+!storage/output_pdf/.gitkeep
+storage/reports/*
+!storage/reports/.gitkeep
+storage/photos/*
+!storage/photos/.gitkeep

@@ -1,0 +1,114 @@
+/* Custom Styles for Siamraj Service Report - Responsive PC & Mobile */
+
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar utility for mobile chip bars */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth horizontal touch scrolling */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Responsive Form Inputs on Mobile (prevents iOS auto-zoom & improves finger accuracy) */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 15px !important;
+  }
+
+  /* Make checkbox & radio tap targets larger for mobile thumbs */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 1.15rem;
+    min-height: 1.15rem;
+  }
+}
+
+/* Signature Pad Canvas */
+canvas {
+  touch-action: none;
+}
+
+/* Card Transitions */
+.tab-content, .package-form-panel {
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Table scroll indicators */
+.table-scroll-container {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure wide tables retain legible column widths on mobile screens */
+@media (max-width: 640px) {
+  .table-scroll-container table {
+    min-width: 620px;
+  }
+}
+
+/* Bottom spacing on mobile to avoid fixed mobile navigation bar overlap */
+@media (max-width: 640px) {
+  main {
+    padding-bottom: calc(4.75rem + var(--safe-bottom)) !important;
+  }
+}
+
+/* Print Styling */
+@media print {
+  header, #activeTicketBanner, #mobileQuickActionBar, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .tab-content, .package-form-panel {
+    display: block !important;
+  }
+}

@@ -130,7 +130,9 @@ function doPost(e) {
     if (data.pdf_base64) {
       try {
         const folder = getOrCreateFolder(FOLDER_NAME);
-        const fileName = data.pdf_filename || `SERVICE_REPORT_${requestNo}.pdf`;
+        const cleanCust = String(data.customer || '').replace(/[\\/:*?"<>|]/g, '').trim();
+        const defaultName = cleanCust ? `SERVICE_REPORT_${requestNo}_${cleanCust}.pdf` : `SERVICE_REPORT_${requestNo}.pdf`;
+        const fileName = data.pdf_filename || defaultName;
         
         // ลบไฟล์เดิมในโฟลเดอร์ถ้าชื่อซ้ำ เพื่อไม่ให้เปลืองพื้นที่ Drive
         const oldFiles = folder.getFilesByName(fileName);

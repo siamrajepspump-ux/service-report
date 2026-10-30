@@ -7369,7 +7369,19 @@ function openPdfModal(title, url) {
 
   document.getElementById("pdfModalIframe").src = url;
 
-  document.getElementById("pdfModalDownloadBtn").href = url;
+  const dlBtn = document.getElementById("pdfModalDownloadBtn");
+  dlBtn.href = url;
+
+  // Set suggested download filename with Customer name for full packages
+  if (url && (url.includes("ALL_") || url.includes("FULL_PACKAGE_") || url.includes("SERVICE_REPORT_"))) {
+    const customer = (window.state && window.state.data && (window.state.data.customer || window.state.data.Customer || window.state.data.exp_customer)) || "";
+    const cleanCust = String(customer).replace(/[\\/:*?"<>|]/g, '').trim();
+    const ticketNo = (window.state && window.state.currentTicket) || "";
+    const suggestedName = cleanCust ? `SERVICE_REPORT_${ticketNo}_${cleanCust}.pdf` : `SERVICE_REPORT_${ticketNo}.pdf`;
+    dlBtn.setAttribute("download", suggestedName);
+  } else {
+    dlBtn.removeAttribute("download");
+  }
 
   document.getElementById("pdfModal").classList.remove("hidden");
 

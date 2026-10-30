@@ -32,9 +32,19 @@ def save_gas_config(webapp_url: str, enabled: bool = True) -> Dict[str, Any]:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
     return cfg
 
+def sanitize_filename_part(name: str) -> str:
+    if not name:
+        return ""
+    cleaned = "".join(c for c in str(name) if c not in r'\/:*?"<>|')
+    cleaned = " ".join(cleaned.split()).strip(" .")
+    return cleaned
+
 def build_gas_payload(ticket_no: str, data: Dict[str, Any], pdf_path: Optional[str] = None) -> Dict[str, Any]:
     # Extract customer and site
     customer = data.get("customer") or data.get("Customer") or data.get("exp_customer") or data.get("sat_customer") or ""
+    clean_cust = sanitize_filename_part(customer)
+    cust_suffix = f"_{clean_cust}" if clean_cust else ""
+    default_pdf_name = f"SERVICE_REPORT_{ticket_no}{cust_suffix}.pdf"
     plant = data.get("plant") or data.get("Plant") or data.get("Site") or data.get("site") or data.get("exp_place") or ""
     model = data.get("model") or data.get("PumpModel") or data.get("cr_pump_model") or data.get("insp_sheet_model") or ""
     serial = data.get("serial_no") or data.get("SerialNo") or data.get("cr_pump_serial") or data.get("insp_sheet_serial") or ""
@@ -72,14 +82,18 @@ def build_gas_payload(ticket_no: str, data: Dict[str, Any], pdf_path: Optional[s
 
     # Handle PDF base64 encoding if file exists and is under 20MB
     pdf_base64 = None
-    pdf_filename = None
+    pdf_filename = default_pdf_name
     if pdf_path and os.path.exists(pdf_path):
         size_mb = os.path.getsize(pdf_path) / (1024 * 1024)
         if size_mb <= 20:
             try:
                 with open(pdf_path, "rb") as pf:
                     pdf_base64 = base64.b64encode(pf.read()).decode("utf-8")
-                pdf_filename = os.path.basename(pdf_path)
+                orig_basename = os.path.basename(pdf_path)
+                if clean_cust and clean_cust in orig_basename:
+                    pdf_filename = orig_basename
+                else:
+                    pdf_filename = default_pdf_name
             except Exception as e:
                 print(f"[GAS] Base64 PDF encode error: {e}")
 
@@ -97,7 +111,7 @@ def build_gas_payload(ticket_no: str, data: Dict[str, Any], pdf_path: Optional[s
         "forms_included": forms_included,
         "total_expense": total_expense,
         "sat_score": sat_score,
-        "pdf_filename": pdf_filename or f"SERVICE_REPORT_{ticket_no}.pdf",
+        "pdf_filename": pdf_filename,
         "pdf_base64": pdf_base64,
         "raw_data": {
             "ticket_no": ticket_no,

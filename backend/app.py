@@ -2108,17 +2108,25 @@ def submit_and_generate(payload: SubmitPayload):
     ordered_merge_paths.extend(other_paths)
     ordered_merge_paths.extend(sat_paths)
 
+    # Determine sanitized customer name for file naming
+    customer = data.get("customer") or data.get("Customer") or data.get("exp_customer") or data.get("sat_customer") or ""
+    clean_cust = gas_sync.sanitize_filename_part(customer)
+    cust_suffix = f"_{clean_cust}" if clean_cust else ""
+    named_report_pdf = f"SERVICE_REPORT_{ticket}{cust_suffix}.pdf"
+
     if len(ordered_merge_paths) > 1:
         merged_path = os.path.join(ticket_out_dir, f"ALL_{ticket}.pdf")
         try:
             pdf_engine.merge_pdf_package(ordered_merge_paths, merged_path)
             try:
                 full_merged_path = os.path.join(ticket_out_dir, f"FULL_PACKAGE_{ticket}.pdf")
+                named_path = os.path.join(ticket_out_dir, named_report_pdf)
                 import shutil
                 shutil.copyfile(merged_path, full_merged_path)
-            except Exception:
-                pass
-            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/ALL_{ticket}.pdf"
+                shutil.copyfile(merged_path, named_path)
+            except Exception as ce:
+                print(f"[Merge] Error copying named PDF: {ce}")
+            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/{named_report_pdf}"
         except Exception as e:
             print(f"Error generating ALL_MERGED: {e}")
     elif len(ordered_merge_paths) == 1:
@@ -2127,10 +2135,12 @@ def submit_and_generate(payload: SubmitPayload):
             import shutil
             shutil.copyfile(ordered_merge_paths[0], merged_path)
             full_merged_path = os.path.join(ticket_out_dir, f"FULL_PACKAGE_{ticket}.pdf")
+            named_path = os.path.join(ticket_out_dir, named_report_pdf)
             shutil.copyfile(merged_path, full_merged_path)
-            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/ALL_{ticket}.pdf"
-        except Exception:
-            pass
+            shutil.copyfile(merged_path, named_path)
+            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/{named_report_pdf}"
+        except Exception as ce:
+            print(f"[Merge] Error copying single PDF: {ce}")
 
 
 
@@ -2326,13 +2336,53 @@ def download_pdf(ticket_no: str, filename: str):
 
 
 
+    # 1. Fallback / alias resolution for full service report packages if exact filename not found
     if not os.path.exists(file_path):
+        if filename.startswith("ALL_") or filename.startswith("FULL_PACKAGE_") or filename.startswith("SERVICE_REPORT_"):
+            for cand in [f"ALL_{ticket}.pdf", f"FULL_PACKAGE_{ticket}.pdf"]:
+                cand_path = os.path.join(ticket_out_dir, cand)
+                if os.path.exists(cand_path):
+                    file_path = cand_path
+                    break
+            if not os.path.exists(file_path) and os.path.exists(ticket_out_dir):
+                for f in os.listdir(ticket_out_dir):
+                    if (f.startswith(f"SERVICE_REPORT_{ticket}") or f.startswith(f"ALL_{ticket}") or f.startswith(f"FULL_PACKAGE_{ticket}")) and f.endswith(".pdf"):
+                        file_path = os.path.join(ticket_out_dir, f)
+                        break
 
+    if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Requested file not found")
 
-    media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if filename.endswith(".xlsx") else "application/pdf"
+    # Determine safe and user-friendly download filename (append customer name for full packages)
+    download_filename = filename
+    if (filename.startswith("ALL_") or filename.startswith("FULL_PACKAGE_") or filename.startswith("SERVICE_REPORT_")) and filename.endswith(".pdf"):
+        cust_name = ""
+        for s_file in [f"{ticket}_submitted.json", f"{ticket}_draft.json"]:
+            s_path = os.path.join(REPORTS_DIR, s_file)
+            if os.path.exists(s_path):
+                try:
+                    with open(s_path, "r", encoding="utf-8") as sf:
+                        s_data = json.load(sf)
+                        cust_name = s_data.get("customer") or s_data.get("Customer") or s_data.get("exp_customer") or s_data.get("sat_customer") or ""
+                        if cust_name:
+                            break
+                except Exception:
+                    pass
+        if not cust_name:
+            try:
+                crm_list = load_crm_cache()
+                for c_item in crm_list:
+                    if str(c_item.get("TicketNo", "")).strip() == ticket:
+                        cust_name = c_item.get("Customer") or ""
+                        break
+            except Exception:
+                pass
+        clean_cust = gas_sync.sanitize_filename_part(cust_name)
+        cust_suffix = f"_{clean_cust}" if clean_cust else ""
+        download_filename = f"SERVICE_REPORT_{ticket}{cust_suffix}.pdf"
 
-    return FileResponse(file_path, media_type=media_type, filename=filename)
+    media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if filename.endswith(".xlsx") else "application/pdf"
+    return FileResponse(file_path, media_type=media_type, filename=download_filename, content_disposition_type="inline")
 
 
 

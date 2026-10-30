@@ -2074,14 +2074,33 @@ def submit_and_generate(payload: SubmitPayload):
 
     exp_paths = [p for p in pdf_paths_for_merge if os.path.basename(p).startswith("EXP_")]
     sat_paths = [p for p in pdf_paths_for_merge if os.path.basename(p).startswith("SAT_")]
+
+    # Guarantee FM-EPS-45 (Customer Satisfaction Form) is ALWAYS included in Full Package PDF
+    if not sat_paths:
+        sat_path = os.path.join(ticket_out_dir, f"SAT_{ticket}.pdf")
+        sat_data = dict(data)
+        for k in ["customer", "contact_person", "contact_no", "eval_date"]:
+            v = sat_data.get(f"sat_{k}") or sat_data.get(k)
+            if v:
+                sat_data[k] = v
+        try:
+            pdf_engine.fill_fm_eps_45(sat_data, sat_path)
+            sat_paths.append(sat_path)
+            generated_files["FM-EPS-45"] = f"/api/download/{ticket}/SAT_{ticket}.pdf"
+        except Exception as e:
+            print(f"Error auto-generating FM-EPS-45 for package: {e}")
+
     other_paths = [p for p in pdf_paths_for_merge if p not in exp_paths and p not in sat_paths]
+    photo_paths = [p for p in other_paths if os.path.basename(p).startswith("PHOTO_")]
+    tech_paths = [p for p in other_paths if p not in photo_paths]
 
     ordered_merge_paths = []
     if crm_request_path and os.path.exists(crm_request_path):
         ordered_merge_paths.append(crm_request_path)
     ordered_merge_paths.extend(exp_paths)
-    ordered_merge_paths.extend(other_paths)
+    ordered_merge_paths.extend(tech_paths)
     ordered_merge_paths.extend(sat_paths)
+    ordered_merge_paths.extend(photo_paths)
 
     # Determine sanitized customer name for file naming
     customer = data.get("customer") or data.get("Customer") or data.get("exp_customer") or data.get("sat_customer") or ""

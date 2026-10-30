@@ -130,6 +130,12 @@ class IsoPdfEngine:
         p3 = pymupdf.Point(x + size * 0.45, y - size * 0.45)
         page.draw_polyline([p1, p2, p3], color=color, width=width, lineCap=1, lineJoin=1)
 
+    def _insert_dash(self, page, x: float, y: float, size: float = 8.5, color=(0.15, 0.15, 0.15), width: float = 1.35):
+        """Draw a clean vector dash (-) inside an unticked checkbox or bracket at given center coordinates"""
+        p1 = pymupdf.Point(x - size * 0.35, y)
+        p2 = pymupdf.Point(x + size * 0.35, y)
+        page.draw_line(p1, p2, color=color, width=width, lineCap=1)
+
     def _insert_signature(self, page, rect: tuple, base64_data: str):
         """Insert signature image from base64 into a target rect (x0, y0, x1, y1)"""
         if not base64_data:
@@ -249,12 +255,24 @@ class IsoPdfEngine:
         # 3. Service Subject Checkboxes
         subj = str(data.get("service_subject", "")).lower()
         subjs_list = [str(s).lower() for s in data.get("service_subjects", [])]
-        if "start" in subj or any("start" in s for s in subjs_list):
+        is_start = "start" in subj or any("start" in s for s in subjs_list)
+        is_align = "align" in subj or any("align" in s for s in subjs_list)
+        is_pm = "pm" in subj or any("pm" in s for s in subjs_list)
+
+        if is_start:
             self._insert_tick(page, 212.8, 223.7)
-        if "align" in subj or any("align" in s for s in subjs_list):
+        else:
+            self._insert_dash(page, 212.8, 223.7)
+
+        if is_align:
             self._insert_tick(page, 363.1, 223.7)
-        if "pm" in subj or any("pm" in s for s in subjs_list):
+        else:
+            self._insert_dash(page, 363.1, 223.7)
+
+        if is_pm:
             self._insert_tick(page, 460.4, 225.3)
+        else:
+            self._insert_dash(page, 460.4, 225.3)
 
         # 4. Visual Check Items (8 rows)
         vis_ticks_x = {"normal": 297.36, "adjusted": 329.04, "service": 360.72}
@@ -412,48 +430,59 @@ class IsoPdfEngine:
         d_str = self._format_date_dmy(raw_d) if raw_d else "-"
         self._insert_text(page, 480, 126, d_str, size=10, bold=True, max_w=65)
 
-        # Equipment Info Row 1 (y ≈ 171)
+        # Equipment Info Row 1 (Underline baseline y = 172.5)
         cust = _dash(data.get("customer"))
         plant = _dash(data.get("plant"))
         contact_person = _dash(data.get("contact_person") or data.get("sr_contact_person"))
         contact_no = _dash(data.get("contact_no") or data.get("sr_contact_no"))
-        self._insert_text(page, 65, 171, cust, size=9.5, max_w=95)
-        self._insert_text(page, 190, 171, plant, size=9.5, max_w=80)
-        self._insert_text(page, 337, 171, contact_person, size=9.5, max_w=85)
-        self._insert_text(page, 447, 171, contact_no, size=9.5, max_w=120)
+        self._insert_text(page, 58, 172.5, cust, size=9.5, max_w=105)
+        self._insert_text(page, 185, 172.5, plant, size=9.5, max_w=85)
+        self._insert_text(page, 320, 172.5, contact_person, size=9.5, max_w=100)
+        self._insert_text(page, 442, 172.5, contact_no, size=9.5, max_w=125)
 
-        # Row 2 (y ≈ 185)
-        self._insert_text(page, 77, 185, _dash(data.get("pump_brand")), size=9.5, max_w=85)
-        self._insert_text(page, 195, 185, _dash(data.get("pump_model")), size=9.5, max_w=73)
-        self._insert_text(page, 314, 185, _dash(data.get("serial_no")), size=9.5, max_w=108)
-        self._insert_text(page, 475, 185, _dash(data.get("pump_code")), size=9.5, max_w=95)
+        # Row 2 (Underline baseline y = 186.5)
+        self._insert_text(page, 65, 186.5, _dash(data.get("pump_brand")), size=9.5, max_w=95)
+        self._insert_text(page, 190, 186.5, _dash(data.get("pump_model")), size=9.5, max_w=80)
+        self._insert_text(page, 305, 186.5, _dash(data.get("serial_no")), size=9.5, max_w=115)
+        self._insert_text(page, 462, 186.5, _dash(data.get("pump_code")), size=9.5, max_w=105)
 
-        # Row 3 (y ≈ 200)
-        self._insert_text(page, 78, 200, _dash(data.get("motor_brand")), size=9.5, max_w=85)
-        self._insert_text(page, 190, 200, _dash(data.get("motor_kw")), size=9.5, max_w=78)
-        self._insert_text(page, 300, 200, _dash(data.get("motor_rpm")), size=9.5, max_w=122)
-        self._insert_text(page, 468, 200, _dash(data.get("motor_max_amp")), size=9.5, max_w=100)
+        # Row 3 (Underline baseline y = 201.0)
+        self._insert_text(page, 66, 201.0, _dash(data.get("motor_brand")), size=9.5, max_w=95)
+        self._insert_text(page, 188, 201.0, _dash(data.get("motor_kw")), size=9.5, max_w=82)
+        self._insert_text(page, 296, 201.0, _dash(data.get("motor_rpm")), size=9.5, max_w=125)
+        self._insert_text(page, 458, 201.0, _dash(data.get("motor_max_amp")), size=9.5, max_w=105)
 
-        # Row 4 (y ≈ 214)
+        # Row 4 (Underline baseline y = 215.5)
         gear_brand = _dash(data.get("gear_brand") or data.get("gear"))
-        self._insert_text(page, 52, 214, gear_brand, size=9.5, max_w=110)
-        self._insert_text(page, 192, 214, _dash(data.get("gear_ratio")), size=9.5, max_w=76)
-        self._insert_text(page, 307, 214, _dash(data.get("gear_model")), size=9.5, max_w=115)
-        self._insert_text(page, 468, 214, _dash(data.get("gear_serial")), size=9.5, max_w=100)
+        self._insert_text(page, 45, 215.5, gear_brand, size=9.5, max_w=115)
+        self._insert_text(page, 186, 215.5, _dash(data.get("gear_ratio")), size=9.5, max_w=82)
+        self._insert_text(page, 300, 215.5, _dash(data.get("gear_model")), size=9.5, max_w=120)
+        self._insert_text(page, 458, 215.5, _dash(data.get("gear_serial")), size=9.5, max_w=105)
 
-        # Service Subject Checkboxes
+        # Service Subject Checkboxes (Ticked gets tick, unticked gets dash)
         subjects = data.get("service_subjects", [])
-        if "Installation" in subjects: self._insert_tick(page, 186.4, 240.9)
-        if "Inspection" in subjects: self._insert_tick(page, 337.3, 240.9)
-        if "Repair" in subjects: self._insert_tick(page, 186.4, 257.3)
-        if "Modification" in subjects: self._insert_tick(page, 337.3, 257.3)
-        if "Other" in subjects or data.get("subject_other"):
-            self._insert_tick(page, 186.4, 273.7)
-            self._insert_text(page, 235, 273, _dash(data.get("subject_other")), size=9.0, max_w=150)
-        else:
-            self._insert_text(page, 235, 273, "-", size=9.0, max_w=150)
+        subj_checks = [
+            ("Installation", 186.4, 240.9),
+            ("Inspection", 337.3, 240.9),
+            ("Repair", 186.4, 257.3),
+            ("Modification", 337.3, 257.3),
+            ("Other", 186.4, 273.7)
+        ]
+        for s_name, sx, sy in subj_checks:
+            if s_name == "Other":
+                if "Other" in subjects or data.get("subject_other"):
+                    self._insert_tick(page, sx, sy)
+                    self._insert_text(page, 235, 273, _dash(data.get("subject_other")), size=9.0, max_w=150)
+                else:
+                    self._insert_dash(page, sx, sy)
+                    self._insert_text(page, 235, 273, "-", size=9.0, max_w=150)
+            else:
+                if s_name in subjects:
+                    self._insert_tick(page, sx, sy)
+                else:
+                    self._insert_dash(page, sx, sy)
 
-        # Problem / Symptoms Checkboxes
+        # Problem / Symptoms Checkboxes (All 10 items)
         problems = data.get("problem_ticks", [])
         prob_coords = {
             "seal_leak": (188.3, 300.5),
@@ -467,17 +496,18 @@ class IsoPdfEngine:
             "gear_ring_broken": (187.7, 349.2),
             "hub_flange_damage": (282.8, 348.8)
         }
-        for p in problems:
-            coord = prob_coords.get(p)
-            if coord:
-                self._insert_tick(page, coord[0], coord[1])
+        for p_key, (px, py) in prob_coords.items():
+            if p_key in problems:
+                self._insert_tick(page, px, py)
+            else:
+                self._insert_dash(page, px, py)
 
         # Problem Etc. text
         self._insert_text(page, 145, 368, _dash(data.get("problem_etc")), size=9.0, max_w=420)
 
-        # Cause & Investigation (lines at y=390, 406, 423)
+        # Cause & Investigation (lines at y=391, 407, 423)
         cause_text = data.get("cause", "")
-        cause_y = [390, 406, 423]
+        cause_y = [391, 407, 423]
         if cause_text and str(cause_text).strip() not in ["-", "nan", "none"]:
             c_lines = self._wrap_text(cause_text, width=60)
             for i, line in enumerate(c_lines[:3]):
@@ -491,11 +521,12 @@ class IsoPdfEngine:
             self._insert_tick(page, 417.9, 431.2)
             self._insert_text(page, 475, 434, _dash(data.get("cause_ref")), size=8.5, max_w=95)
         else:
+            self._insert_dash(page, 417.9, 431.2)
             self._insert_text(page, 475, 434, "-", size=8.5, max_w=95)
 
-        # Repairing (lines at y=463, 479, 496, 512)
+        # Repairing (lines at y=464, 480, 497, 513)
         repair_text = data.get("repairing", "")
-        rep_y = [463, 479, 496, 512]
+        rep_y = [464, 480, 497, 513]
         if repair_text and str(repair_text).strip() not in ["-", "nan", "none"]:
             r_lines = self._wrap_text(repair_text, width=60)
             for i, line in enumerate(r_lines[:4]):
@@ -509,84 +540,77 @@ class IsoPdfEngine:
             self._insert_tick(page, 417.9, 520.7)
             self._insert_text(page, 475, 523, _dash(data.get("repairing_ref")), size=8.5, max_w=95)
         else:
+            self._insert_dash(page, 417.9, 520.7)
             self._insert_text(page, 475, 523, "-", size=8.5, max_w=95)
 
         # Prevention Checkboxes
         prev = data.get("prevention_ticks", [])
-        if "no_run_dry" in prev: self._insert_tick(page, 156.0, 543.7)
-        if "every_time_pump_motor_removed" in prev or "alignment_training" in prev:
-            self._insert_tick(page, 156.0, 560.6)
-        if "alignment_3_months" in prev: self._insert_tick(page, 156.0, 577.1)
-        if "oil_change_schedule" in prev: self._insert_tick(page, 156.0, 593.8)
-        if "other" in prev or data.get("prevention_other"):
-            self._insert_tick(page, 156.0, 610.2)
-            p_other = data.get("prevention_other", "")
-            if p_other and p_other != "-":
-                po_lines = self._wrap_text(p_other, width=52)
-                if len(po_lines) > 0: self._insert_text(page, 198, 618, po_lines[0], size=8.5, max_w=370)
-                if len(po_lines) > 1: self._insert_text(page, 170, 634, po_lines[1], size=8.5, max_w=400)
-                if len(po_lines) > 2: self._insert_text(page, 170, 651, po_lines[2], size=8.5, max_w=235)
+        prev_checks = [
+            ("no_run_dry", 156.0, 543.7),
+            ("every_time_pump_motor_removed", 156.0, 560.6),
+            ("alignment_3_months", 156.0, 577.1),
+            ("oil_change_schedule", 156.0, 593.8),
+            ("other", 156.0, 610.2)
+        ]
+        for pr_key, pr_x, pr_y in prev_checks:
+            if pr_key == "every_time_pump_motor_removed":
+                if "every_time_pump_motor_removed" in prev or "alignment_training" in prev:
+                    self._insert_tick(page, pr_x, pr_y)
+                else:
+                    self._insert_dash(page, pr_x, pr_y)
+            elif pr_key == "other":
+                if "other" in prev or data.get("prevention_other"):
+                    self._insert_tick(page, pr_x, pr_y)
+                    p_other = data.get("prevention_other", "")
+                    if p_other and p_other != "-":
+                        po_lines = self._wrap_text(p_other, width=52)
+                        if len(po_lines) > 0: self._insert_text(page, 198, 618, po_lines[0], size=8.5, max_w=370)
+                        if len(po_lines) > 1: self._insert_text(page, 170, 634, po_lines[1], size=8.5, max_w=400)
+                        if len(po_lines) > 2: self._insert_text(page, 170, 651, po_lines[2], size=8.5, max_w=235)
+                    else:
+                        self._insert_text(page, 198, 618, "-", size=8.5, max_w=370)
+                else:
+                    self._insert_dash(page, pr_x, pr_y)
+                    self._insert_text(page, 198, 618, "-", size=8.5, max_w=370)
             else:
-                self._insert_text(page, 198, 618, "-", size=8.5, max_w=370)
-        else:
-            self._insert_text(page, 198, 618, "-", size=8.5, max_w=370)
+                if pr_key in prev:
+                    self._insert_tick(page, pr_x, pr_y)
+                else:
+                    self._insert_dash(page, pr_x, pr_y)
 
         # Prevention Ref document
         if data.get("prev_ref_check") or data.get("prev_ref"):
             self._insert_tick(page, 417.9, 659.6)
             self._insert_text(page, 475, 662, _dash(data.get("prev_ref")), size=8.5, max_w=95)
         else:
+            self._insert_dash(page, 417.9, 659.6)
             self._insert_text(page, 475, 662, "-", size=8.5, max_w=95)
 
-        # Test Results
+        # Test Results Checkboxes
         test_res = data.get("test_result", "")
         test_details = data.get("test_result_details", {})
-
-        # Test run line
-        if test_res == "test_run" or "test_run" in test_details:
-            self._insert_tick(page, 156.0, 682.6)
-            dt = _dash(data.get("test_run_detail") or test_details.get("test_run"))
-            self._insert_text(page, 205, 683, dt, size=8.5, max_w=360)
-        else:
-            self._insert_text(page, 205, 683, "-", size=8.5, max_w=360)
-
-        # No test run line
-        if test_res == "no_test_run" or "no_test_run" in test_details:
-            self._insert_tick(page, 156.0, 699.6)
-            dt = _dash(data.get("no_test_run_detail") or test_details.get("no_test_run"))
-            self._insert_text(page, 220, 700, dt, size=8.5, max_w=345)
-        else:
-            self._insert_text(page, 220, 700, "-", size=8.5, max_w=345)
-
-        # Service again line
-        if test_res == "service_again" or "service_again" in test_details:
-            self._insert_tick(page, 156.0, 715.7)
-            dt = _dash(data.get("service_again_detail") or test_details.get("service_again"))
-            self._insert_text(page, 235, 716, dt, size=8.5, max_w=330)
-        else:
-            self._insert_text(page, 235, 716, "-", size=8.5, max_w=330)
-
-        # Return shop line
-        if test_res == "return_shop" or "return_shop" in test_details:
-            self._insert_tick(page, 156.0, 732.2)
-            dt = _dash(data.get("return_shop_detail") or test_details.get("return_shop"))
-            self._insert_text(page, 230, 732, dt, size=8.5, max_w=335)
-        else:
-            self._insert_text(page, 230, 732, "-", size=8.5, max_w=335)
-
-        # Other line
-        if test_res == "other" or "other" in test_details or data.get("test_other_detail"):
-            self._insert_tick(page, 156.0, 749.0)
-            dt = _dash(data.get("test_other_detail") or test_details.get("other"))
-            self._insert_text(page, 195, 749, dt, size=8.5, max_w=210)
-        else:
-            self._insert_text(page, 195, 749, "-", size=8.5, max_w=210)
+        test_items = [
+            ("test_run", 156.0, 682.6, 205, 683, data.get("test_run_detail") or test_details.get("test_run"), 360),
+            ("no_test_run", 156.0, 699.6, 220, 700, data.get("no_test_run_detail") or test_details.get("no_test_run"), 345),
+            ("service_again", 156.0, 715.7, 235, 716, data.get("service_again_detail") or test_details.get("service_again"), 330),
+            ("return_shop", 156.0, 732.2, 230, 732, data.get("return_shop_detail") or test_details.get("return_shop"), 335),
+            ("other", 156.0, 749.0, 195, 749, data.get("test_other_detail") or test_details.get("other"), 210)
+        ]
+        for t_key, t_x, t_y, txt_x, txt_y, detail_val, max_w in test_items:
+            is_checked = (test_res == t_key) or (t_key in test_details) or (t_key == "other" and bool(data.get("test_other_detail")))
+            if is_checked:
+                self._insert_tick(page, t_x, t_y)
+                self._insert_text(page, txt_x, txt_y, _dash(detail_val), size=8.5, max_w=max_w)
+            else:
+                self._insert_dash(page, t_x, t_y)
+                self._insert_text(page, txt_x, txt_y, "-", size=8.5, max_w=max_w)
 
         # Test Ref document
         if data.get("test_ref_check") or data.get("test_ref"):
             self._insert_tick(page, 417.9, 765.6)
             self._insert_text(page, 475, 768, _dash(data.get("test_ref")), size=8.5, max_w=95)
         else:
+            self._insert_dash(page, 417.9, 765.6)
             self._insert_text(page, 475, 768, "-", size=8.5, max_w=95)
 
         # Signatures & Timing Table (Bottom y=780..810)
@@ -629,10 +653,6 @@ class IsoPdfEngine:
         doc.save(output_path)
         doc.close()
         return output_path
-
-    # =========================================================================
-    # FM-EPS-25: SPARE PARTS REPLACEMENT (MULTI-PAGE CAPABLE)
-    # =========================================================================
     def fill_fm_eps_25(self, data: Dict[str, Any], output_path: str) -> str:
         template = self._get_template_path("FM-EPS-25")
         if not template:
@@ -972,13 +992,112 @@ class IsoPdfEngine:
         date_str = self._format_date_dmy(raw_date)
 
         if is_rev00:
+            # Header Request No.
+            if req_no and req_no != "-":
+                self._insert_text(page, 455.0, 42.0, f"Request No. : {req_no}", size=9.0, bold=True)
+
+            # Header Date: วันที่ประเมิน ........................เดือน..............................ปี พ.ศ. ...............
+            day, mon, yr = self._parse_date_dmy_parts(raw_date)
+            if day and mon and yr:
+                try:
+                    yr_int = int(yr)
+                    yr_be = yr_int + 543 if yr_int < 2500 else yr_int
+                    thai_months = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                                   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+                    mon_int = int(mon)
+                    mon_name = thai_months[mon_int] if 1 <= mon_int <= 12 else mon
+                    day_str = str(int(day))
+                    self._insert_centered_text(page, 260.0, 103.0, day_str, size=9.5)
+                    self._insert_centered_text(page, 345.0, 103.0, mon_name, size=9.5)
+                    self._insert_centered_text(page, 427.0, 103.0, str(yr_be), size=9.5)
+                except Exception:
+                    self._insert_centered_text(page, 345.0, 103.0, date_str, size=9.5)
+            elif date_str and date_str != "-":
+                self._insert_centered_text(page, 345.0, 103.0, date_str, size=9.5)
+
+            # 2. 14 Question Ratings: Coordinates for Rev.00
+            x_scores = {4: 351.8, 3: 402.3, 2: 452.8, 1: 503.3, 0: 553.8}
+            y_centers = [
+                230.6, 267.8, 305.1, 333.0,  # 1. ด้านเทคนิค (1.1 - 1.4)
+                361.0, 388.9, 407.5, 435.5, 463.4,  # 2. ด้านคุณภาพ/เวลา/ความสะอาด/จำนวนผู้ปฏิบัติงาน (2.1 - 2.5)
+                491.4, 528.6, 556.5,  # 3. ด้านบุคคลิกภาพส่วนตัวของพนักงาน (3.1 - 3.3)
+                584.5, 612.4   # 4. เครื่องมือ/อุปกรณ์ (4.1 - 4.2)
+            ]
+        else:
+            # Rev.01 fallback
+            if req_no and req_no != "-":
+                self._insert_text(page, 440, 75, f"Request No. : {req_no}", size=9.0, bold=True)
+            if date_str and date_str != "-":
+                self._insert_text(page, 440, 88, f"Date : {date_str}", size=9.0)
+
+            x_scores = {4: 377.6, 3: 423.6, 2: 467.6, 1: 513.6, 0: 559.6}
+            y_centers = [
+                250.7, 269.7, 307.7, 327.7,
+                366.7, 385.7, 405.7, 423.7, 462.7,
+                501.7, 521.7, 558.7,
+                597.7, 616.7
+            ]
+
+        question_keys = [
+            "tech_1", "tech_2", "tech_3", "tech_4",
+            "qual_1", "qual_2", "qual_3", "qual_4", "qual_5",
+            "pers_1", "pers_2", "pers_3",
+            "tool_1", "tool_2"
+        ]
+
+        ratings = data.get("ratings", {})
+        total_score = 0
+
+        for q_idx, q_key in enumerate(question_keys):
+            score = ratings.get(q_key)
+            if score is None:
+                score = ratings.get(str(q_idx + 1), ratings.get(q_idx, 4))
+            try:
+                score = int(score)
+            except (ValueError, TypeError):
+                score = 4
+
+            score = max(0, min(4, score))
+            total_score += score
+
+            # Draw vector checkmark
+            x = x_scores.get(score, 351.8 if is_rev00 else 377.6)
+            y = y_centers[q_idx]
+            self._insert_tick(page, x, y)
+
+        # 3. Total Score
+        percent = round((total_score / 56.0) * 100) if total_score > 0 else 0
+        score_text = f"{total_score} / 56  ({percent}%)"
+        if is_rev00:
+            self._insert_centered_text(page, 452.8, 634.5, score_text, size=10.5, bold=True)
+        else:
+            self._insert_centered_text(page, 468.6, 638.5, score_text, size=10.5, bold=True)
+
+        # 4. Suggestions (up to 3 lines)
+        raw_sugg = str(data.get("suggestions") or "").strip()
+        if raw_sugg and raw_sugg != "-":
+            lines = textwrap.wrap(raw_sugg, width=95)
+            sugg_ys = [680.0, 702.5, 725.0] if is_rev00 else [663.0, 684.0, 705.0]
+            sugg_x = 48.0 if is_rev00 else 95.0
+            for i, line in enumerate(lines[:3]):
+                self._insert_text(page, sugg_x, sugg_ys[i], line, size=9.0)
+
+        # 5. Bottom Metadata
+        cust = str(data.get("sat_customer") or data.get("customer") or "-").strip() or "-"
+        signer = str(data.get("sat_contact_person") or data.get("customer_signer_name") or data.get("contact_person") or "-").strip() or "-"
+        tel = str(data.get("sat_contact_no") or data.get("contact_no") or "-").strip() or "-"
+
+        if is_rev00:
+            # ชื่อลูกค้า : ………………………….………     ,   บริษัท :  …………....................................................…   , เบอร์โทร : ……………………………
             self._insert_text(page, 92.0, 759.0, signer, size=9.0, max_w=115.0)
             self._insert_text(page, 255.0, 759.0, cust, size=9.0, max_w=170.0)
             self._insert_text(page, 480.0, 759.0, tel, size=9.0, max_w=90.0)
             if data.get("sign_customer"):
                 self._insert_signature(page, (60, 705, 190, 745), data["sign_customer"])
-            elif signer:
+            elif signer and signer != "-":
                 self._insert_centered_text(page, 125.0, 725.0, signer, size=9.5, bold=True)
+            else:
+                self._insert_centered_text(page, 125.0, 725.0, "-", size=9.5)
         else:
             self._insert_text(page, 58.0, 765.0, cust, size=9.0, max_w=175.0)
             self._insert_text(page, 282.0, 765.0, signer, size=9.0, max_w=130.0)
@@ -987,17 +1106,15 @@ class IsoPdfEngine:
                 self._insert_text(page, 120.0, 794.0, date_str, size=9.0, max_w=115.0)
             if data.get("sign_customer"):
                 self._insert_signature(page, (280, 715, 405, 752), data["sign_customer"])
-            elif signer:
+            elif signer and signer != "-":
                 self._insert_centered_text(page, 342.0, 733.0, signer, size=9.5, bold=True)
+            else:
+                self._insert_centered_text(page, 342.0, 733.0, "-", size=9.5)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
-
-    # =========================================================================
-    # PHOTO REPORT (A4 Slide Grid)
-    # =========================================================================
     def generate_photo_report(self, data: Dict[str, Any], photos: List[Dict[str, Any]], output_path: str) -> str:
         """
         Generates authentic Siamraj Photo Report matching the company template:
@@ -1362,7 +1479,7 @@ class IsoPdfEngine:
         if date_str:
             self._insert_text(page, 495, 142, date_str, size=9.5)
 
-        # Box 1: Customer & Job Info
+        # Box 1: Customer & Job Info (Aligned with horizontal underlines at y=170.7, 184.5, 198.3)
         cust = str(data.get("exp_customer") or data.get("customer") or "").strip()
         sales_person = str(data.get("exp_sales") or data.get("sales_person") or data.get("sales") or "").strip()
         sales_group = str(data.get("exp_group") or data.get("sales_group") or data.get("group") or "").strip()
@@ -1371,18 +1488,18 @@ class IsoPdfEngine:
         site_place = str(data.get("exp_place") or data.get("plant") or data.get("site") or "").strip()
         contact = str(data.get("exp_contact") or data.get("contact_person") or "").strip()
         tel = str(data.get("exp_tel") or data.get("contact_no") or "").strip()
-        if tel:
-            contact = f"{contact} ({tel})" if contact else tel
+        if tel and tel != "-":
+            contact = f"{contact} ({tel})" if (contact and contact != "-") else tel
 
-        self._insert_text(page, 115, 163, cust or "-", size=9.5, bold=True)
-        self._insert_text(page, 310, 163, sales_person or "-", size=9.5)
-        self._insert_text(page, 515, 163, sales_group or "-", size=9.5)
+        self._insert_text(page, 115, 169.5, cust or "-", size=9.5, bold=True, max_w=140)
+        self._insert_text(page, 356, 169.5, sales_person or "-", size=9.5, max_w=95)
+        self._insert_text(page, 515, 169.5, sales_group or "-", size=9.5, max_w=55)
 
-        self._insert_text(page, 115, 177, prod_model or "-", size=9.5)
-        self._insert_text(page, 310, 177, io_so or "-", size=9.5)
+        self._insert_text(page, 115, 183.0, prod_model or "-", size=9.5, max_w=140)
+        self._insert_text(page, 356, 183.0, io_so or "-", size=9.5, max_w=200)
 
-        self._insert_text(page, 115, 191, site_place or "-", size=9.5)
-        self._insert_text(page, 350, 191, contact or "-", size=9.5)
+        self._insert_text(page, 115, 197.0, site_place or "-", size=9.5, max_w=140)
+        self._insert_text(page, 376, 197.0, contact or "-", size=9.5, max_w=200)
 
         # Box 2: Job Checkboxes
         job_map = [
@@ -1398,11 +1515,12 @@ class IsoPdfEngine:
             val = data.get(key)
             if val in [True, "true", "True", "1", 1, "yes", "Yes"]:
                 self._insert_tick(page, 86.5, y_pos, size=8.5, color=(0, 0, 0))
+            else:
+                self._insert_dash(page, 86.5, y_pos, size=8.5)
 
         for key_txt, y_pos in [("exp_job_other1_text", 281), ("exp_job_other2_text", 293), ("exp_job_other3_text", 305)]:
             txt_val = str(data.get(key_txt) or "").strip()
-            if txt_val:
-                self._insert_text(page, 130, y_pos, txt_val, size=9)
+            self._insert_text(page, 130, y_pos, txt_val if txt_val else "-", size=9)
 
         # Box 2: Expenses
         exp_items = [
@@ -1417,132 +1535,134 @@ class IsoPdfEngine:
         for chk_key, amt_key, y_pos in exp_items:
             c_val = data.get(chk_key)
             a_val = str(data.get(amt_key) or "").strip()
-            if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or a_val:
+            if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val != "-"):
                 self._insert_tick(page, 313.5, y_pos, size=8.5, color=(0, 0, 0))
-            if a_val:
-                self._insert_text(page, 430, y_pos, a_val, size=9)
+            else:
+                self._insert_dash(page, 313.5, y_pos, size=8.5)
+            self._insert_text(page, 430, y_pos, a_val if a_val else "-", size=9)
 
         # Gas distance note if provided
         gas_dist = str(data.get("exp_gas_distance") or "").strip()
         if gas_dist:
             self._insert_text(page, 375, 257, gas_dist, size=8.5)
 
-        # Box 3: Work Summary & Time
+        # Box 3: Work Summary & Time (Underline baselines at y=356.5, 370.5, 384.5, 398.0)
         summary_times = [
-            ("exp_work_start", 180, 344), ("exp_work_end", 315, 344), ("exp_work_total", 480, 344),
-            ("exp_travel_to_start", 180, 358), ("exp_travel_to_end", 315, 358), ("exp_travel_to_total", 480, 358),
-            ("exp_travel_back_start", 180, 372), ("exp_travel_back_end", 315, 372), ("exp_travel_back_total", 480, 372)
+            ("exp_work_start", 225, 356.5), ("exp_work_end", 340, 356.5), ("exp_work_total", 495, 356.5),
+            ("exp_travel_to_start", 225, 370.5), ("exp_travel_to_end", 340, 370.5), ("exp_travel_to_total", 495, 370.5),
+            ("exp_travel_back_start", 225, 384.5), ("exp_travel_back_end", 340, 384.5), ("exp_travel_back_total", 495, 384.5)
         ]
         for k, x_pos, y_pos in summary_times:
             v = str(data.get(k) or "").strip()
-            if v:
-                self._insert_text(page, x_pos, y_pos, v, size=9)
+            self._insert_text(page, x_pos, y_pos, v if v else "-", size=9)
 
-        if data.get("exp_distance"):
-            self._insert_text(page, 125, 393, str(data.get("exp_distance")), size=9.5)
-        if data.get("exp_crew_tech"):
-            self._insert_text(page, 345, 393, str(data.get("exp_crew_tech")), size=9.5)
-        if data.get("exp_crew_sr_tech"):
-            self._insert_text(page, 485, 393, str(data.get("exp_crew_sr_tech")), size=9.5)
-        if data.get("exp_crew_eng"):
-            self._insert_text(page, 410, 407, str(data.get("exp_crew_eng")), size=9.5)
+        self._insert_text(page, 135, 398.0, str(data.get("exp_distance") or "-"), size=9.5)
+        self._insert_text(page, 375, 398.0, str(data.get("exp_crew_tech") or "-"), size=9.5)
+        self._insert_text(page, 485, 398.0, str(data.get("exp_crew_sr_tech") or "-"), size=9.5)
+        self._insert_text(page, 415, 412.0, str(data.get("exp_crew_eng") or "-"), size=9.5)
 
         # Box 4: Charge to
         charge_items = [
-            ("exp_charge_sales", "exp_charge_sales_amt", 451),
-            ("exp_charge_service", "exp_charge_service_amt", 463),
-            ("exp_charge_company", "exp_charge_company_amt", 475)
+            ("exp_charge_sales", "exp_charge_sales_amt", 448),
+            ("exp_charge_service", "exp_charge_service_amt", 460),
+            ("exp_charge_company", "exp_charge_company_amt", 472)
         ]
         for chk_key, amt_key, y_pos in charge_items:
             c_val = data.get(chk_key)
             a_val = str(data.get(amt_key) or "").strip()
-            if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or a_val:
+            if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val != "-"):
                 self._insert_tick(page, 86.5, y_pos, size=8.5, color=(0, 0, 0))
-            if a_val:
-                self._insert_text(page, 370, y_pos, a_val, size=9)
+            else:
+                self._insert_dash(page, 86.5, y_pos, size=8.5)
+            self._insert_text(page, 370, y_pos, a_val if a_val else "-", size=9)
 
         # Box 5: Result & Fund from
         result_items = [
-            ("exp_res_completed", 523),
-            ("exp_res_in_progress", 536),
-            ("exp_res_pending_approval", 548),
-            ("exp_res_pending_parts", 560),
-            ("exp_res_no_repair", 573)
+            ("exp_res_completed", 517),
+            ("exp_res_in_progress", 529.5),
+            ("exp_res_pending_approval", 542),
+            ("exp_res_pending_parts", 554.5),
+            ("exp_res_no_repair", 567)
         ]
         for key, y_pos in result_items:
             if data.get(key) in [True, "true", "True", "1", 1, "yes", "Yes"]:
-                self._insert_tick(page, 86.5, y_pos, size=8.5, color=(0, 0, 0))
+                self._insert_tick(page, 86.5, y_pos + 4.5, size=8.5, color=(0, 0, 0))
+            else:
+                self._insert_dash(page, 86.5, y_pos, size=8.5)
 
         fund_items = [
-            ("exp_fund_io_job", 523),
-            ("exp_fund_io_orderer", 536),
-            ("exp_fund_budget", 548),
-            ("exp_fund_other", 560)
+            ("exp_fund_io_job", 517),
+            ("exp_fund_io_orderer", 529.5),
+            ("exp_fund_budget", 542),
+            ("exp_fund_other", 554.5)
         ]
         for key, y_pos in fund_items:
             if data.get(key) in [True, "true", "True", "1", 1, "yes", "Yes"]:
                 self._insert_tick(page, 313.5, y_pos, size=8.5, color=(0, 0, 0))
+            else:
+                self._insert_dash(page, 313.5, y_pos, size=8.5)
 
         # Box 6: Additional comments
         comments = str(data.get("exp_comments") or data.get("comments") or "").strip()
-        if comments:
-            c_lines = comments.split("\n")
+        if comments and comments != "-":
+            c_lines = comments.splitlines()
             curr_y = 608
             for cl in c_lines[:3]:
                 if cl.strip():
                     self._insert_text(page, 65, curr_y, cl.strip()[:95], size=9)
                 curr_y += 14
+        else:
+            self._insert_text(page, 65, 608, "-", size=9)
 
-        # Signatures
+        # Signatures (Line at y=676.2, Date underline at y=701.0)
         tech_sig = data.get("signature_tech") or data.get("sig_technician") or data.get("signature_engineer")
+        tech_name = str(data.get("exp_tech_name") or data.get("technician_name") or data.get("tech_name") or data.get("serviced_by") or "").strip()
         if tech_sig:
-            self._insert_signature(page, (70, 645, 160, 675), tech_sig)
-        tech_name = str(data.get("exp_tech_name") or data.get("technician_name") or data.get("tech_name") or "").strip()
-        if tech_name:
-            self._insert_text(page, 105, 680, tech_name, size=9.5)
+            self._insert_signature(page, (65, 635, 160, 674), tech_sig)
+        elif tech_name and tech_name != "-":
+            self._insert_centered_text(page, 112, 672, tech_name, size=9.5, bold=True)
+        else:
+            self._insert_centered_text(page, 112, 672, "-", size=9.5)
         tech_date = self._format_date_dmy(data.get("exp_tech_date") or raw_date)
-        if tech_date:
-            self._insert_text(page, 90, 698, tech_date, size=9)
+        self._insert_text(page, 85, 701, tech_date or "-", size=9)
 
         sr_sig = data.get("exp_sr_tech_sig")
-        if sr_sig:
-            self._insert_signature(page, (200, 645, 290, 675), sr_sig)
         sr_name = str(data.get("exp_sr_tech_name") or "").strip()
-        if sr_name:
-            self._insert_text(page, 235, 680, sr_name, size=9.5)
+        if sr_sig:
+            self._insert_signature(page, (215, 635, 310, 674), sr_sig)
+        elif sr_name and sr_name != "-":
+            self._insert_centered_text(page, 260, 672, sr_name, size=9.5, bold=True)
+        else:
+            self._insert_centered_text(page, 260, 672, "-", size=9.5)
         sr_date = self._format_date_dmy(data.get("exp_sr_tech_date") or raw_date)
-        if sr_date:
-            self._insert_text(page, 220, 698, sr_date, size=9)
+        self._insert_text(page, 255, 701, sr_date or "-", size=9)
 
         sales_sig = data.get("exp_sales_sig") or data.get("signature_cust") or data.get("sig_customer")
-        if sales_sig:
-            self._insert_signature(page, (390, 645, 480, 675), sales_sig)
         sales_n = str(data.get("exp_sales_name") or sales_person).strip()
-        if sales_n:
-            self._insert_text(page, 430, 680, sales_n, size=9.5)
+        if sales_sig:
+            self._insert_signature(page, (390, 635, 480, 674), sales_sig)
+        elif sales_n and sales_n != "-":
+            self._insert_centered_text(page, 435, 672, sales_n, size=9.5, bold=True)
+        else:
+            self._insert_centered_text(page, 435, 672, "-", size=9.5)
         sales_d = self._format_date_dmy(data.get("exp_sales_date") or raw_date)
-        if sales_d:
-            self._insert_text(page, 420, 698, sales_d, size=9)
+        self._insert_text(page, 430, 701, sales_d or "-", size=9)
 
         mgr_sig = data.get("exp_mgr_sig")
+        mgr_n = str(data.get("exp_mgr_name") or "").strip()
         if mgr_sig:
             self._insert_signature(page, (390, 695, 480, 725), mgr_sig)
-        mgr_n = str(data.get("exp_mgr_name") or "").strip()
-        if mgr_n:
-            self._insert_text(page, 430, 730, mgr_n, size=9.5)
+        elif mgr_n and mgr_n != "-":
+            self._insert_centered_text(page, 435, 722, mgr_n, size=9.5, bold=True)
+        else:
+            self._insert_centered_text(page, 435, 722, "-", size=9.5)
         mgr_d = self._format_date_dmy(data.get("exp_mgr_date") or raw_date)
-        if mgr_d:
-            self._insert_text(page, 420, 747, mgr_d, size=9)
+        self._insert_text(page, 430, 745, mgr_d or "-", size=9)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
-
-    # =========================================================================
-    # SERVICE REQUEST FORM GENERATOR (FM-EPS-28, Rev.05, 21/09/63)
-    # Matches official CRM layout: clean white page without horizontal dividers
-    # =========================================================================
     def generate_service_request_pdf(self, data: Dict[str, Any], output_path: str) -> str:
         """Render official ISO Service Request Form (FM-EPS-28) from pure CRM data"""
         doc = pymupdf.open()

@@ -2880,6 +2880,7 @@ function loadPackagePreset(presetName) {
       { id: "inst_2", code: "FM-EPS-22", title: "รายงานการตรวจสภาพเครื่องจักร", num: 1, customLabel: "", data: null },
 
       { id: "inst_3", code: "FM-EPS-31", title: "ตารางวัดขนาดสึกหรอชิ้นส่วน", num: 1, customLabel: "ชุดที่ 1", data: null }
+      , { id: "inst_4", code: "FM-EPS-45", title: "แบบประเมินความพึงพอใจลูกค้า", num: 1, customLabel: "", data: null }
 
     ];
 
@@ -4262,6 +4263,17 @@ async function selectTicket(ticketNo) {
     // Load existing draft if present
 
     await loadTicketDraft(ticketNo);
+
+    if (!state.packageInstances || state.packageInstances.length === 0) {
+      state.packageInstances = [
+        { id: "inst_" + Date.now() + "_1", code: "FM-EPS-23", title: "รายงานการบริการ", num: 1, customLabel: "", data: null },
+        { id: "inst_" + Date.now() + "_2", code: "FM-EPS-45", title: "แบบประเมินความพึงพอใจลูกค้า", num: 1, customLabel: "", data: null }
+      ];
+      state.activeInstanceId = state.packageInstances[0].id;
+      renderPackageTabs();
+      selectPackageInstance(state.activeInstanceId);
+    }
+
 
     loadTicketPhotos(ticketNo);
 

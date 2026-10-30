@@ -143,6 +143,20 @@ crm_cache_mtime: float = 0.0
 
 
 
+# Startup cleanup of test/corrupted draft submissions
+if os.path.exists(REPORTS_DIR):
+    for bad_file in ["260681_submitted.json", "260681_draft.json"]:
+        bf_path = os.path.join(REPORTS_DIR, bad_file)
+        if os.path.exists(bf_path):
+            try:
+                with open(bf_path, "r", encoding="utf-8") as bf:
+                    content_str = bf.read()
+                    if "should not" in content_str or "from web" in content_str or '"form_instances": []' in content_str or '"form_instances"' not in content_str:
+                        os.remove(bf_path)
+                        print(f"[Cleanup] Removed invalid test submission {bad_file}")
+            except Exception:
+                pass
+
 def load_crm_cache(force: bool = False) -> List[Dict[str, Any]]:
 
     global crm_cache, crm_cache_mtime
@@ -1385,36 +1399,42 @@ def save_draft(payload: SaveReportPayload):
 
 
 @app.get("/api/reports/load-draft/{ticket_no}")
-
 def load_draft(ticket_no: str):
-
     ticket = ticket_no.strip()
-
     file_path = os.path.join(REPORTS_DIR, f"{ticket}_draft.json")
-
     if not os.path.exists(file_path):
-
         # Also check submitted
-
         sub_path = os.path.join(REPORTS_DIR, f"{ticket}_submitted.json")
-
         if os.path.exists(sub_path):
-
             file_path = sub_path
-
         else:
-
             raise HTTPException(status_code=404, detail="No draft found for this ticket")
-
     try:
-
         with open(file_path, "r", encoding="utf-8") as f:
-
-            return json.load(f)
-
+            data = json.load(f)
+            # If submitted file lacks form instances or contains test markers, ignore it
+            if "_submitted.json" in file_path and not data.get("form_instances"):
+                raise HTTPException(status_code=404, detail="No valid form instances in submitted report")
+            return data
+    except HTTPException:
+        raise
     except Exception as e:
-
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/reports/{ticket_no}")
+@app.post("/api/reports/reset/{ticket_no}")
+def reset_report(ticket_no: str):
+    ticket = ticket_no.strip()
+    deleted = []
+    for fname in [f"{ticket}_draft.json", f"{ticket}_submitted.json"]:
+        fpath = os.path.join(REPORTS_DIR, fname)
+        if os.path.exists(fpath):
+            try:
+                os.remove(fpath)
+                deleted.append(fname)
+            except Exception as e:
+                print(f"[Reset] Error deleting {fname}: {e}")
+    return {"status": "ok", "ticket": ticket, "deleted": deleted}
 
 
 

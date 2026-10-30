@@ -4028,13 +4028,13 @@ async function selectTicket(ticketNo) {
 
     // Populate Fields on Header (Customer, Plant, Contact Person, Tel - default to '-' if empty)
 
-    const custVal = String(t.Customer || t["Organization Name"] || "").trim() || "-";
+    const custVal = String(t.Customer || t["Organization Name"] || "").trim() || "";
 
-    const siteVal = String(t.Site || t["Address or Site"] || "").trim() || "-";
+    const siteVal = String(t.Site || t["Address or Site"] || "").trim() || "";
 
-    const contactPersonVal = String(t.ContactPerson || t["Site Contact Person"] || "").trim() || "-";
+    const contactPersonVal = String(t.ContactPerson || t["Site Contact Person"] || "").trim() || "";
 
-    const contactPhoneVal = String(t.ContactPhone || t["Site Contact Phone"] || "").trim() || "-";
+    const contactPhoneVal = String(t.ContactPhone || t["Site Contact Phone"] || "").trim() || "";
 
 
 
@@ -4304,28 +4304,20 @@ async function loadTicketDraft(ticketNo) {
 
 
 function applyDraftData(d) {
-
   if (d.form_instances && Array.isArray(d.form_instances) && d.form_instances.length > 0) {
-
     state.packageInstances = d.form_instances;
-
     state.activeInstanceId = d.active_instance_id || d.activeInstanceId || state.packageInstances[0].id;
-
     renderPackageTabs();
-
     selectPackageInstance(state.activeInstanceId);
-
   }
 
+  const isValidDraftVal = (v) => v && v !== "-" && !String(v).includes("should not") && !String(v).includes("from web");
 
+  if (isValidDraftVal(d.customer) && document.getElementById("sr_customer")) document.getElementById("sr_customer").value = d.customer;
+  if (isValidDraftVal(d.plant) && document.getElementById("sr_plant")) document.getElementById("sr_plant").value = d.plant;
+  if (isValidDraftVal(d.contact_person) && document.getElementById("sr_contact_person")) document.getElementById("sr_contact_person").value = d.contact_person;
+  if (isValidDraftVal(d.contact_no) && document.getElementById("sr_contact_no")) document.getElementById("sr_contact_no").value = d.contact_no;
 
-  if (d.customer && document.getElementById("sr_customer")) document.getElementById("sr_customer").value = d.customer;
-
-  if (d.plant && document.getElementById("sr_plant")) document.getElementById("sr_plant").value = d.plant;
-
-  if (d.contact_person && document.getElementById("sr_contact_person")) document.getElementById("sr_contact_person").value = d.contact_person;
-
-  if (d.contact_no && document.getElementById("sr_contact_no")) document.getElementById("sr_contact_no").value = d.contact_no;
 
 
 
@@ -6431,49 +6423,49 @@ function collectReportData() {
 
     check_radial: {
 
-      "0": document.getElementById("al_c_r_0")?.value || "-",
+      "0": document.getElementById("al_c_r_0")?.value || "",
 
-      "90": document.getElementById("al_c_r_90")?.value || "-",
+      "90": document.getElementById("al_c_r_90")?.value || "",
 
-      "180": document.getElementById("al_c_r_180")?.value || "-",
+      "180": document.getElementById("al_c_r_180")?.value || "",
 
-      "270": document.getElementById("al_c_r_270")?.value || "-"
+      "270": document.getElementById("al_c_r_270")?.value || ""
 
     },
 
     check_x: {
 
-      "0": document.getElementById("al_c_x_0")?.value || "-",
+      "0": document.getElementById("al_c_x_0")?.value || "",
 
-      "90": document.getElementById("al_c_x_90")?.value || "-",
+      "90": document.getElementById("al_c_x_90")?.value || "",
 
-      "180": document.getElementById("al_c_x_180")?.value || "-",
+      "180": document.getElementById("al_c_x_180")?.value || "",
 
-      "270": document.getElementById("al_c_x_270")?.value || "-"
+      "270": document.getElementById("al_c_x_270")?.value || ""
 
     },
 
     reset_radial: {
 
-      "0": document.getElementById("al_r_r_0")?.value || "-",
+      "0": document.getElementById("al_r_r_0")?.value || "",
 
-      "90": document.getElementById("al_r_r_90")?.value || "-",
+      "90": document.getElementById("al_r_r_90")?.value || "",
 
-      "180": document.getElementById("al_r_r_180")?.value || "-",
+      "180": document.getElementById("al_r_r_180")?.value || "",
 
-      "270": document.getElementById("al_r_r_270")?.value || "-"
+      "270": document.getElementById("al_r_r_270")?.value || ""
 
     },
 
     reset_x: {
 
-      "0": document.getElementById("al_r_x_0")?.value || "-",
+      "0": document.getElementById("al_r_x_0")?.value || "",
 
-      "90": document.getElementById("al_r_x_90")?.value || "-",
+      "90": document.getElementById("al_r_x_90")?.value || "",
 
-      "180": document.getElementById("al_r_x_180")?.value || "-",
+      "180": document.getElementById("al_r_x_180")?.value || "",
 
-      "270": document.getElementById("al_r_x_270")?.value || "-"
+      "270": document.getElementById("al_r_x_270")?.value || ""
 
     },
 
@@ -6495,61 +6487,61 @@ function collectReportData() {
 
     pump: {
 
-      dh: document.getElementById("vb_p_dh")?.value || "-",
+      dh: document.getElementById("vb_p_dh")?.value || "",
 
-      dv: document.getElementById("vb_p_dv")?.value || "-",
+      dv: document.getElementById("vb_p_dv")?.value || "",
 
-      da: document.getElementById("vb_p_da")?.value || "-",
+      da: document.getElementById("vb_p_da")?.value || "",
 
-      nh: document.getElementById("vb_p_nh")?.value || "-",
+      nh: document.getElementById("vb_p_nh")?.value || "",
 
-      nv: document.getElementById("vb_p_nv")?.value || "-",
+      nv: document.getElementById("vb_p_nv")?.value || "",
 
-      na: document.getElementById("vb_p_na")?.value || "-",
+      na: document.getElementById("vb_p_na")?.value || "",
 
-      t_de: document.getElementById("vb_p_tde")?.value || "-",
+      t_de: document.getElementById("vb_p_tde")?.value || "",
 
-      t_nde: document.getElementById("vb_p_tnde")?.value || "-"
+      t_nde: document.getElementById("vb_p_tnde")?.value || ""
 
     },
 
     motor: {
 
-      dh: document.getElementById("vb_m_dh")?.value || "-",
+      dh: document.getElementById("vb_m_dh")?.value || "",
 
-      dv: document.getElementById("vb_m_dv")?.value || "-",
+      dv: document.getElementById("vb_m_dv")?.value || "",
 
-      da: document.getElementById("vb_m_da")?.value || "-",
+      da: document.getElementById("vb_m_da")?.value || "",
 
-      nh: document.getElementById("vb_m_nh")?.value || "-",
+      nh: document.getElementById("vb_m_nh")?.value || "",
 
-      nv: document.getElementById("vb_m_nv")?.value || "-",
+      nv: document.getElementById("vb_m_nv")?.value || "",
 
-      na: document.getElementById("vb_m_na")?.value || "-",
+      na: document.getElementById("vb_m_na")?.value || "",
 
-      t_de: document.getElementById("vb_m_tde")?.value || "-",
+      t_de: document.getElementById("vb_m_tde")?.value || "",
 
-      t_nde: document.getElementById("vb_m_tnde")?.value || "-"
+      t_nde: document.getElementById("vb_m_tnde")?.value || ""
 
     },
 
     gear: {
 
-      dh: document.getElementById("vb_g_dh")?.value || "-",
+      dh: document.getElementById("vb_g_dh")?.value || "",
 
-      dv: document.getElementById("vb_g_dv")?.value || "-",
+      dv: document.getElementById("vb_g_dv")?.value || "",
 
-      da: document.getElementById("vb_g_da")?.value || "-",
+      da: document.getElementById("vb_g_da")?.value || "",
 
-      nh: document.getElementById("vb_g_nh")?.value || "-",
+      nh: document.getElementById("vb_g_nh")?.value || "",
 
-      nv: document.getElementById("vb_g_nv")?.value || "-",
+      nv: document.getElementById("vb_g_nv")?.value || "",
 
-      na: document.getElementById("vb_g_na")?.value || "-",
+      na: document.getElementById("vb_g_na")?.value || "",
 
-      t_de: document.getElementById("vb_g_tde")?.value || "-",
+      t_de: document.getElementById("vb_g_tde")?.value || "",
 
-      t_nde: document.getElementById("vb_g_tnde")?.value || "-"
+      t_nde: document.getElementById("vb_g_tnde")?.value || ""
 
     }
 
@@ -6561,25 +6553,25 @@ function collectReportData() {
 
   const operation = {
 
-    ins_u: document.getElementById("op_ins_u")?.value || "-",
+    ins_u: document.getElementById("op_ins_u")?.value || "",
 
-    ins_v: document.getElementById("op_ins_v")?.value || "-",
+    ins_v: document.getElementById("op_ins_v")?.value || "",
 
-    ins_w: document.getElementById("op_ins_w")?.value || "-",
+    ins_w: document.getElementById("op_ins_w")?.value || "",
 
-    cur_u: document.getElementById("op_cur_u")?.value || "-",
+    cur_u: document.getElementById("op_cur_u")?.value || "",
 
-    cur_v: document.getElementById("op_cur_v")?.value || "-",
+    cur_v: document.getElementById("op_cur_v")?.value || "",
 
-    cur_w: document.getElementById("op_cur_w")?.value || "-",
+    cur_w: document.getElementById("op_cur_w")?.value || "",
 
-    vol_uv: document.getElementById("op_vol_uv")?.value || "-",
+    vol_uv: document.getElementById("op_vol_uv")?.value || "",
 
-    vol_uw: document.getElementById("op_vol_uw")?.value || "-",
+    vol_uw: document.getElementById("op_vol_uw")?.value || "",
 
-    vol_vw: document.getElementById("op_vol_vw")?.value || "-",
+    vol_vw: document.getElementById("op_vol_vw")?.value || "",
 
-    speed: document.getElementById("op_speed")?.value || "-"
+    speed: document.getElementById("op_speed")?.value || ""
 
   };
 
@@ -6615,9 +6607,9 @@ function collectReportData() {
 
     position: row.pos,
 
-    std_in: row.std_in || "-",
+    std_in: row.std_in || "",
 
-    std_mm: row.std_mm || "-",
+    std_mm: row.std_mm || "",
 
     std_min: row.min || (row.val_mm ? row.val_mm.toString() : "-"),
 
@@ -6629,13 +6621,13 @@ function collectReportData() {
 
     val_in: row.val_in || null,
 
-    in_a: document.getElementById(`insp_in_a_${idx}`)?.value || "-",
+    in_a: document.getElementById(`insp_in_a_${idx}`)?.value || "",
 
-    in_b: document.getElementById(`insp_in_b_${idx}`)?.value || "-",
+    in_b: document.getElementById(`insp_in_b_${idx}`)?.value || "",
 
-    final_a: document.getElementById(`insp_fi_a_${idx}`)?.value || "-",
+    final_a: document.getElementById(`insp_fi_a_${idx}`)?.value || "",
 
-    final_b: document.getElementById(`insp_fi_b_${idx}`)?.value || "-",
+    final_b: document.getElementById(`insp_fi_b_${idx}`)?.value || "",
 
     result: document.getElementById(`insp_badge_${idx}`)?.innerText || "PASS",
 

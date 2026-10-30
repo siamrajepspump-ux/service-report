@@ -202,210 +202,165 @@ def load_crm_cache(force: bool = False) -> List[Dict[str, Any]]:
 
 
         is_service_app_data = (target_path == PRIMARY_TICKETS_CSV)
-
         with open(target_path, mode="r", encoding="utf-8-sig") as f:
-
             reader = csv.DictReader(f)
-
             loaded_items = []
+            clean_str = lambda val: "" if (val is None or str(val).strip().lower() in ["nan", "none"]) else str(val).strip()
 
             for r in reader:
+                item = {k: clean_str(v) for k, v in r.items()}
 
                 if is_service_app_data:
-
-                    t_no = str(r.get("Title") or r.get("Ticket Number") or "").strip()
-
-                    if not t_no or t_no.lower() == "nan":
-
+                    # In Tickets_Cleaned.csv:
+                    # Title = Request No (e.g. 260024, 260001)
+                    # Ticket Number = Vtiger Ticket No (e.g. TT4635)
+                    req_no = clean_str(r.get("Title"))
+                    vtiger_no = clean_str(r.get("Ticket Number"))
+                    if not req_no:
+                        req_no = vtiger_no
+                    if not req_no:
                         continue
 
-                    clean_str = lambda val: "" if (val is None or str(val).strip().lower() in ["nan", "none"]) else str(val).strip()
-
-                    item = {k: clean_str(v) for k, v in r.items()}
-
-                    item["TicketNo"] = t_no
-
-                    item["TicketKey"] = clean_str(r.get("Ticket Number"))
-
+                    item["RequestNo"] = req_no
+                    item["TicketNo"] = req_no
+                    item["TicketKey"] = req_no
+                    item["VtigerTicket"] = vtiger_no
                     item["Customer"] = clean_str(r.get("Organization Name"))
-
                     item["Site"] = clean_str(r.get("Address or Site"))
-
                     item["ContactPerson"] = clean_str(r.get("Site Contact Person"))
-
                     item["ContactPhone"] = clean_str(r.get("Site Contact Phone"))
-
                     item["Model"] = clean_str(r.get("Model"))
-
                     item["SerialNo"] = clean_str(r.get("Serial Number"))
-
                     item["Product"] = clean_str(r.get("Product"))
-
                     item["ServiceBy"] = clean_str(r.get("Service By"))
-
                     item["SalesOrder"] = clean_str(r.get("Sales Orders"))
-
                     item["Description"] = clean_str(r.get("Description"))
-
                     item["ProblemDetail"] = clean_str(r.get("Description"))
-
                     item["Cause"] = clean_str(r.get("Cause"))
-
                     item["Prevention"] = clean_str(r.get("Prevention"))
-
                     item["Solution"] = clean_str(r.get("Solution"))
-
                     item["AppointmentDate"] = clean_str(r.get("Appointment Date"))
-
                     item["CompletedDate"] = clean_str(r.get("Completed Date"))
-
                     item["CreatedDate"] = clean_str(r.get("Created Time"))
+                    item["Status"] = clean_str(r.get("Status")) or "Open"
+                    loaded_items.append(item)
+                else:
+                    # In crm_tickets_cache.csv:
+                    # TicketKey = Request No (e.g. 260678, 260024, A620101)
+                    # TicketNo = Vtiger Ticket No (e.g. TT5290, TT1)
+                    raw_key = clean_str(r.get("TicketKey"))
+                    raw_no = clean_str(r.get("TicketNo"))
 
-                    item["Status"] = clean_str(r.get("Status"))
+                    if raw_key and (not raw_key.startswith("TT")):
+                        req_no = raw_key
+                        vtiger_no = raw_no
+                    elif raw_no and (not raw_no.startswith("TT")):
+                        req_no = raw_no
+                        vtiger_no = raw_key
+                    else:
+                        req_no = raw_key or raw_no
+                        vtiger_no = raw_no or raw_key
 
+                    if not req_no:
+                        continue
+
+                    item["RequestNo"] = req_no
+                    item["TicketNo"] = req_no          # TicketNo is ALWAYS Request No (e.g. 260024)
+                    item["TicketKey"] = req_no         # Keeps compatibility
+                    item["VtigerTicket"] = vtiger_no   # e.g. TT4635
+                    item["Status"] = clean_str(r.get("Status")) or "Open"
                     loaded_items.append(item)
 
-                else:
-
-                    loaded_items.append(r)
-
-
-
             crm_cache = loaded_items
-
             crm_cache_mtime = current_mtime
-
             print(f"[CRM Cache] Loaded {len(crm_cache)} tickets from {target_path} (updated: {time.ctime(current_mtime)})")
-
     except Exception as e:
-
         print(f"[CRM Cache] Error loading {target_path}: {e}")
-
     return crm_cache
-
-
 
 load_crm_cache(force=True)
 
-
-
 # =============================================================================
-
 # API ROUTES: TICKETS & CRM
-
 # =============================================================================
-
 @app.get("/api/health")
-
 def health_check():
-
     load_crm_cache()
-
     return {
-
         "status": "online",
-
         "timestamp": datetime.now().isoformat(),
-
         "tickets_cached": len(crm_cache),
-
         "source": PRIMARY_TICKETS_CSV if os.path.exists(PRIMARY_TICKETS_CSV) else FALLBACK_TICKETS_CSV,
-
         "version": "2.0.0"
-
     }
-
-
 
 @app.get("/api/tickets")
-
 def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25, sort: str = "desc"):
-
-    """Search and paginate cached CRM tickets directly from Google Drive"""
-
+    """Search and paginate cached CRM tickets by Request No. (primary), Customer, Model, Serial, or TT"""
     load_crm_cache()
-
     results = crm_cache
-
     if q:
-
         query = q.lower().strip()
-
         results = [
-
             t for t in crm_cache
-
-            if query in str(t.get("TicketNo", "")).lower()
-
+            if query in str(t.get("RequestNo", "")).lower()
+            or query in str(t.get("TicketNo", "")).lower()
             or query in str(t.get("TicketKey", "")).lower()
-
+            or query in str(t.get("VtigerTicket", "")).lower()
             or query in str(t.get("Customer", "")).lower()
-
             or query in str(t.get("Site", "")).lower()
-
             or query in str(t.get("Model", "")).lower()
-
             or query in str(t.get("SerialNo", "")).lower()
-
             or query in str(t.get("ServiceBy", "")).lower()
-
             or query in str(t.get("SalesOrder", "")).lower()
-
         ]
+        # Prioritize Request Number match #1!
+        def sort_rank(t):
+            req = str(t.get("RequestNo", "")).lower()
+            cust = str(t.get("Customer", "")).lower()
+            vt = str(t.get("VtigerTicket", "")).lower()
+            if req == query:
+                return (0, -len(req))
+            if req.startswith(query):
+                return (1, -len(req))
+            if query in req:
+                return (2, -len(req))
+            if cust == query:
+                return (3, 0)
+            if cust.startswith(query):
+                return (4, 0)
+            if vt == query:
+                return (5, 0)
+            return (6, 0)
 
-        results.sort(key=lambda t: 0 if str(t.get("TicketNo", "")).lower() == query else (1 if str(t.get("TicketKey", "")).lower() == query else 2))
-
+        results.sort(key=sort_rank)
     elif sort == "desc":
-
         results = list(reversed(crm_cache))
 
-
-
     total = len(results)
-
     start = (page - 1) * limit
-
     end = start + limit
-
     items = results[start:end]
-
     return {
-
         "items": items,
-
         "total": total,
-
         "page": page,
-
         "limit": limit
-
     }
 
-
-
 @app.get("/api/tickets/{ticket_no}")
-
 def get_ticket(ticket_no: str):
-
-    """Retrieve full details of a specific ticket by Request No. or Ticket Key"""
-
+    """Retrieve full details of a specific ticket by Request No. or Vtiger Ticket"""
     load_crm_cache()
-
     t_clean = ticket_no.strip().lower()
-
     for t in crm_cache:
-
+        t_req = str(t.get("RequestNo", "")).strip().lower()
         t_no = str(t.get("TicketNo", "")).strip().lower()
-
         t_key = str(t.get("TicketKey", "")).strip().lower()
-
-        if t_no == t_clean or t_key == t_clean:
-
+        t_vtiger = str(t.get("VtigerTicket", "")).strip().lower()
+        if t_req == t_clean or t_no == t_clean or t_key == t_clean or t_vtiger == t_clean:
             return t
-
     raise HTTPException(status_code=404, detail="Ticket not found")
-
-
 
 @app.post("/api/tickets/reload")
 

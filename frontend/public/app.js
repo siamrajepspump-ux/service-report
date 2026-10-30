@@ -3641,39 +3641,26 @@ function setupHeroSearch() {
 
         if (data.items && data.items.length > 0) {
 
-          heroSuggestions.innerHTML = data.items.map(t => `
-
-            <div onclick="selectTicket('${t.TicketNo}')" class="p-3 hover:bg-red-50 cursor-pointer transition flex items-center justify-between">
-
+          heroSuggestions.innerHTML = data.items.map(t => {
+            const reqNo = t.RequestNo || t.TicketNo || "";
+            const vtiger = t.VtigerTicket && t.VtigerTicket !== reqNo ? `(${t.VtigerTicket})` : "";
+            return `
+            <div onclick="selectTicket('${reqNo}')" class="p-3 hover:bg-red-50 cursor-pointer transition flex items-center justify-between">
               <div>
-
                 <div class="flex items-center space-x-2">
-
-                  <span class="font-bold text-red-700 font-mono text-sm">${t.TicketNo}</span>
-
-                  <span class="text-xs text-slate-400 font-mono">(${t.TicketKey || "-"})</span>
-
+                  <span class="font-bold text-red-700 font-mono text-sm">${reqNo}</span>
+                  ${vtiger ? `<span class="text-xs text-slate-400 font-mono">${vtiger}</span>` : ""}
                   <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${t.Product || ""}</span>
-
                 </div>
-
                 <div class="text-xs font-semibold text-slate-800 mt-0.5">${t.Customer || "-"}</div>
-
                 <div class="text-[11px] text-slate-500">${t.Model || "-"} ${t.Site ? '| ' + t.Site : ''}</div>
-
               </div>
-
               <div class="text-right text-[11px] text-slate-400 shrink-0 ml-3">
-
                 <span class="px-2 py-0.5 rounded text-[10px] font-medium ${t.Status === 'Closed' ? 'bg-slate-100 text-slate-600' : 'bg-green-100 text-green-700'}">${t.Status || 'Open'}</span>
-
                 <div class="mt-0.5">${t.AppointmentDate || ''}</div>
-
               </div>
-
-            </div>
-
-          `).join("");
+            </div>`;
+          }).join("");
 
           heroSuggestions.classList.remove("hidden");
 
@@ -3733,11 +3720,9 @@ async function loadRecentJobsPills() {
 
         return `
 
-          <button type="button" onclick="quickSelectRequest('${t.TicketNo}')" 
-
+          <button type="button" onclick="quickSelectRequest('${t.RequestNo || t.TicketNo}')" 
                   class="shrink-0 whitespace-nowrap bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/20 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer">
-
-            <span class="font-bold font-mono text-yellow-300">${t.TicketNo}</span>
+            <span class="font-bold font-mono text-yellow-300">${t.RequestNo || t.TicketNo}</span>
 
             <span class="text-slate-300 text-[11px]">(${shortCust})</span>
 
@@ -3865,7 +3850,7 @@ async function lookupRequestNo(query) {
 
       const t = await directRes.json();
 
-      selectTicket(t.TicketNo);
+      selectTicket(t.RequestNo || t.TicketNo);
 
       return;
 
@@ -3883,7 +3868,7 @@ async function lookupRequestNo(query) {
 
       if (data.items && data.items.length > 0) {
 
-        selectTicket(data.items[0].TicketNo);
+        selectTicket(data.items[0].RequestNo || data.items[0].TicketNo);
 
         return;
 
@@ -3955,25 +3940,19 @@ function setupQuickSearch() {
 
         if (data.items && data.items.length > 0) {
 
-          suggestions.innerHTML = data.items.map(t => `
-
-            <div onclick="selectTicket('${t.TicketNo}')" class="p-2.5 hover:bg-red-50 cursor-pointer border-b last:border-none transition">
-
+          suggestions.innerHTML = data.items.map(t => {
+            const reqNo = t.RequestNo || t.TicketNo || "";
+            const vtiger = t.VtigerTicket && t.VtigerTicket !== reqNo ? `(${t.VtigerTicket})` : "";
+            return `
+            <div onclick="selectTicket('${reqNo}')" class="p-2.5 hover:bg-red-50 cursor-pointer border-b last:border-none transition">
               <div class="flex items-center justify-between">
-
-                <span class="font-bold text-red-700 text-xs">${t.TicketNo} (${t.TicketKey || ""})</span>
-
+                <span class="font-bold text-red-700 text-xs">${reqNo} ${vtiger}</span>
                 <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${t.Product || ""}</span>
-
               </div>
-
-              <div class="text-xs text-slate-800 font-medium truncate mt-0.5">${t.Customer}</div>
-
+              <div class="text-xs text-slate-800 font-medium truncate mt-0.5">${t.Customer || "-"}</div>
               <div class="text-[11px] text-slate-500 truncate">${t.Model || "-"} | S/N: ${t.SerialNo || "-"}</div>
-
-            </div>
-
-          `).join("");
+            </div>`;
+          }).join("");
 
           suggestions.classList.remove("hidden");
 
@@ -4059,7 +4038,8 @@ async function selectTicket(ticketNo) {
 
 
 
-    document.getElementById("sr_request_no").value = t.TicketNo || "";
+    const activeReqNo = t.RequestNo || t.TicketNo || ticketNo;
+    document.getElementById("sr_request_no").value = activeReqNo;
 
     document.getElementById("sr_customer").value = custVal;
 
@@ -4239,7 +4219,7 @@ async function selectTicket(ticketNo) {
 
     // Update Top Banner
 
-    document.getElementById("bannerTicketNo").innerText = t.TicketNo;
+    document.getElementById("bannerTicketNo").innerText = activeReqNo;
 
     document.getElementById("bannerCustomer").innerText = custVal;
 
@@ -4285,7 +4265,7 @@ async function selectTicket(ticketNo) {
 
     loadTicketPhotos(ticketNo);
 
-    showToast(`ดึงข้อมูลลูกค้า Request No: ${t.TicketNo} เรียบร้อยแล้ว (ข้อมูลปั๊มและชื่อช่างกรอกด้วยตนเอง)`);
+    showToast(`ดึงข้อมูลลูกค้า Request No: ${activeReqNo} เรียบร้อยแล้ว (ข้อมูลปั๊มและชื่อช่างกรอกด้วยตนเอง)`);
 
   } catch (e) {
 

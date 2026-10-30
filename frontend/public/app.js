@@ -756,7 +756,7 @@ function renderPackageTabs() {
 
           ${canDelete ? `
 
-            <button type="button" onclick="event.stopPropagation(); removeFormFromPackage('${inst.id}')" title="ลบใบงานนี้" class="ml-1 p-1 rounded-full hover:bg-red-500/30 text-slate-400 hover:text-red-300 transition opacity-70 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer">
+            <button type="button" onclick="event.stopPropagation(); removeFormFromPackage('${inst.id}')" title="ลบใบงานนี้" class="ml-1 p-1 rounded-full hover:bg-red-500/30 text-slate-400 hover:text-red-300 transition opacity-70 hover:opacity-100 hover:text-red-300 cursor-pointer">
 
               <i data-lucide="x" class="w-3 h-3"></i>
 
@@ -4260,20 +4260,21 @@ async function selectTicket(ticketNo) {
 
 
 
-    // Load existing draft if present
+    // Reset package instances when switching tickets so no previous ticket forms persist
+    state.packageInstances = [];
+    state.activeInstanceId = null;
 
+    // Load existing draft if present
     await loadTicketDraft(ticketNo);
 
-    if (!state.packageInstances || state.packageInstances.length === 0) {
-      state.packageInstances = [
-        { id: "inst_" + Date.now() + "_1", code: "FM-EPS-23", title: "รายงานการบริการ", num: 1, customLabel: "", data: null },
-        { id: "inst_" + Date.now() + "_2", code: "FM-EPS-45", title: "แบบประเมินความพึงพอใจลูกค้า", num: 1, customLabel: "", data: null }
-      ];
-      state.activeInstanceId = state.packageInstances[0].id;
-      renderPackageTabs();
+    // Render package tabs (if draft has instances, activate first; otherwise let user choose forms via '+ เพิ่มใบงาน')
+    renderPackageTabs();
+    if (state.packageInstances && state.packageInstances.length > 0) {
+      if (!state.activeInstanceId) state.activeInstanceId = state.packageInstances[0].id;
       selectPackageInstance(state.activeInstanceId);
+    } else {
+      selectPackageInstance(null);
     }
-
 
     loadTicketPhotos(ticketNo);
 

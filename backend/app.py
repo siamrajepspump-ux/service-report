@@ -2075,8 +2075,8 @@ def submit_and_generate(payload: SubmitPayload):
     exp_paths = [p for p in pdf_paths_for_merge if os.path.basename(p).startswith("EXP_")]
     sat_paths = [p for p in pdf_paths_for_merge if os.path.basename(p).startswith("SAT_")]
 
-    # Guarantee FM-EPS-45 (Customer Satisfaction Form) is ALWAYS included in Full Package PDF
-    if not sat_paths:
+    # Include FM-EPS-45 only when selected by user in forms_to_gen
+    if "FM-EPS-45" in forms_to_gen and not sat_paths:
         sat_path = os.path.join(ticket_out_dir, f"SAT_{ticket}.pdf")
         sat_data = dict(data)
         for k in ["customer", "contact_person", "contact_no", "eval_date"]:

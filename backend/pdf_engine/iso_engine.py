@@ -40,6 +40,20 @@ class IsoPdfEngine:
     def __init__(self):
         self.has_th_font = os.path.exists(FONT_TH)
 
+    def _get_logo_path(self) -> Optional[str]:
+        """Resolve Siamraj logo file from local repo or shared drive"""
+        candidates = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo_siamraj_mark.png"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "logo_siamraj_mark.png"),
+            os.path.join(TEMPLATES_DIR, "logo_siamraj_mark.png"),
+            r"g:\Shared drives\Service Report\หลังบ้าน (Back Office)\Inspection & Repair Parts\โลโก้\logo_siamraj_mark.png",
+            r"C:\Users\Ronnaporn\.gemini\antigravity\brain\10ceb1f1-8572-4640-baaf-c155a7ccd075\logo_siamraj_mark.png",
+        ]
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        return None
+
     def _get_template_path(self, form_code: str) -> Optional[str]:
         # Priority mapping: Check From FM first, then data/templates
         mapping = {
@@ -1171,6 +1185,29 @@ class IsoPdfEngine:
             # Outer border
             cover_page.draw_rect(pymupdf.Rect(30, 30, 565, 812), color=(0, 0, 0), width=1.5)
 
+            # Top Header: Official Siamraj Logo & Company Name
+            logo_file = self._get_logo_path()
+            if logo_file:
+                lw = 100
+                lh = 100 / 1.233
+                lx = (595.3 - lw) / 2
+                cover_page.insert_image(pymupdf.Rect(lx, 55, lx + lw, 55 + lh), filename=logo_file)
+
+            def _center_cover_text(y_pos, txt, size=14, bold=False):
+                try:
+                    f_obj = pymupdf.Font(fontfile=FONT_TH_B if bold else FONT_TH)
+                    tw = f_obj.text_length(txt, fontsize=size)
+                except Exception:
+                    tw = len(txt) * size * 0.5
+                cover_page.insert_text(pymupdf.Point(297.65 - tw/2, y_pos), txt, fontsize=size, fontname="thb" if bold else "th", fontfile=FONT_TH_B if bold else FONT_TH)
+
+            _center_cover_text(160, "บริษัท สยามราช จำกัด (มหาชน)", size=17.5, bold=True)
+            _center_cover_text(178, "SIAMRAJ PUBLIC COMPANY LIMITED", size=11.5, bold=True)
+
+            # Title: PHOTO REPORT frame
+            cover_page.draw_rect(pymupdf.Rect(160, 195, 435, 235), color=(0, 0, 0), width=1.0)
+            _center_cover_text(223, "PHOTO REPORT", size=20, bold=True)
+
             cover_items = [
                 ("CUSTOMER", cust),
                 ("SITE", plant),
@@ -1179,13 +1216,20 @@ class IsoPdfEngine:
                 ("S/N", sn),
                 ("JOB", job if job else "-"),
             ]
-            y_start = 280
+            y_start = 285
             line_spacing = 42
             for i, (label, val) in enumerate(cover_items):
                 y = y_start + (i * line_spacing)
                 self._insert_text(cover_page, 110, y, label, size=18, bold=True)
                 self._insert_text(cover_page, 205, y, ":", size=18, bold=True)
                 self._insert_text(cover_page, 225, y, str(val), size=18, bold=True, max_w=310)
+
+            # Bottom footer on cover
+            cover_page.draw_line(pymupdf.Point(50, 745), pymupdf.Point(545, 745), color=(0.7, 0.7, 0.7), width=0.8)
+            if date_str and date_str != "-":
+                self._insert_text(cover_page, 110, 770, f"DATE : {date_str}", size=12, bold=True)
+            if reported_by and reported_by != "-":
+                self._insert_text(cover_page, 340, 770, f"REPORTED BY : {reported_by}", size=12, bold=True)
 
             # -------------------------------------------------------------
             # PHOTO REPORT PAGES (Sheet '1', '2'...) FOR THIS PUMP
@@ -1204,7 +1248,9 @@ class IsoPdfEngine:
                 # Outer border
                 page.draw_rect(pymupdf.Rect(30, 30, 565, 812), color=(0, 0, 0), width=1.5)
 
-                # Header: SERVICE REPORT box
+                # Header: Logo & SERVICE REPORT box
+                if logo_file:
+                    page.insert_image(pymupdf.Rect(50, 38, 125, 96), filename=logo_file)
                 title_rect = pymupdf.Rect(150, 42, 445, 78)
                 page.draw_rect(title_rect, color=(0, 0, 0), width=0.8)
                 self._insert_text(page, 210, 68, "SERVICE REPORT", size=24, bold=True)

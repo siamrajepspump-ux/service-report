@@ -6942,6 +6942,12 @@ async function previewCurrentActiveForm() {
 
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const errJson = JSON.parse(errText); errMsg = errJson.detail || errText; } catch (_) {}
+      throw new Error(errMsg || `Server Error ${res.status}`);
+    }
     const result = await res.json();
 
     if (result.ok && result.generated_files) {
@@ -7022,6 +7028,12 @@ async function previewFullPackagePdf() {
 
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const errJson = JSON.parse(errText); errMsg = errJson.detail || errText; } catch (_) {}
+      throw new Error(errMsg || `Server Error ${res.status}`);
+    }
     const result = await res.json();
 
     if (result.ok && result.generated_files) {
@@ -7076,6 +7088,12 @@ async function saveDraft() {
 
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const errJson = JSON.parse(errText); errMsg = errJson.detail || errText; } catch (_) {}
+      throw new Error(errMsg || `Server Error ${res.status}`);
+    }
     const result = await res.json();
 
     if (result.ok) {
@@ -7186,6 +7204,12 @@ async function submitAndGenerate() {
 
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const errJson = JSON.parse(errText); errMsg = errJson.detail || errText; } catch (_) {}
+      throw new Error(errMsg || `Server Error ${res.status}`);
+    }
     const result = await res.json();
 
     if (result.ok && result.generated_files) {
@@ -7458,6 +7482,12 @@ async function previewPhotoReportPdf() {
 
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const errJson = JSON.parse(errText); errMsg = errJson.detail || errText; } catch (_) {}
+      throw new Error(errMsg || `Server Error ${res.status}`);
+    }
     const result = await res.json();
 
     if (result.ok && result.pdf_url) {
@@ -7556,6 +7586,12 @@ async function downloadPhotoReportExcel() {
 
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const errJson = JSON.parse(errText); errMsg = errJson.detail || errText; } catch (_) {}
+      throw new Error(errMsg || `Server Error ${res.status}`);
+    }
     const result = await res.json();
 
     if (result.ok && result.excel_url) {

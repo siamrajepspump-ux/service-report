@@ -1538,6 +1538,12 @@ def submit_and_generate(payload: SubmitPayload):
 
     pdf_paths_for_merge = []
 
+    # Resolve list of forms to generate
+    forms_to_gen = payload.generate_forms or []
+    if payload.form_instances and len(payload.form_instances) > 0:
+        forms_to_gen = list(set([inst.get("code") for inst in payload.form_instances if inst.get("code")]))
+
+
 
 
     # Dynamic multi-form package handling

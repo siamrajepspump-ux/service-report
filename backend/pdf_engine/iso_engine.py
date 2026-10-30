@@ -1582,11 +1582,9 @@ class IsoPdfEngine:
     # Matches official CRM layout: clean white page without horizontal dividers
     # =========================================================================
     def generate_service_request_pdf(self, data: Dict[str, Any], output_path: str) -> str:
+        """Render official ISO Service Request Form (FM-EPS-28) from pure CRM data"""
         doc = pymupdf.open()
         page = doc.new_page(width=595.08, height=841.68) # A4
-
-        font_regular = r"C:\Windows\Fonts\THSarabunNew.ttf"
-        font_bold = r"C:\Windows\Fonts\THSarabunNew Bold.ttf"
 
         def _txt(x, y, txt, size=13, bold=False, color=(0,0,0)):
             if txt is None or txt == "":
@@ -1599,25 +1597,29 @@ class IsoPdfEngine:
         _txt(220, 80, "Service Request Form", size=18, bold=True)
 
         # 2. Top Right
-        t_no = str(data.get("TicketNo") or data.get("Title") or data.get("ticket_no") or "-")
-        raw_created = data.get("Created Time") or data.get("CreatedTime") or data.get("created_time") or ""
+        t_no = str(data.get("Title") or data.get("RequestNo") or data.get("TicketKey") or data.get("TicketNo") or data.get("ticket_no") or "-").strip()
+        raw_created = data.get("Created Time") or data.get("CreatedDate") or data.get("created_time") or ""
         issue_date = "-"
-        if raw_created and raw_created != "-":
+        if raw_created and str(raw_created).strip() not in ["-", "nan", "none"]:
             try:
                 from datetime import datetime
-                dt = datetime.strptime(str(raw_created).split(".")[0], "%Y-%m-%d %H:%M:%S")
-                issue_date = dt.strftime("%Y-%m-%d %I:%M %p")
-            except:
-                issue_date = str(raw_created)
+                raw_clean = str(raw_created).split(".")[0].strip()
+                if " " in raw_clean:
+                    dt = datetime.strptime(raw_clean, "%Y-%m-%d %H:%M:%S")
+                    issue_date = dt.strftime("%Y-%m-%d %I:%M %p")
+                else:
+                    issue_date = raw_clean
+            except Exception:
+                issue_date = str(raw_created).strip()
 
         _txt(359, 108, f"Service Request No. : {t_no}", size=12.5)
         _txt(359, 124, f"Issue Date : {issue_date}", size=12.5)
 
         # 3. Company & Site
-        cust = str(data.get("Organization Name") or data.get("Customer") or data.get("customer") or "-").replace("Accounts::::", "").strip()
-        contact = str(data.get("Site Contact Person") or data.get("ContactPerson") or data.get("contact_person") or "").strip()
-        phone = str(data.get("Site Contact Phone") or data.get("ContactPhone") or data.get("contact_no") or "").strip()
-        addr = str(data.get("Address or Site") or data.get("Site") or data.get("plant") or "").strip()
+        cust = str(data.get("Organization Name") or data.get("Customer") or "-").replace("Accounts::::", "").strip() or "-"
+        contact = str(data.get("Site Contact Person") or data.get("ContactPerson") or "-").strip() or "-"
+        phone = str(data.get("Site Contact Phone") or data.get("ContactPhone") or "-").strip() or "-"
+        addr = str(data.get("Address or Site") or data.get("Site") or "-").strip() or "-"
 
         _txt(68, 155, f"Company name : {cust}", size=12.5)
         _txt(68, 175, f"Site Contact Person : {contact}", size=12.5)
@@ -1625,23 +1627,26 @@ class IsoPdfEngine:
         _txt(68, 215, f"Address / Site : {addr}", size=12.5)
 
         # 4. Two Columns
-        so = str(data.get("Sales Orders") or data.get("Sales Order") or data.get("sales_orders") or data.get("so") or "-").strip()
-        prod = str(data.get("Product") or data.get("ProductCode") or "").strip()
-        serial = str(data.get("Serial Number") or data.get("SerialNo") or data.get("serial_no") or "").strip()
+        so = str(data.get("Sales Orders") or data.get("SalesOrder") or "-").strip() or "-"
+        prod = str(data.get("Product") or data.get("ProductCode") or "-").strip() or "-"
+        serial = str(data.get("Serial Number") or data.get("SerialNo") or "-").strip() or "-"
 
-        req_group = str(data.get("Request By Group") or "").strip()
-        assigned_to = str(data.get("Assigned To") or data.get("assigned_to") or "").strip()
+        req_group = str(data.get("Request By Group") or data.get("Group") or "").strip()
+        assigned_to = str(data.get("Assigned To") or data.get("AssignedTo") or "").strip()
+        assigned_by = str(data.get("Assigned By") or "").strip()
         if req_group and assigned_to:
             req_by = f"{req_group} / {assigned_to.title()}"
         elif req_group:
             req_by = req_group
         elif assigned_to:
             req_by = assigned_to.title()
+        elif assigned_by:
+            req_by = assigned_by
         else:
-            req_by = str(data.get("Assigned By") or "-")
+            req_by = "-"
 
-        model = str(data.get("Model") or data.get("PumpModel") or data.get("pump_model") or "").strip()
-        typ = str(data.get("Type") or "").strip()
+        model = str(data.get("Model") or data.get("PumpModel") or "-").strip() or "-"
+        typ = str(data.get("Type") or "-").strip() or "-"
 
         _txt(68, 240, f"Sales Order : {so}", size=12.5)
         _txt(68, 256, f"Product : {prod}", size=12.5)
@@ -1652,7 +1657,7 @@ class IsoPdfEngine:
         _txt(275, 272, f"Type : {typ}", size=12.5)
 
         # 5. Problem / Detail of work
-        desc = str(data.get("Description") or data.get("description") or "").strip()
+        desc = str(data.get("Description") or data.get("ProblemDetail") or "").strip()
         _txt(68, 300, "Problem / Detail of work :", size=12.5)
         
         y_curr = 300
@@ -1689,23 +1694,23 @@ class IsoPdfEngine:
         y_doc = y_r + 14
         _txt(67, y_doc, "Including Document :", size=12.5)
         y_doc += 16
-        detail_val = str(data.get("Detail") or data.get("detail") or "").strip()
+        detail_val = str(data.get("Detail") or "-").strip() or "-"
         _txt(67, y_doc, f"Detail : {detail_val}", size=12.5)
 
         y_app = y_doc + 24
-        app_date = str(data.get("Appointment Date") or data.get("appointment_date") or "").strip()
+        app_date = str(data.get("Appointment Date") or data.get("AppointmentDate") or "-").strip() or "-"
         if app_date and " " in app_date:
             app_date = app_date.split(" ")[0]
-        app_time = str(data.get("Appointment Time") or data.get("appointment_time") or "").strip()
+        app_time = str(data.get("Appointment Time") or "-").strip() or "-"
         _txt(66, y_app, f"Appointment Date : {app_date}", size=12.5)
         y_app += 16
         _txt(66, y_app, f"Appointment Time : {app_time}", size=12.5)
 
         # 8. Service & Assignment
         y_serv = y_app + 24
-        serv_by = str(data.get("Service By") or data.get("service_by") or "").strip()
-        assigned_by = str(data.get("Assigned By") or data.get("assigned_by") or "").strip()
-        comp_d = str(data.get("Completed Date") or data.get("completed_date") or "").strip()
+        serv_by = str(data.get("Service By") or data.get("ServiceBy") or "-").replace("|##|", ", ").strip() or "-"
+        assigned_by = str(data.get("Assigned By") or data.get("AssignedTo") or "-").strip() or "-"
+        comp_d = str(data.get("Completed Date") or data.get("CompletedDate") or "-").strip() or "-"
         if comp_d and " " in comp_d:
             comp_d = comp_d.split(" ")[0]
 
@@ -1730,7 +1735,7 @@ class IsoPdfEngine:
 
         # 1. Search CRM Ticket folders
         search_dirs = [
-            r"g:\Shared drives\Service Report\หลังบ้าน (Back Office)\Service Photo App\1. CRM Ticket",
+            r"g:\Shared drives\Service Report\ฝ่ายงาน (Back Office)\Service Photo App\1. CRM Ticket",
             r"g:\Shared drives\Service Report\Service Report Automation\CRM Ticket",
             os.path.join(BASE_DIR, "data", "crm_tickets")
         ]
@@ -1746,8 +1751,8 @@ class IsoPdfEngine:
                         except Exception as e:
                             print(f"[CRM Service Request] Error copying {src_file}: {e}")
 
-        # 2. Enrich data with CRM record from CSV if available
-        merged_crm = dict(data)
+        # 2. Look up PURE CRM record (strictly from CRM database, NOT technician's form inputs)
+        pure_crm = {}
         csv_candidates = [
             r"G:\My Drive\Service_App_Data\Tickets_Cleaned.csv",
             r"G:\My Drive\Service_App_Data\Tickets.csv",
@@ -1757,23 +1762,40 @@ class IsoPdfEngine:
         for cp in csv_candidates:
             if os.path.exists(cp):
                 try:
-                    with open(cp, "r", encoding="utf-8-sig") as cf:
+                    with open(cp, "r", encoding="utf-8-sig", errors="ignore") as cf:
                         reader = csv.DictReader(cf)
                         for row in reader:
-                            t_no = str(row.get("TicketNo") or row.get("Title") or "").strip()
-                            if t_no == ticket_str:
-                                for k, v in row.items():
-                                    if v and k not in merged_crm:
-                                        merged_crm[k] = v
-                                    elif v and merged_crm.get(k) in [None, "", "-"]:
-                                        merged_crm[k] = v
+                            t_title = str(row.get("Title") or "").strip()
+                            t_key = str(row.get("TicketKey") or "").strip()
+                            t_no = str(row.get("TicketNo") or "").strip()
+                            t_req = str(row.get("RequestNo") or "").strip()
+                            if ticket_str in [t_title, t_key, t_no, t_req] and ticket_str:
+                                pure_crm = {k: v for k, v in row.items() if v is not None}
                                 break
+                    if pure_crm:
+                        break
                 except Exception as ex:
                     print(f"[CRM Service Request] Error reading CSV {cp}: {ex}")
 
-        # 3. Generate dynamically from merged ticket data
+        # If not found in CSVs, fallback to backend get_ticket
+        if not pure_crm:
+            try:
+                import sys
+                from app import get_ticket
+                t_obj = get_ticket(ticket_str)
+                if t_obj:
+                    pure_crm = dict(t_obj)
+            except Exception:
+                pass
+
+        if not pure_crm:
+            pure_crm = {"Title": ticket_str, "TicketNo": ticket_str}
+        else:
+            pure_crm["ticket_no"] = ticket_str
+
+        # 3. Generate dynamically from pure CRM ticket data
         try:
-            return self.generate_service_request_pdf(merged_crm, out_req_pdf)
+            return self.generate_service_request_pdf(pure_crm, out_req_pdf)
         except Exception as e:
             print(f"[CRM Service Request] Error generating PDF for {ticket_str}: {e}")
             return None

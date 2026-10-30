@@ -355,10 +355,13 @@ class IsoPdfEngine:
         self._insert_text(page, 330, 779, data.get("time_finished", ""), size=9.5, max_w=75)
 
         # Customer Box (x=471 to 577, y=755 to 769)
+        cust_name_val = str(data.get("customer_signer_name") or data.get("cust_name") or data.get("custSignerName") or data.get("contact_person") or data.get("sr_contact_person") or "").strip()
+        if cust_name_val in ["-", "nan", "none", "None"]: cust_name_val = ""
+
         if data.get("sign_customer"):
             self._insert_signature(page, (475, 755, 573, 768), data["sign_customer"])
-        else:
-            self._insert_centered_text(page, 524, 765, data.get("customer_signer_name", ""), size=9.5)
+        elif cust_name_val:
+            self._insert_centered_text(page, 524, 765, cust_name_val, size=9.5, bold=True)
 
         cust_dt = data.get("customer_sign_datetime")
         if not cust_dt:
@@ -366,12 +369,12 @@ class IsoPdfEngine:
             t_f = data.get("time_finished", "")
             cust_dt = f"{s_d} {t_f}".strip()
         else:
-            # Format if contains date
             parts = cust_dt.split()
             if len(parts) >= 1:
                 parts[0] = self._format_date_dmy(parts[0])
                 cust_dt = " ".join(parts)
-        self._insert_centered_text(page, 524, 779, cust_dt or "-", size=9)
+        if cust_dt and cust_dt != "-":
+            self._insert_centered_text(page, 524, 779, cust_dt, size=9)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
@@ -541,14 +544,19 @@ class IsoPdfEngine:
 
         # Signatures & Timing Table (Bottom y=780..810)
         # Serviced By Signature Box: (87, 781, 225, 795)
+        # Serviced By Signature Box: (87, 781, 225, 795)
+        tech_name_val = str(data.get("serviced_by") or data.get("tech_name") or data.get("techSignerName") or "").strip()
+        if tech_name_val in ["-", "nan", "none", "None"]: tech_name_val = ""
+
         if data.get("sign_tech"):
             self._insert_signature(page, (95, 781, 220, 795), data["sign_tech"])
-        elif data.get("serviced_by"):
-            self._insert_text(page, 95, 791, data["serviced_by"], size=9.0, bold=True, max_w=125)
+        elif tech_name_val:
+            self._insert_centered_text(page, 157, 791, tech_name_val, size=9.5, bold=True)
 
         # Serviced Date: y ≈ 805
-        s_date = self._format_date_dmy(data.get("serviced_date", data.get("date", "-")))
-        self._insert_text(page, 95, 805, s_date, size=9.0, max_w=125)
+        s_date = self._format_date_dmy(data.get("serviced_date") or data.get("date") or "")
+        if s_date and s_date != "-":
+            self._insert_text(page, 95, 805, s_date, size=9.0, max_w=125)
 
         # Serviced Time (Start & Finished)
         # Start : line y ≈ 791
@@ -559,14 +567,18 @@ class IsoPdfEngine:
             self._insert_text(page, 320, 805, str(data["time_finished"]), size=9.0, max_w=85)
 
         # Customer Sign Box: (478, 781, 574, 795)
+        cust_name_val = str(data.get("customer_signer_name") or data.get("cust_name") or data.get("custSignerName") or data.get("contact_person") or data.get("sr_contact_person") or data.get("sat_contact_person") or "").strip()
+        if cust_name_val in ["-", "nan", "none", "None"]: cust_name_val = ""
+
         if data.get("sign_customer"):
             self._insert_signature(page, (482, 781, 570, 795), data["sign_customer"])
-        elif data.get("customer_signer_name"):
-            self._insert_text(page, 482, 791, data["customer_signer_name"], size=9.0, bold=True, max_w=90)
+        elif cust_name_val:
+            self._insert_centered_text(page, 526, 791, cust_name_val, size=9.5, bold=True)
 
         # Customer Sign Date / Time: y ≈ 805
-        c_date = self._format_date_dmy(data.get("customer_sign_date", data.get("date", "-")))
-        self._insert_text(page, 482, 805, c_date, size=9.0, max_w=90)
+        c_date = self._format_date_dmy(data.get("customer_sign_date") or data.get("serviced_date") or data.get("date") or "")
+        if c_date and c_date != "-":
+            self._insert_text(page, 482, 805, c_date, size=9.0, max_w=90)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
@@ -716,11 +728,16 @@ class IsoPdfEngine:
                     self._insert_text(page, 35.0, line_ys[idx], nline, size=8.5, max_w=520)
 
             # 5. Senior Technician / Service Engineer Signature & Date
+            tech_name_val = str(data.get("serviced_by") or data.get("tech_name") or data.get("techSignerName") or "").strip()
+            if tech_name_val in ["-", "nan", "none", "None"]: tech_name_val = ""
+
             if data.get("sign_tech"):
                 self._insert_signature(page, (252, 755, 358, 778), data["sign_tech"])
+            elif tech_name_val:
+                self._insert_centered_text(page, 305, 767, tech_name_val, size=9.0, bold=True)
 
-            tech_name = data.get("serviced_by") or data.get("tech_name") or "-"
-            self._insert_text(page, 254, 779, str(tech_name), size=8.5, bold=True, max_w=102)
+            if tech_name_val:
+                self._insert_text(page, 254, 779, str(tech_name_val), size=8.5, bold=True, max_w=102)
 
             date_str = str(data.get("serviced_date") or data.get("date") or "").strip()
             if date_str:
@@ -910,108 +927,13 @@ class IsoPdfEngine:
         date_str = self._format_date_dmy(raw_date)
 
         if is_rev00:
-            # Header Request No.
-            if req_no and req_no != "-":
-                self._insert_text(page, 455.0, 42.0, f"Request No. : {req_no}", size=9.0, bold=True)
-
-            # Header Date: วันที่ประเมิน ........................เดือน..............................ปี พ.ศ. ...............
-            day, mon, yr = self._parse_date_dmy_parts(raw_date)
-            if day and mon and yr:
-                try:
-                    yr_int = int(yr)
-                    yr_be = yr_int + 543 if yr_int < 2500 else yr_int
-                    thai_months = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-                                   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
-                    mon_int = int(mon)
-                    mon_name = thai_months[mon_int] if 1 <= mon_int <= 12 else mon
-                    day_str = str(int(day))
-                    self._insert_centered_text(page, 260.0, 103.0, day_str, size=9.5)
-                    self._insert_centered_text(page, 345.0, 103.0, mon_name, size=9.5)
-                    self._insert_centered_text(page, 427.0, 103.0, str(yr_be), size=9.5)
-                except Exception:
-                    self._insert_centered_text(page, 345.0, 103.0, date_str, size=9.5)
-            elif date_str and date_str != "-":
-                self._insert_centered_text(page, 345.0, 103.0, date_str, size=9.5)
-
-            # 2. 14 Question Ratings: Coordinates for Rev.00
-            x_scores = {4: 351.8, 3: 402.3, 2: 452.8, 1: 503.3, 0: 553.8}
-            y_centers = [
-                230.6, 267.8, 305.1, 333.0,  # 1. ด้านเทคนิค (1.1 - 1.4)
-                361.0, 388.9, 407.5, 435.5, 463.4,  # 2. ด้านคุณภาพ/เวลา/ความสะอาด/จำนวนผู้ปฏิบัติงาน (2.1 - 2.5)
-                491.4, 528.6, 556.5,  # 3. ด้านบุคคลิกภาพส่วนตัวของพนักงาน (3.1 - 3.3)
-                584.5, 612.4   # 4. เครื่องมือ/อุปกรณ์ (4.1 - 4.2)
-            ]
-        else:
-            # Rev.01 fallback
-            if req_no and req_no != "-":
-                self._insert_text(page, 440, 75, f"Request No. : {req_no}", size=9.0, bold=True)
-            if date_str and date_str != "-":
-                self._insert_text(page, 440, 88, f"Date : {date_str}", size=9.0)
-
-            x_scores = {4: 377.6, 3: 423.6, 2: 467.6, 1: 513.6, 0: 559.6}
-            y_centers = [
-                250.7, 269.7, 307.7, 327.7,
-                366.7, 385.7, 405.7, 423.7, 462.7,
-                501.7, 521.7, 558.7,
-                597.7, 616.7
-            ]
-
-        question_keys = [
-            "tech_1", "tech_2", "tech_3", "tech_4",
-            "qual_1", "qual_2", "qual_3", "qual_4", "qual_5",
-            "pers_1", "pers_2", "pers_3",
-            "tool_1", "tool_2"
-        ]
-
-        ratings = data.get("ratings", {})
-        total_score = 0
-
-        for q_idx, q_key in enumerate(question_keys):
-            score = ratings.get(q_key)
-            if score is None:
-                score = ratings.get(str(q_idx + 1), ratings.get(q_idx, 4))
-            try:
-                score = int(score)
-            except (ValueError, TypeError):
-                score = 4
-
-            score = max(0, min(4, score))
-            total_score += score
-
-            # Draw vector checkmark
-            x = x_scores.get(score, 351.8 if is_rev00 else 377.6)
-            y = y_centers[q_idx]
-            self._insert_tick(page, x, y)
-
-        # 3. Total Score
-        percent = round((total_score / 56.0) * 100) if total_score > 0 else 0
-        score_text = f"{total_score} / 56  ({percent}%)"
-        if is_rev00:
-            self._insert_centered_text(page, 452.8, 634.5, score_text, size=10.5, bold=True)
-        else:
-            self._insert_centered_text(page, 468.6, 638.5, score_text, size=10.5, bold=True)
-
-        # 4. Suggestions (up to 3 lines)
-        raw_sugg = str(data.get("suggestions") or "").strip()
-        if raw_sugg:
-            lines = textwrap.wrap(raw_sugg, width=95)
-            sugg_ys = [680.0, 702.5, 725.0] if is_rev00 else [663.0, 684.0, 705.0]
-            sugg_x = 48.0 if is_rev00 else 95.0
-            for i, line in enumerate(lines[:3]):
-                self._insert_text(page, sugg_x, sugg_ys[i], line, size=9.0)
-
-        # 5. Bottom Metadata
-        cust = str(data.get("sat_customer") or data.get("customer") or "").strip()
-        signer = str(data.get("sat_contact_person") or data.get("customer_signer_name") or data.get("contact_person") or "").strip()
-        tel = str(data.get("sat_contact_no") or data.get("contact_no") or "").strip()
-
-        if is_rev00:
-            # ชื่อลูกค้า : ………………………….………     ,   บริษัท :  …………....................................................…   , เบอร์โทร : ……………………………
             self._insert_text(page, 92.0, 759.0, signer, size=9.0, max_w=115.0)
             self._insert_text(page, 255.0, 759.0, cust, size=9.0, max_w=170.0)
             self._insert_text(page, 480.0, 759.0, tel, size=9.0, max_w=90.0)
             if data.get("sign_customer"):
                 self._insert_signature(page, (60, 705, 190, 745), data["sign_customer"])
+            elif signer:
+                self._insert_centered_text(page, 125.0, 725.0, signer, size=9.5, bold=True)
         else:
             self._insert_text(page, 58.0, 765.0, cust, size=9.0, max_w=175.0)
             self._insert_text(page, 282.0, 765.0, signer, size=9.0, max_w=130.0)
@@ -1020,6 +942,8 @@ class IsoPdfEngine:
                 self._insert_text(page, 120.0, 794.0, date_str, size=9.0, max_w=115.0)
             if data.get("sign_customer"):
                 self._insert_signature(page, (280, 715, 405, 752), data["sign_customer"])
+            elif signer:
+                self._insert_centered_text(page, 342.0, 733.0, signer, size=9.5, bold=True)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)

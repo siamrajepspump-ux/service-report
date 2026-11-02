@@ -19,7 +19,8 @@ import pymupdf
 from PIL import Image
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TEMPLATES_DIR = os.path.join(BASE_DIR, "data", "templates")
+DATA_DIR = os.path.join(BASE_DIR, "data")
+TEMPLATES_DIR = os.path.join(DATA_DIR, "templates")
 FROM_FM_DIR = os.path.join(BASE_DIR, "From FM")
 STORAGE_DIR = os.path.join(BASE_DIR, "storage")
 OUTPUT_PDF_DIR = os.path.join(STORAGE_DIR, "output_pdf")
@@ -1443,7 +1444,12 @@ class IsoPdfEngine:
 
                     if p_info:
                         img_path = p_info.get("file_path") or p_info.get("path")
-                        b64 = p_info.get("base64")
+                        b64 = p_info.get("base64") or p_info.get("data_url")
+                        if img_path and not os.path.exists(img_path):
+                            fn = p_info.get("filename") or os.path.basename(img_path)
+                            alt = os.path.join(DATA_DIR, "photos", ticket, fn)
+                            if os.path.exists(alt):
+                                img_path = alt
                         if img_path and os.path.exists(img_path):
                             try:
                                 inner = pymupdf.Rect(slot["img_rect"].x0 + 1, slot["img_rect"].y0 + 1, slot["img_rect"].x1 - 1, slot["img_rect"].y1 - 1)
@@ -1630,6 +1636,12 @@ class IsoPdfEngine:
                         fig_label = p_info.get("figure") or str(fig_num)
                         caption = p_info.get("caption", "")
                         img_path = p_info.get("file_path") or p_info.get("path")
+                        b64 = p_info.get("base64") or p_info.get("data_url")
+                        if img_path and not os.path.exists(img_path):
+                            fn = p_info.get("filename") or os.path.basename(img_path)
+                            alt = os.path.join(DATA_DIR, "photos", ticket, fn)
+                            if os.path.exists(alt):
+                                img_path = alt
                         if img_path and os.path.exists(img_path):
                             try:
                                 xl_img = OpenpyxlImage(img_path)
@@ -1638,6 +1650,18 @@ class IsoPdfEngine:
                                 ws.add_image(xl_img, sc["cell"])
                             except Exception as e:
                                 print(f"[PhotoExcel] Error adding image {img_path}: {e}")
+                        elif b64:
+                            try:
+                                if "," in b64:
+                                    b64 = b64.split(",", 1)[1]
+                                import io
+                                img_bytes = io.BytesIO(base64.b64decode(b64))
+                                xl_img = OpenpyxlImage(img_bytes)
+                                xl_img.width = 240
+                                xl_img.height = 170
+                                ws.add_image(xl_img, sc["cell"])
+                            except Exception as e:
+                                print(f"[PhotoExcel] Error adding b64 image: {e}")
                     else:
                         fig_label = str(fig_num)
                         caption = ""

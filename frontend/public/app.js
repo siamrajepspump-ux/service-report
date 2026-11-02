@@ -5214,47 +5214,58 @@ async function handlePhotoUpload(files) {
 
 
   for (let file of files) {
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
 
     const formData = new FormData();
-
     formData.append("ticket_no", ticketNo);
-
     formData.append("category", category);
-
     formData.append("caption", caption);
-
     formData.append("file", file);
 
-
-
     try {
-
       const res = await fetch("/api/photos/upload", {
-
         method: "POST",
-
         body: formData
-
       });
-
       if (res.ok) {
-
         const data = await res.json();
-
         if (data.photo) {
-
+          if (!data.photo.data_url && dataUrl) {
+            data.photo.data_url = dataUrl;
+            data.photo.base64 = dataUrl;
+          }
           state.activePhotoReportPhotos.push(data.photo);
-
         }
-
+      } else if (dataUrl) {
+        state.activePhotoReportPhotos.push({
+          id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+          filename: file.name,
+          category: category,
+          caption: caption,
+          data_url: dataUrl,
+          base64: dataUrl,
+          url: dataUrl
+        });
       }
-
     } catch (e) {
-
       console.error(e);
-
+      if (dataUrl) {
+        state.activePhotoReportPhotos.push({
+          id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+          filename: file.name,
+          category: category,
+          caption: caption,
+          data_url: dataUrl,
+          base64: dataUrl,
+          url: dataUrl
+        });
+      }
     }
-
   }
 
 
@@ -5308,11 +5319,16 @@ async function loadTicketPhotos(ticketNo) {
       if (!activeInst.data) activeInst.data = {};
 
       if ((!activeInst.data.photos || activeInst.data.photos.length === 0) && serverPhotos.length > 0) {
-
         activeInst.data.photos = serverPhotos;
-
+      } else if (activeInst.data.photos && serverPhotos.length > 0) {
+        activeInst.data.photos.forEach((lp, idx) => {
+          const sp = serverPhotos.find(s => s.id === lp.id || s.filename === lp.filename) || serverPhotos[idx];
+          if (sp) {
+            if (!lp.data_url && sp.data_url) lp.data_url = sp.data_url;
+            if (!lp.base64 && sp.base64) lp.base64 = sp.base64;
+          }
+        });
       }
-
       state.activePhotoReportPhotos = activeInst.data.photos || [];
 
     } else {
@@ -5387,7 +5403,7 @@ function renderPhotoGallery() {
       return `
         <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col group hover:border-purple-400 transition">
           <div class="h-44 bg-slate-100 relative overflow-hidden flex items-center justify-center">
-            <img src="${p.url}" alt="${p.caption || ''}" class="w-full h-full object-cover">
+            <img src="${p.data_url || p.base64 || p.url}" alt="${p.caption || ''}" class="w-full h-full object-cover">
             <span class="absolute top-2 left-2 bg-slate-900/75 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-xs">
               ${p.category || 'ทั่วไป'}
             </span>

@@ -10,5 +10,8 @@ storage/output_pdf/*
 !storage/output_pdf/.gitkeep
 storage/reports/*
 !storage/reports/.gitkeep
+!storage/reports/260681*
 storage/photos/*
 !storage/photos/.gitkeep
+!storage/photos/260681/
+!storage/photos/260681/**

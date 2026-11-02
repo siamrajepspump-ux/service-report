@@ -1816,6 +1816,8 @@ def submit_and_generate(payload: SubmitPayload):
                     if not inst_photos and not is_multi:
 
                         meta_file = os.path.join(PHOTOS_DIR, ticket, "photos.json")
+                        if not os.path.exists(meta_file):
+                            meta_file = os.path.join(DATA_DIR, "photos", ticket, "photos.json")
 
                         if os.path.exists(meta_file):
 
@@ -2654,6 +2656,15 @@ async def upload_photo(
 
 
 
+    with open(saved_path, "rb") as bf:
+        b64_raw = base64.b64encode(bf.read()).decode("utf-8")
+    data_url = f"data:image/jpeg;base64,{b64_raw}"
+    data_photos_dir = os.path.join(DATA_DIR, "photos", ticket)
+    os.makedirs(data_photos_dir, exist_ok=True)
+    try:
+        shutil.copy2(saved_path, os.path.join(data_photos_dir, saved_filename))
+    except Exception as e:
+        print(f"[PhotoUpload] Mirror copy error: {e}")
     photo_entry = {
 
         "id": photo_id,
@@ -2670,8 +2681,9 @@ async def upload_photo(
 
         "url": f"/api/photos/view/{ticket}/{saved_filename}",
 
-        "file_path": saved_path
-
+        "file_path": saved_path,
+        "base64": b64_raw,
+        "data_url": data_url
     }
 
     photos_meta.append(photo_entry)
@@ -2695,6 +2707,8 @@ def get_ticket_photos(ticket_no: str):
     ticket = ticket_no.strip()
 
     meta_file = os.path.join(PHOTOS_DIR, ticket, "photos.json")
+    if not os.path.exists(meta_file):
+        meta_file = os.path.join(DATA_DIR, "photos", ticket, "photos.json")
 
     if os.path.exists(meta_file):
 
@@ -2717,6 +2731,8 @@ def get_ticket_photos(ticket_no: str):
 def view_photo(ticket_no: str, filename: str):
 
     file_path = os.path.join(PHOTOS_DIR, ticket_no, filename)
+    if not os.path.exists(file_path):
+        file_path = os.path.join(DATA_DIR, "photos", ticket_no, filename)
 
     if not os.path.exists(file_path):
 

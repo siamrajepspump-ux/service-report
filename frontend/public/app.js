@@ -2963,19 +2963,33 @@ function restoreSignatureToPad(type) {
 
   if (!pad) return;
   const canvas = pad.canvas;
-  if (!canvas || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
+  if (!canvas) return;
 
   const ratio = Math.max(window.devicePixelRatio || 1, 1);
-  canvas.width = canvas.offsetWidth * ratio;
-  canvas.height = canvas.offsetHeight * ratio;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(ratio, ratio);
+  const w = canvas.offsetWidth || 400;
+  const h = canvas.offsetHeight || 160;
+
+  const targetWidth = Math.round(w * ratio);
+  const targetHeight = Math.round(h * ratio);
+
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(ratio, ratio);
+  }
 
   if (Array.isArray(pts) && pts.length > 0) {
     pad.fromData(pts);
   } else if (b64 && typeof b64 === "string" && b64.startsWith("data:image/")) {
-    pad.clear();
-    pad.fromDataURL(b64);
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      pad._isEmpty = false;
+    };
+    img.src = b64;
   }
 }
 

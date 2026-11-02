@@ -1906,32 +1906,33 @@ function saveCurrentActiveInstanceData() {
 
 
 
-  } else if (activeInst.code === "PHOTO_REPORT") {
-
+} else if (activeInst.code === "PHOTO_REPORT") {
+    const prevData = activeInst.data || {};
+    const pageRecs = prevData.page_recommendations ? JSON.parse(JSON.stringify(prevData.page_recommendations)) : {};
+    const photos = state.activePhotoReportPhotos || [];
+    const numPages = Math.max(1, Math.ceil(photos.length / 4));
+    for (let p = 0; p < numPages; p++) {
+      const el = document.getElementById(`photo_rec_page_${p}`);
+      if (el) {
+        pageRecs[String(p)] = el.value.trim();
+      }
+    }
+    const legacyRec = document.getElementById("photo_recommended");
+    const rec0 = pageRecs["0"] !== undefined ? pageRecs["0"] : (legacyRec ? legacyRec.value.trim() : (prevData.recommended || ""));
+    pageRecs["0"] = rec0;
     activeInst.data = {
-
       customer: document.getElementById("photo_customer")?.value.trim() || "",
-
       plant: document.getElementById("photo_plant")?.value.trim() || "",
-
       job: document.getElementById("photo_job")?.value.trim() || "",
-
       date: document.getElementById("photo_date")?.value.trim() || "",
-
       date_dmy: document.getElementById("photo_date")?.value.trim() || "",
-
       pump_brand: document.getElementById("photo_pump")?.value.trim() || "",
-
       model: document.getElementById("photo_model")?.value.trim() || "",
-
       serial_no: document.getElementById("photo_serial")?.value.trim() || "",
-
       reported_by: document.getElementById("photo_reported_by")?.value.trim() || "",
-
-      recommended: document.getElementById("photo_recommended")?.value.trim() || "",
-
+      recommended: rec0,
+      page_recommendations: pageRecs,
       photos: state.activePhotoReportPhotos ? JSON.parse(JSON.stringify(state.activePhotoReportPhotos)) : []
-
     };
 
     if (activeInst.data.pump_brand) activeInst.data.brand = activeInst.data.pump_brand;
@@ -2871,7 +2872,16 @@ function loadInstanceDataIntoDom(inst) {
 
     if (document.getElementById("photo_recommended")) {
 
-      document.getElementById("photo_recommended").value = d.recommended || "";
+      if (d.page_recommendations) {
+        if (!inst.data) inst.data = {};
+        inst.data.page_recommendations = d.page_recommendations;
+      } else if (d.recommended) {
+        if (!inst.data) inst.data = {};
+        inst.data.page_recommendations = { "0": d.recommended };
+      }
+      if (document.getElementById("photo_recommended")) {
+        document.getElementById("photo_recommended").value = d.recommended || "";
+      }
 
     }
 
@@ -5338,84 +5348,123 @@ async function loadTicketPhotos(ticketNo) {
 
 
 function renderPhotoGallery() {
-
   const gallery = document.getElementById("photoGallery");
-
   if (!gallery) return;
 
-
-
   const photos = state.activePhotoReportPhotos || [];
-
   const countEl = document.getElementById("photoCount");
-
   if (countEl) countEl.innerText = photos.length;
 
-
-
   if (photos.length === 0) {
-
-    gallery.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400">ยังไม่มีรูปภาพในใบงานนี้ (ถ่ายภาพหรือลากรูปภาพใส่กล่องด้านบนเพื่ออัปโหลด)</div>`;
-
+    gallery.innerHTML = `
+      <div class="py-12 text-center text-xs text-slate-400 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+        <i data-lucide="image" class="w-8 h-8 text-slate-300 mx-auto mb-2"></i>
+        <p class="font-medium text-slate-600">ยังไม่มีรูปภาพในใบงานนี้</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">(ถ่ายภาพหรือลากรูปภาพใส่กล่องด้านบนเพื่ออัปโหลด)</p>
+      </div>`;
+    initIcons();
     return;
-
   }
 
+  const activeInst = state.packageInstances?.find(i => i.id === state.activeInstanceId);
+  const pageRecs = (activeInst && activeInst.data && activeInst.data.page_recommendations) ? activeInst.data.page_recommendations : {};
+  if (activeInst && activeInst.data && activeInst.data.recommended && !pageRecs["0"]) {
+    pageRecs["0"] = activeInst.data.recommended;
+  }
 
+  const photosPerPage = 4;
+  const numPages = Math.max(1, Math.ceil(photos.length / photosPerPage));
 
-  gallery.innerHTML = photos.map((p, idx) => `
+  let html = "";
+  for (let pIdx = 0; pIdx < numPages; pIdx++) {
+    const chunk = photos.slice(pIdx * photosPerPage, (pIdx + 1) * photosPerPage);
+    const startNum = pIdx * photosPerPage + 1;
+    const endNum = Math.min((pIdx + 1) * photosPerPage, photos.length);
+    const recVal = pageRecs[String(pIdx)] || (pIdx === 0 ? (activeInst?.data?.recommended || document.getElementById("photo_recommended")?.value || "") : "");
 
-    <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col group hover:border-purple-400 transition">
+    const chunkHtml = chunk.map((p, cIdx) => {
+      const globalIdx = pIdx * photosPerPage + cIdx;
+      return `
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col group hover:border-purple-400 transition">
+          <div class="h-44 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+            <img src="${p.url}" alt="${p.caption || ''}" class="w-full h-full object-cover">
+            <span class="absolute top-2 left-2 bg-slate-900/75 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-xs">
+              ${p.category || 'ทั่วไป'}
+            </span>
+            <button type="button" onclick="deletePhoto('${p.id}')" title="ลบภาพนี้" class="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow cursor-pointer">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div class="p-3 flex-1 flex flex-col justify-between space-y-2 bg-slate-50/50">
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[11px] font-bold text-slate-700 whitespace-nowrap">Figure :</span>
+              <input type="text" id="photo_fig_${p.id}" value="${p.figure || (globalIdx + 1)}" onchange="updatePhotoField('${p.id}', 'figure', this.value)" class="w-16 p-1 border rounded text-xs font-bold text-center bg-white border-slate-300 focus:border-purple-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Description :</label>
+              <textarea id="photo_caption_${p.id}" rows="2" onchange="updatePhotoField('${p.id}', 'caption', this.value)" placeholder="คำอธิบายภาพ..." class="w-full p-1.5 border rounded text-xs bg-white border-slate-300 focus:border-purple-500 resize-none leading-tight">${p.caption || ""}</textarea>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
 
-      <div class="h-44 bg-slate-100 relative overflow-hidden flex items-center justify-center">
-
-        <img src="${p.url}" alt="${p.caption || ''}" class="w-full h-full object-cover">
-
-        <span class="absolute top-2 left-2 bg-slate-900/75 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-xs">
-
-          ${p.category || 'ทั่วไป'}
-
-        </span>
-
-        <button type="button" onclick="deletePhoto('${p.id}')" title="ลบภาพนี้" class="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow cursor-pointer">
-
-          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-
-        </button>
-
-      </div>
-
-      <div class="p-3 flex-1 flex flex-col justify-between space-y-2 bg-slate-50/50">
-
-        <div class="flex items-center space-x-1.5">
-
-          <span class="text-[11px] font-bold text-slate-700 whitespace-nowrap">Figure :</span>
-
-          <input type="text" id="photo_fig_${p.id}" value="${p.figure || (idx + 1)}" onchange="updatePhotoField('${p.id}', 'figure', this.value)" class="w-16 p-1 border rounded text-xs font-bold text-center bg-white border-slate-300 focus:border-purple-500">
-
+    html += `
+      <div class="border border-slate-200 rounded-2xl bg-white shadow-sm overflow-hidden mb-6">
+        <!-- Page Header -->
+        <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-amber-50/40 border-b border-slate-200">
+          <div class="flex items-center space-x-2.5">
+            <span class="px-2.5 py-1 bg-amber-600 text-white font-bold text-xs rounded-lg flex items-center shadow-xs">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1.5"></i>
+              แผ่นที่ ${pIdx + 1}
+            </span>
+            <span class="text-xs font-semibold text-slate-700">รูปภาพที่ ${startNum} - ${endNum}</span>
+          </div>
+          <span class="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-0.5 rounded-full border border-slate-200">
+            ${chunk.length} / 4 รูป
+          </span>
         </div>
 
-        <div>
-
-          <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Description :</label>
-
-          <textarea id="photo_caption_${p.id}" rows="2" onchange="updatePhotoField('${p.id}', 'caption', this.value)" placeholder="คำอธิบายภาพ..." class="w-full p-1.5 border rounded text-xs bg-white border-slate-300 focus:border-purple-500 resize-none leading-tight">${p.caption || ""}</textarea>
-
+        <!-- 4-photo Grid -->
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          ${chunkHtml}
         </div>
 
+        <!-- Dedicated Recommended for this page -->
+        <div class="px-4 py-3.5 bg-amber-50/50 border-t border-amber-200/60">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <span class="flex items-center space-x-1.5 text-amber-900">
+              <i data-lucide="clipboard-check" class="w-4 h-4 text-amber-600"></i>
+              <span>RECOMMENDED (คำแนะนำสำหรับแผ่นที่ ${pIdx + 1})</span>
+            </span>
+            <span class="text-[10.5px] font-normal text-slate-500 hidden sm:inline">พิมพ์ลงในช่อง Recommended ของแผ่นที่ ${pIdx + 1}</span>
+          </label>
+          <textarea id="photo_rec_page_${pIdx}" rows="2" 
+            onchange="updatePhotoPageRec(${pIdx}, this.value)"
+            placeholder="ระบุคำแนะนำหรือข้อเสนอแนะสำหรับรูปภาพในแผ่นที่ ${pIdx + 1} (จะพิมพ์ลงในส่วน Recommended ของแผ่นที่ ${pIdx + 1} ทั้ง PDF และ Excel)..."
+            class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition resize-y">${recVal}</textarea>
+          <p class="mt-1 text-[11px] text-slate-500">ข้อความนี้จะแสดงบนเส้นบรรทัด Recommended ของหน้ารายงานภาพแผ่นที่ ${pIdx + 1} ทั้งในไฟล์ PDF และ Excel</p>
+        </div>
       </div>
+    `;
+  }
 
-    </div>
-
-  `).join("");
-
-
-
+  gallery.innerHTML = html;
   initIcons();
-
 }
 
-
+function updatePhotoPageRec(pIdx, val) {
+  const activeInst = state.packageInstances?.find(i => i.id === state.activeInstanceId);
+  if (!activeInst) return;
+  if (!activeInst.data) activeInst.data = {};
+  if (!activeInst.data.page_recommendations) activeInst.data.page_recommendations = {};
+  activeInst.data.page_recommendations[String(pIdx)] = val;
+  if (pIdx === 0) {
+    activeInst.data.recommended = val;
+    const legacyEl = document.getElementById("photo_recommended");
+    if (legacyEl) legacyEl.value = val;
+  }
+}
 
 function updatePhotoField(photoId, field, val) {
 
@@ -7807,6 +7856,7 @@ async function previewPhotoReportPdf() {
     reported_by: document.getElementById("photo_reported_by")?.value.trim() || "",
 
     recommended: document.getElementById("photo_recommended")?.value.trim() || "",
+    page_recommendations: (activeInst && activeInst.data && activeInst.data.page_recommendations) ? activeInst.data.page_recommendations : {},
 
     photos: state.activePhotoReportPhotos || []
 
@@ -7911,6 +7961,7 @@ async function downloadPhotoReportExcel() {
     reported_by: document.getElementById("photo_reported_by")?.value.trim() || "",
 
     recommended: document.getElementById("photo_recommended")?.value.trim() || "",
+    page_recommendations: (activeInst && activeInst.data && activeInst.data.page_recommendations) ? activeInst.data.page_recommendations : {},
 
     photos: state.activePhotoReportPhotos || []
 

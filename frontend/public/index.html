@@ -3276,31 +3276,11 @@
 
 
 
-          <div id="photoGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-
-            <!-- Photos rendered dynamically via JS -->
-
+          <div id="photoGallery" class="space-y-6">
+            <!-- Photos grouped 4 per page with dedicated Recommended per page rendered dynamically via JS -->
           </div>
-
-
-
-          <!-- Recommended Section -->
-
-          <div class="mt-6 pt-5 border-t border-slate-200">
-
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-
-              <i data-lucide="clipboard-check" class="w-4 h-4 text-amber-600"></i>
-
-              <span>Recommended (คำแนะนำสำหรับใบนี้)</span>
-
-            </label>
-
-            <textarea id="photo_recommended" rows="3" placeholder="ระบุคำแนะนำหรือข้อเสนอแนะ เช่น ควรตรวจสอบระดับน้ำมันหล่อลื่นทุก 3 เดือน, วางแผนการบำรุงรักษาเชิงป้องกัน (PM) ครั้งถัดไป..." class="w-full p-3 border rounded-xl text-sm bg-slate-50 focus:bg-white focus:border-purple-500 leading-relaxed"></textarea>
-
-            <p class="text-[11px] text-slate-400 mt-1">ข้อความนี้จะแสดงบนเส้นบรรทัด Recommended ในทุกหน้าของรายงานภาพใบนี้ ทั้งในไฟล์ PDF และ Excel</p>
-
-          </div>
+          <!-- Hidden legacy textarea for backwards compatibility -->
+          <textarea id="photo_recommended" class="hidden"></textarea>
 
 
 
@@ -4303,7 +4283,7 @@
 
 
 
-  <script src="app.js?v=20261102_v10_dash_cells"></script>
+  <script src="app.js?v=20261102_v11_photo_pages"></script>
 
 
 

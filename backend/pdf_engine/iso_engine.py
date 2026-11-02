@@ -229,8 +229,8 @@ class IsoPdfEngine:
         page = doc[0]
 
         # 1. Top Header
-        self._insert_text(page, 395, 118, data.get("request_no", ""), size=11, bold=True, max_w=80)
-        self._insert_text(page, 518, 118, self._format_date_dmy(data.get("date", "")), size=10, max_w=58)
+        self._insert_text(page, 395, 118, data.get("request_no", ""), size=12, bold=True, max_w=80)
+        self._insert_text(page, 518, 118, self._format_date_dmy(data.get("date", "")), size=11, bold=True, max_w=58)
 
         # 2. General & Equipment Metadata (4 rows)
         # Row 1: Customer | Plant | Contact person | Tel.
@@ -243,28 +243,28 @@ class IsoPdfEngine:
         plant = _d(data.get("plant"))
         contact_person = _d(data.get("contact_person") or data.get("sr_contact_person"))
         contact_no = _d(data.get("contact_no") or data.get("sr_contact_no"))
-        self._insert_text(page, 95, 161, cust, size=9.5, max_w=85)
-        self._insert_text(page, 215, 161, plant, size=9.5, max_w=65)
-        self._insert_text(page, 342, 161, contact_person, size=9.5, max_w=95)
-        self._insert_text(page, 465, 161, contact_no, size=9.5, max_w=105)
+        self._insert_text(page, 95, 161, cust, size=11.0, bold=True, max_w=85)
+        self._insert_text(page, 215, 161, plant, size=11.0, bold=True, max_w=65)
+        self._insert_text(page, 342, 161, contact_person, size=11.0, bold=True, max_w=95)
+        self._insert_text(page, 465, 161, contact_no, size=11.0, bold=True, max_w=105)
 
         # Row 2: Pump brand | Model | Serial no. | Pump code
-        self._insert_text(page, 115, 178, _d(data.get("pump_brand")), size=9.5, max_w=65)
-        self._insert_text(page, 215, 178, _d(data.get("pump_model")), size=9.5, max_w=65)
-        self._insert_text(page, 335, 178, _d(data.get("serial_no")), size=9.5, max_w=100)
-        self._insert_text(page, 495, 178, _d(data.get("pump_code")), size=9.5, max_w=75)
+        self._insert_text(page, 115, 178, _d(data.get("pump_brand")), size=11.0, bold=True, max_w=65)
+        self._insert_text(page, 215, 178, _d(data.get("pump_model")), size=11.0, bold=True, max_w=65)
+        self._insert_text(page, 335, 178, _d(data.get("serial_no")), size=11.0, bold=True, max_w=100)
+        self._insert_text(page, 495, 178, _d(data.get("pump_code")), size=11.0, bold=True, max_w=75)
 
         # Row 3: Motor brand | KW | RPM | Max. amp
-        self._insert_text(page, 115, 190, _d(data.get("motor_brand")), size=9.5, max_w=65)
-        self._insert_text(page, 205, 190, _d(data.get("motor_kw")), size=9.5, max_w=70)
-        self._insert_text(page, 310, 190, _d(data.get("motor_rpm")), size=9.5, max_w=125)
-        self._insert_text(page, 495, 190, _d(data.get("motor_max_amp")), size=9.5, max_w=75)
+        self._insert_text(page, 115, 190, _d(data.get("motor_brand")), size=11.0, bold=True, max_w=65)
+        self._insert_text(page, 205, 190, _d(data.get("motor_kw")), size=11.0, bold=True, max_w=70)
+        self._insert_text(page, 310, 190, _d(data.get("motor_rpm")), size=11.0, bold=True, max_w=125)
+        self._insert_text(page, 495, 190, _d(data.get("motor_max_amp")), size=11.0, bold=True, max_w=75)
 
         # Row 4: Gear | Ratio | Model | Serial no.
-        self._insert_text(page, 85, 208, _d(data.get("gear_brand") or data.get("gear")), size=9.5, max_w=95)
-        self._insert_text(page, 210, 208, _d(data.get("gear_ratio")), size=9.5, max_w=68)
-        self._insert_text(page, 315, 208, _d(data.get("gear_model")), size=9.5, max_w=120)
-        self._insert_text(page, 495, 208, _d(data.get("gear_serial")), size=9.5, max_w=75)
+        self._insert_text(page, 85, 208, _d(data.get("gear_brand") or data.get("gear")), size=11.0, bold=True, max_w=95)
+        self._insert_text(page, 210, 208, _d(data.get("gear_ratio")), size=11.0, bold=True, max_w=68)
+        self._insert_text(page, 315, 208, _d(data.get("gear_model")), size=11.0, bold=True, max_w=120)
+        self._insert_text(page, 495, 208, _d(data.get("gear_serial")), size=11.0, bold=True, max_w=75)
 
         # 3. Service Subject Checkboxes
         subj = str(data.get("service_subject", "")).lower()
@@ -324,7 +324,7 @@ class IsoPdfEngine:
 
             else:
 
-                self._insert_text(page, 382, y, rem_val, size=8.5, max_w=86)
+                self._insert_text(page, 382, y, rem_val, size=10.0, bold=True, max_w=86)
 
 
 
@@ -338,7 +338,7 @@ class IsoPdfEngine:
 
             else:
 
-                self._insert_text(page, 477, y, note_val, size=8.5, max_w=93)
+                self._insert_text(page, 477, y, note_val, size=10.0, bold=True, max_w=93)
 
 
 
@@ -364,9 +364,9 @@ class IsoPdfEngine:
 
         for idx, deg in enumerate(["0", "90", "180", "270"]):
 
-            self._insert_centered_text(page, al_cols_cx[idx], 533, _d(c_rad.get(deg)), size=8.5)
+            self._insert_centered_text(page, al_cols_cx[idx], 533, _d(c_rad.get(deg)), size=10.0, bold=True)
 
-            self._insert_centered_text(page, al_cols_cx[idx], 546, _d(c_x.get(deg)), size=8.5)
+            self._insert_centered_text(page, al_cols_cx[idx], 546, _d(c_x.get(deg)), size=10.0, bold=True)
 
 
 
@@ -382,15 +382,15 @@ class IsoPdfEngine:
 
         for idx, deg in enumerate(["0", "90", "180", "270"]):
 
-            self._insert_centered_text(page, al_cols_cx[idx], 584, _d(r_rad.get(deg)), size=8.5)
+            self._insert_centered_text(page, al_cols_cx[idx], 584, _d(r_rad.get(deg)), size=10.0, bold=True)
 
-            self._insert_centered_text(page, al_cols_cx[idx], 597, _d(r_x.get(deg)), size=8.5)
+            self._insert_centered_text(page, al_cols_cx[idx], 597, _d(r_x.get(deg)), size=10.0, bold=True)
 
 
 
         dial_sv = _d(al.get("sv_gauge"))
 
-        self._insert_text(page, 190, 609, dial_sv, size=8.5, max_w=70)
+        self._insert_text(page, 190, 609, dial_sv, size=9.5, max_w=70)
 
 
 
@@ -440,19 +440,19 @@ class IsoPdfEngine:
 
             for c_idx, val in enumerate(vals):
 
-                self._insert_centered_text(page, vib_cols_cx[c_idx], y_val, val, size=8.5)
+                self._insert_centered_text(page, vib_cols_cx[c_idx], y_val, val, size=10.0, bold=True)
 
 
 
         meter_sv = _d(vib.get("meter_sv"))
 
-        self._insert_text(page, 440, 518, meter_sv, size=8)
+        self._insert_text(page, 440, 518, meter_sv, size=9.5)
 
 
 
         therm_sv = _d(vib.get("thermometer_sv"))
 
-        self._insert_text(page, 510, 530, therm_sv, size=8)
+        self._insert_text(page, 510, 530, therm_sv, size=9.5)
 
 
 
@@ -466,31 +466,31 @@ class IsoPdfEngine:
 
         # Insulation
 
-        self._insert_centered_text(page, op_cx[0], 622, _d(op.get("ins_u")), size=8.5)
+        self._insert_centered_text(page, op_cx[0], 622, _d(op.get("ins_u")), size=10.0, bold=True)
 
-        self._insert_centered_text(page, op_cx[1], 622, _d(op.get("ins_v")), size=8.5)
+        self._insert_centered_text(page, op_cx[1], 622, _d(op.get("ins_v")), size=10.0, bold=True)
 
-        self._insert_centered_text(page, op_cx[2], 622, _d(op.get("ins_w")), size=8.5)
+        self._insert_centered_text(page, op_cx[2], 622, _d(op.get("ins_w")), size=10.0, bold=True)
 
         # Current
 
-        self._insert_centered_text(page, op_cx[0], 634, _d(op.get("cur_u")), size=8.5)
+        self._insert_centered_text(page, op_cx[0], 634, _d(op.get("cur_u")), size=10.0, bold=True)
 
-        self._insert_centered_text(page, op_cx[1], 634, _d(op.get("cur_v")), size=8.5)
+        self._insert_centered_text(page, op_cx[1], 634, _d(op.get("cur_v")), size=10.0, bold=True)
 
-        self._insert_centered_text(page, op_cx[2], 634, _d(op.get("cur_w")), size=8.5)
+        self._insert_centered_text(page, op_cx[2], 634, _d(op.get("cur_w")), size=10.0, bold=True)
 
         # Voltage
 
-        self._insert_centered_text(page, op_cx[0], 647, _d(op.get("vol_uv")), size=8.5)
+        self._insert_centered_text(page, op_cx[0], 647, _d(op.get("vol_uv")), size=10.0, bold=True)
 
-        self._insert_centered_text(page, op_cx[1], 647, _d(op.get("vol_uw")), size=8.5)
+        self._insert_centered_text(page, op_cx[1], 647, _d(op.get("vol_uw")), size=10.0, bold=True)
 
-        self._insert_centered_text(page, op_cx[2], 647, _d(op.get("vol_vw")), size=8.5)
+        self._insert_centered_text(page, op_cx[2], 647, _d(op.get("vol_vw")), size=10.0, bold=True)
 
         # Speed
 
-        self._insert_centered_text(page, 457.32, 659, _d(op.get("speed")), size=8.5)
+        self._insert_centered_text(page, 457.32, 659, _d(op.get("speed")), size=10.0, bold=True)
 
 
 
@@ -504,7 +504,7 @@ class IsoPdfEngine:
 
             for r_idx, r_line in enumerate(rec_lines[:4]):
 
-                self._insert_text(page, 60, 695 + (r_idx * 14), r_line, size=9.5, max_w=510)
+                self._insert_text(page, 60, 695 + (r_idx * 14), r_line, size=11.0, bold=True, max_w=510)
 
         else:
 
@@ -516,13 +516,13 @@ class IsoPdfEngine:
         if tech_sig:
             self._insert_signature(page, (120, 755, 212, 768), tech_sig)
         else:
-            self._insert_centered_text(page, 166, 765, data.get("serviced_by", ""), size=9.5)
+            self._insert_centered_text(page, 166, 765, data.get("serviced_by", ""), size=11.0, bold=True)
 
-        self._insert_centered_text(page, 166, 779, self._format_date_dmy(data.get("serviced_date", data.get("date", "-"))), size=9.5)
+        self._insert_centered_text(page, 166, 779, self._format_date_dmy(data.get("serviced_date", data.get("date", "-"))), size=10.5, bold=True)
 
         # Serviced Time: Start & Finished
-        self._insert_text(page, 320, 765, data.get("time_start", "-"), size=9.5, max_w=80)
-        self._insert_text(page, 330, 779, data.get("time_finished", "-"), size=9.5, max_w=75)
+        self._insert_text(page, 320, 765, data.get("time_start", "-"), size=10.5, bold=True, max_w=80)
+        self._insert_text(page, 330, 779, data.get("time_finished", "-"), size=10.5, bold=True, max_w=75)
 
         # Customer Box (x=471 to 577, y=755 to 769)
         cust_name_val = str(data.get("customer_signer_name") or data.get("cust_name") or data.get("custSignerName") or data.get("contact_person") or data.get("sr_contact_person") or "").strip()
@@ -532,7 +532,7 @@ class IsoPdfEngine:
         if cust_sig:
             self._insert_signature(page, (475, 755, 573, 768), cust_sig)
         elif cust_name_val:
-            self._insert_centered_text(page, 524, 765, cust_name_val, size=9.5, bold=True)
+            self._insert_centered_text(page, 524, 765, cust_name_val, size=11.0, bold=True)
 
         cust_dt = data.get("customer_sign_datetime")
         if not cust_dt:
@@ -545,7 +545,7 @@ class IsoPdfEngine:
                 parts[0] = self._format_date_dmy(parts[0])
                 cust_dt = " ".join(parts)
         if cust_dt and cust_dt != "-":
-            self._insert_centered_text(page, 524, 779, cust_dt, size=9)
+            self._insert_centered_text(page, 524, 779, cust_dt, size=10.0, bold=True)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
@@ -573,40 +573,40 @@ class IsoPdfEngine:
 
         # Header fields
         # Request No. line at x=309..408, y=129.6
-        self._insert_text(page, 312, 126, _dash(data.get("request_no")), size=10, bold=True, max_w=95)
+        self._insert_text(page, 312, 126, _dash(data.get("request_no")), size=12, bold=True, max_w=95)
         # Date line at x=478..545, y=129.5
         raw_d = data.get("date") or data.get("serviced_date")
         d_str = self._format_date_dmy(raw_d) if raw_d else "-"
-        self._insert_text(page, 480, 126, d_str, size=10, bold=True, max_w=65)
+        self._insert_text(page, 480, 126, d_str, size=11, bold=True, max_w=65)
 
         # Equipment Info Row 1 (Underline baseline y = 172.5)
         cust = _dash(data.get("customer"))
         plant = _dash(data.get("plant"))
         contact_person = _dash(data.get("contact_person") or data.get("sr_contact_person"))
         contact_no = _dash(data.get("contact_no") or data.get("sr_contact_no"))
-        self._insert_text(page, 58, 172.5, cust, size=9.5, max_w=105)
-        self._insert_text(page, 185, 172.5, plant, size=9.5, max_w=85)
-        self._insert_text(page, 320, 172.5, contact_person, size=9.5, max_w=100)
-        self._insert_text(page, 442, 172.5, contact_no, size=9.5, max_w=125)
+        self._insert_text(page, 58, 172.5, cust, size=11.0, bold=True, max_w=105)
+        self._insert_text(page, 185, 172.5, plant, size=11.0, bold=True, max_w=85)
+        self._insert_text(page, 320, 172.5, contact_person, size=11.0, bold=True, max_w=100)
+        self._insert_text(page, 442, 172.5, contact_no, size=11.0, bold=True, max_w=125)
 
         # Row 2 (Underline baseline y = 186.5)
-        self._insert_text(page, 65, 186.5, _dash(data.get("pump_brand")), size=9.5, max_w=95)
-        self._insert_text(page, 190, 186.5, _dash(data.get("pump_model")), size=9.5, max_w=80)
-        self._insert_text(page, 305, 186.5, _dash(data.get("serial_no")), size=9.5, max_w=115)
-        self._insert_text(page, 462, 186.5, _dash(data.get("pump_code")), size=9.5, max_w=105)
+        self._insert_text(page, 65, 186.5, _dash(data.get("pump_brand")), size=11.0, bold=True, max_w=95)
+        self._insert_text(page, 190, 186.5, _dash(data.get("pump_model")), size=11.0, bold=True, max_w=80)
+        self._insert_text(page, 305, 186.5, _dash(data.get("serial_no")), size=11.0, bold=True, max_w=115)
+        self._insert_text(page, 462, 186.5, _dash(data.get("pump_code")), size=11.0, bold=True, max_w=105)
 
         # Row 3 (Underline baseline y = 201.0)
-        self._insert_text(page, 66, 201.0, _dash(data.get("motor_brand")), size=9.5, max_w=95)
-        self._insert_text(page, 188, 201.0, _dash(data.get("motor_kw")), size=9.5, max_w=82)
-        self._insert_text(page, 296, 201.0, _dash(data.get("motor_rpm")), size=9.5, max_w=125)
-        self._insert_text(page, 458, 201.0, _dash(data.get("motor_max_amp")), size=9.5, max_w=105)
+        self._insert_text(page, 66, 201.0, _dash(data.get("motor_brand")), size=11.0, bold=True, max_w=95)
+        self._insert_text(page, 188, 201.0, _dash(data.get("motor_kw")), size=11.0, bold=True, max_w=82)
+        self._insert_text(page, 296, 201.0, _dash(data.get("motor_rpm")), size=11.0, bold=True, max_w=125)
+        self._insert_text(page, 458, 201.0, _dash(data.get("motor_max_amp")), size=11.0, bold=True, max_w=105)
 
         # Row 4 (Underline baseline y = 215.5)
         gear_brand = _dash(data.get("gear_brand") or data.get("gear"))
-        self._insert_text(page, 45, 215.5, gear_brand, size=9.5, max_w=115)
-        self._insert_text(page, 186, 215.5, _dash(data.get("gear_ratio")), size=9.5, max_w=82)
-        self._insert_text(page, 300, 215.5, _dash(data.get("gear_model")), size=9.5, max_w=120)
-        self._insert_text(page, 458, 215.5, _dash(data.get("gear_serial")), size=9.5, max_w=105)
+        self._insert_text(page, 45, 215.5, gear_brand, size=11.0, bold=True, max_w=115)
+        self._insert_text(page, 186, 215.5, _dash(data.get("gear_ratio")), size=11.0, bold=True, max_w=82)
+        self._insert_text(page, 300, 215.5, _dash(data.get("gear_model")), size=11.0, bold=True, max_w=120)
+        self._insert_text(page, 458, 215.5, _dash(data.get("gear_serial")), size=11.0, bold=True, max_w=105)
 
         # Service Subject Checkboxes (Ticked gets tick, unticked gets dash)
         subjects = data.get("service_subjects", [])
@@ -661,9 +661,9 @@ class IsoPdfEngine:
             c_lines = self._wrap_text(cause_text, width=60)
             for i, line in enumerate(c_lines[:3]):
                 max_w = 480 if i < 2 else 315
-                self._insert_text(page, 90, cause_y[i], line, size=9.0, max_w=max_w)
+                self._insert_text(page, 90, cause_y[i], line, size=10.5, bold=True, max_w=max_w)
         else:
-            self._insert_text(page, 90, cause_y[0], "-", size=9.0, max_w=480)
+            self._insert_text(page, 90, cause_y[0], "-", size=10.5, bold=True, max_w=480)
 
         # Cause Ref document
         if data.get("cause_ref_check") or data.get("cause_ref"):
@@ -680,9 +680,9 @@ class IsoPdfEngine:
             r_lines = self._wrap_text(repair_text, width=60)
             for i, line in enumerate(r_lines[:4]):
                 max_w = 480 if i < 3 else 315
-                self._insert_text(page, 90, rep_y[i], line, size=9.0, max_w=max_w)
+                self._insert_text(page, 90, rep_y[i], line, size=10.5, bold=True, max_w=max_w)
         else:
-            self._insert_text(page, 90, rep_y[0], "-", size=9.0, max_w=480)
+            self._insert_text(page, 90, rep_y[0], "-", size=10.5, bold=True, max_w=480)
 
         # Repairing Ref document
         if data.get("repairing_ref_check") or data.get("repairing_ref"):
@@ -713,9 +713,9 @@ class IsoPdfEngine:
                     p_other = data.get("prevention_other", "")
                     if p_other and p_other != "-":
                         po_lines = self._wrap_text(p_other, width=52)
-                        if len(po_lines) > 0: self._insert_text(page, 198, 618, po_lines[0], size=8.5, max_w=370)
-                        if len(po_lines) > 1: self._insert_text(page, 170, 634, po_lines[1], size=8.5, max_w=400)
-                        if len(po_lines) > 2: self._insert_text(page, 170, 651, po_lines[2], size=8.5, max_w=235)
+                        if len(po_lines) > 0: self._insert_text(page, 198, 618, po_lines[0], size=10.0, bold=True, max_w=370)
+                        if len(po_lines) > 1: self._insert_text(page, 170, 634, po_lines[1], size=10.0, bold=True, max_w=400)
+                        if len(po_lines) > 2: self._insert_text(page, 170, 651, po_lines[2], size=10.0, bold=True, max_w=235)
                     else:
                         self._insert_text(page, 198, 618, "-", size=8.5, max_w=370)
                 else:
@@ -770,18 +770,18 @@ class IsoPdfEngine:
         if tech_sig:
             self._insert_signature(page, (95, 781, 220, 795), tech_sig)
         elif tech_name_val:
-            self._insert_centered_text(page, 157, 791, tech_name_val, size=9.5, bold=True)
+            self._insert_centered_text(page, 157, 791, tech_name_val, size=11.0, bold=True)
         else:
             self._insert_centered_text(page, 157, 791, "-", size=9.5)
 
         # Serviced Date: y ≈ 805
         raw_sd = data.get("serviced_date") or data.get("date")
         s_date = self._format_date_dmy(raw_sd) if raw_sd else "-"
-        self._insert_text(page, 95, 805, s_date, size=9.0, max_w=125)
+        self._insert_text(page, 95, 805, s_date, size=10.5, bold=True, max_w=125)
 
         # Serviced Time (Start & Finished)
-        self._insert_text(page, 310, 791, _dash(data.get("time_start")), size=9.0, max_w=95)
-        self._insert_text(page, 320, 805, _dash(data.get("time_finished")), size=9.0, max_w=85)
+        self._insert_text(page, 310, 791, _dash(data.get("time_start")), size=10.5, bold=True, max_w=95)
+        self._insert_text(page, 320, 805, _dash(data.get("time_finished")), size=10.5, bold=True, max_w=85)
 
         # Customer Sign Box: (478, 781, 574, 795)
         cust_name_val = str(data.get("customer_signer_name") or data.get("cust_name") or data.get("custSignerName") or data.get("contact_person") or data.get("sr_contact_person") or data.get("sat_contact_person") or "").strip()
@@ -791,14 +791,14 @@ class IsoPdfEngine:
         if cust_sig:
             self._insert_signature(page, (482, 781, 570, 795), cust_sig)
         elif cust_name_val:
-            self._insert_centered_text(page, 526, 791, cust_name_val, size=9.5, bold=True)
+            self._insert_centered_text(page, 526, 791, cust_name_val, size=11.0, bold=True)
         else:
             self._insert_centered_text(page, 526, 791, "-", size=9.5)
 
         # Customer Sign Date / Time: y ≈ 805
         raw_cd = data.get("customer_sign_date") or data.get("serviced_date") or data.get("date")
         c_date = self._format_date_dmy(raw_cd) if raw_cd else "-"
-        self._insert_text(page, 482, 805, c_date, size=9.0, max_w=90)
+        self._insert_text(page, 482, 805, c_date, size=10.5, bold=True, max_w=90)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
@@ -853,25 +853,25 @@ class IsoPdfEngine:
 
             # 1. Header fields (aligned with underlines)
             if req_no and req_no != "-":
-                self._insert_text(page, 465, 156, req_no, size=9.5, bold=True, max_w=95)
+                self._insert_text(page, 465, 156, req_no, size=11.5, bold=True, max_w=95)
             # Customer, Plant, Tel, Contact Person (always printed, '-' if missing)
-            self._insert_text(page, 68, 174, cust, size=9.0, max_w=340)
+            self._insert_text(page, 68, 174, cust, size=10.5, bold=True, max_w=340)
             if job_no and job_no != "-":
-                self._insert_text(page, 463, 174, job_no, size=9.0, max_w=95)
-            self._insert_text(page, 68, 192, plant or "-", size=9.0, max_w=340)
+                self._insert_text(page, 463, 174, job_no, size=10.5, bold=True, max_w=95)
+            self._insert_text(page, 68, 192, plant or "-", size=10.5, bold=True, max_w=340)
             if io_no and io_no != "-":
-                self._insert_text(page, 463, 192, io_no, size=9.0, max_w=95)
-            self._insert_text(page, 78, 210, contact_no or "-", size=9.0, max_w=140)
-            self._insert_text(page, 290, 210, contact_person or "-", size=9.0, max_w=118)
+                self._insert_text(page, 463, 192, io_no, size=10.5, bold=True, max_w=95)
+            self._insert_text(page, 78, 210, contact_no or "-", size=10.5, bold=True, max_w=140)
+            self._insert_text(page, 290, 210, contact_person or "-", size=10.5, bold=True, max_w=118)
             if start_date:
-                self._insert_text(page, 471, 210, start_date, size=9.0, max_w=90)
+                self._insert_text(page, 471, 210, start_date, size=10.5, bold=True, max_w=90)
 
             if p_brand and p_brand != "-":
-                self._insert_text(page, 90, 228, p_brand, size=9.0, max_w=130)
+                self._insert_text(page, 90, 228, p_brand, size=10.5, bold=True, max_w=130)
             if p_model and p_model != "-":
-                self._insert_text(page, 272, 228, p_model, size=9.0, max_w=135)
+                self._insert_text(page, 272, 228, p_model, size=10.5, bold=True, max_w=135)
             if p_serial and p_serial != "-":
-                self._insert_text(page, 442, 228, p_serial, size=9.0, max_w=115)
+                self._insert_text(page, 442, 228, p_serial, size=10.5, bold=True, max_w=115)
 
             # 2. Slice parts for this page (16 per page)
             page_parts = parts[page_idx * ROWS_PER_PAGE : (page_idx + 1) * ROWS_PER_PAGE]
@@ -880,11 +880,11 @@ class IsoPdfEngine:
 
                 # จำนวน (Qty)
                 qty = str(p.get("qty", "1")).strip()
-                self._insert_centered_text(page, 47.4, row_y, qty, size=8.5)
+                self._insert_centered_text(page, 47.4, row_y, qty, size=10.0, bold=True)
 
                 # รายการที่เปลี่ยน/ซ่อม (Description)
                 desc = p.get("description") or p.get("part_name") or p.get("part_no", "")
-                self._insert_text(page, 70.0, row_y, str(desc), size=8.5, max_w=150)
+                self._insert_text(page, 70.0, row_y, str(desc), size=10.0, max_w=150)
 
                 # สั่งทำ / STOCK / STORE (ปล่อยว่าง ไม่ระบุสต็อก)
                 src = str(p.get("source", p.get("stock", ""))).strip().lower()
@@ -903,24 +903,24 @@ class IsoPdfEngine:
                         price_str = f"{price_val:,.2f}" if price_val % 1 != 0 else f"{int(price_val):,}"
                     except ValueError:
                         price_str = str(p.get("price"))
-                    self._insert_centered_text(page, 384.2, row_y, price_str, size=8.5)
+                    self._insert_centered_text(page, 384.2, row_y, price_str, size=10.0, bold=True)
                 else:
-                    self._insert_centered_text(page, 384.2, row_y, "-", size=8.5)
+                    self._insert_centered_text(page, 384.2, row_y, "-", size=10.0)
 
                 # สั่งทำที่ (Supplier / Order From)
                 supp = str(p.get("supplier") or p.get("order_from") or p.get("made_at") or "-").strip()
                 if supp and supp != "-":
-                    self._insert_centered_text(page, 434.8, row_y, supp, size=8.0)
+                    self._insert_centered_text(page, 434.8, row_y, supp, size=9.5)
 
                 # ส่งวันที่
                 sent_d = str(p.get("sent_date") or p.get("send_date") or "-").strip()
                 if sent_d and sent_d != "-":
-                    self._insert_centered_text(page, 485.4, row_y, self._format_date_dmy(sent_d), size=7.5)
+                    self._insert_centered_text(page, 485.4, row_y, self._format_date_dmy(sent_d), size=9.0)
 
                 # เสร็จวันที่
                 fin_d = str(p.get("finished_date") or p.get("finish_date") or "-").strip()
                 if fin_d and fin_d != "-":
-                    self._insert_centered_text(page, 536.0, row_y, self._format_date_dmy(fin_d), size=7.5)
+                    self._insert_centered_text(page, 536.0, row_y, self._format_date_dmy(fin_d), size=9.0)
 
             # 3. Bottom Fields
             self._insert_text(page, 68, 628, data.get("sale_name") or "-", size=8.5, max_w=180)
@@ -953,7 +953,7 @@ class IsoPdfEngine:
                 self._insert_centered_text(page, 305, 767, tech_name_val, size=9.0, bold=True)
 
             if tech_name_val:
-                self._insert_text(page, 254, 779, str(tech_name_val), size=8.5, bold=True, max_w=102)
+                self._insert_text(page, 254, 779, str(tech_name_val), size=10.5, bold=True, max_w=102)
 
             date_str = str(data.get("serviced_date") or data.get("date") or "").strip()
             if date_str:
@@ -987,20 +987,20 @@ class IsoPdfEngine:
 
         # 1. Header fields
         # Request No. at x ≈ 482, y ≈ 249
-        self._insert_text(page, 482, 249, data.get("request_no", "-"), size=9.5, bold=True, max_w=66)
+        self._insert_text(page, 482, 249, data.get("request_no", "-"), size=11.5, bold=True, max_w=66)
 
         # Pump Brand, Model, S/N, Date line at y ≈ 267
-        self._insert_text(page, 118, 267, data.get("pump_brand", ""), size=9.0, max_w=78)
-        self._insert_text(page, 232, 267, data.get("pump_model", ""), size=9.0, max_w=95)
-        self._insert_text(page, 352, 267, data.get("serial_no", ""), size=9.0, max_w=75)
+        self._insert_text(page, 118, 267, data.get("pump_brand", ""), size=10.5, bold=True, max_w=78)
+        self._insert_text(page, 232, 267, data.get("pump_model", ""), size=10.5, bold=True, max_w=95)
+        self._insert_text(page, 352, 267, data.get("serial_no", ""), size=10.5, bold=True, max_w=75)
 
         # Date: Format as ว/ด/ป aligned to template "Date : ........../.........../……………."
         raw_date = data.get("insp_sheet_date") or data.get("serviced_date") or data.get("date") or ""
         day, mon, yr = self._parse_date_dmy_parts(raw_date)
         if day and mon and yr:
-            self._insert_centered_text(page, 463.5, 267.0, day, size=9.0)
-            self._insert_centered_text(page, 486.8, 267.0, mon, size=9.0)
-            self._insert_centered_text(page, 518.0, 267.0, yr, size=9.0)
+            self._insert_centered_text(page, 463.5, 267.0, day, size=10.5, bold=True)
+            self._insert_centered_text(page, 486.8, 267.0, mon, size=10.5, bold=True)
+            self._insert_centered_text(page, 518.0, 267.0, yr, size=10.5, bold=True)
         elif raw_date and raw_date != "-":
             self._insert_text(page, 455, 267, self._format_date_dmy(raw_date), size=9.0, max_w=88)
 
@@ -1058,7 +1058,7 @@ class IsoPdfEngine:
                     std_text = str(m["standard"]).strip()
 
                 if std_text and std_text != "-":
-                    self._insert_centered_text(page, 175.26, std_y, std_text, size=7.5)
+                    self._insert_centered_text(page, 175.26, std_y, std_text, size=9.5)
 
             # Measurement Values
             def _val_dash(val):
@@ -1070,23 +1070,23 @@ class IsoPdfEngine:
             fi_a = _val_dash(m.get("final_a", m.get("fi_a")))
             fi_b = _val_dash(m.get("final_b", m.get("fi_b")))
 
-            self._insert_centered_text(page, 309.78, row_y, in_a, size=8.0)
-            self._insert_centered_text(page, 358.44, row_y, in_b, size=8.0)
-            self._insert_centered_text(page, 407.10, row_y, fi_a, size=8.0)
-            self._insert_centered_text(page, 455.70, row_y, fi_b, size=8.0)
+            self._insert_centered_text(page, 309.78, row_y, in_a, size=10.0, bold=True)
+            self._insert_centered_text(page, 358.44, row_y, in_b, size=10.0, bold=True)
+            self._insert_centered_text(page, 407.10, row_y, fi_a, size=10.0, bold=True)
+            self._insert_centered_text(page, 455.70, row_y, fi_b, size=10.0, bold=True)
 
             # Remark (Col 7: cx = 515.34) - Only print what the user explicitly entered
             rem = str(m.get("remark", "")).strip()
             if rem and rem != "-":
                 color = (0, 0.5, 0) if rem == "PASS" else ((0.8, 0, 0) if rem == "FAIL" else (0, 0, 0))
-                self._insert_centered_text(page, 515.34, row_y, rem, size=7.5, bold=(rem in ["PASS", "FAIL"]), color=color)
+                self._insert_centered_text(page, 515.34, row_y, rem, size=9.5, bold=True, color=color)
 
         # 3. Note : Measuring with ...
         measuring_with = data.get("measuring_with", data.get("note_measuring_with", "Vernier Caliper"))
         if not measuring_with or "Bore Gauge" in str(measuring_with) or ("Micrometer" in str(measuring_with) and "Vernier" in str(measuring_with)):
             measuring_with = "Vernier Caliper"
         if measuring_with:
-            self._insert_text(page, 370.0, 668.0, str(measuring_with), size=8.0, max_w=150)
+            self._insert_text(page, 370.0, 668.0, str(measuring_with), size=10.0, max_w=150)
 
         # 4. Signatures & Names
         # Incoming Check By (Technician)
@@ -1095,7 +1095,7 @@ class IsoPdfEngine:
             self._insert_signature(page, (160, 678, 274, 696), sig_in)
         in_tech = data.get("tech_incoming_name") or data.get("incoming_check_by") or data.get("serviced_by")
         if in_tech and in_tech != "-":
-            self._insert_text(page, 165.0, 696.0, str(in_tech), size=8.5, bold=True, max_w=108)
+            self._insert_text(page, 165.0, 696.0, str(in_tech), size=10.5, bold=True, max_w=108)
 
         # Final Check By (Technician) - ONLY if explicitly signed/named for Final
         sig_fi = data.get("sign_tech_final")
@@ -1103,21 +1103,21 @@ class IsoPdfEngine:
             self._insert_signature(page, (400, 678, 530, 696), sig_fi)
         fi_tech = data.get("tech_final_name") or data.get("final_check_by")
         if fi_tech and fi_tech != "-":
-            self._insert_text(page, 405.0, 696.0, str(fi_tech), size=8.5, bold=True, max_w=120)
+            self._insert_text(page, 405.0, 696.0, str(fi_tech), size=10.5, bold=True, max_w=120)
 
         # Approve By (Left / Incoming)
         if data.get("sign_approve_incoming"):
             self._insert_signature(page, (130, 734, 265, 752), data["sign_approve_incoming"])
         appr_in = data.get("approve_incoming_name") or data.get("approve_by_incoming")
         if appr_in and appr_in != "-":
-            self._insert_text(page, 135.0, 752.0, str(appr_in), size=8.5, bold=True, max_w=125)
+            self._insert_text(page, 135.0, 752.0, str(appr_in), size=10.5, bold=True, max_w=125)
 
         # Approve By (Right / Final) - ONLY if explicitly signed/named for Final
         if data.get("sign_approve_final"):
             self._insert_signature(page, (395, 734, 533, 752), data["sign_approve_final"])
         appr_fi = data.get("approve_final_name") or data.get("approve_by_final")
         if appr_fi and appr_fi != "-":
-            self._insert_text(page, 400.0, 752.0, str(appr_fi), size=8.5, bold=True, max_w=128)
+            self._insert_text(page, 400.0, 752.0, str(appr_fi), size=10.5, bold=True, max_w=128)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
@@ -1379,8 +1379,17 @@ class IsoPdfEngine:
             # -------------------------------------------------------------
             photos_per_page = 4
             num_chunks = max(1, (len(cover_photos) + photos_per_page - 1) // photos_per_page)
+            page_recs = c_info.get("page_recommendations") or data.get("page_recommendations") or {}
 
             for p_idx in range(num_chunks):
+                chunk_rec = ""
+                if isinstance(page_recs, dict):
+                    chunk_rec = page_recs.get(str(p_idx)) or page_recs.get(p_idx) or ""
+                elif isinstance(page_recs, list) and p_idx < len(page_recs):
+                    chunk_rec = page_recs[p_idx] or ""
+                
+                if not chunk_rec and p_idx == 0:
+                    chunk_rec = c_info.get("recommended") or data.get("recommended") or data.get("photo_recommended") or ""
                 page_photos = cover_photos[p_idx * photos_per_page:(p_idx + 1) * photos_per_page]
 
                 page = doc.new_page(width=595.3, height=841.9)
@@ -1459,8 +1468,8 @@ class IsoPdfEngine:
                 rec_lines = [628, 648, 668, 688]
                 for r_y in rec_lines:
                     page.draw_line(pymupdf.Point(38, r_y), pymupdf.Point(557, r_y), color=(0.7, 0.7, 0.7), width=0.5)
-                if rec_text:
-                    wrapped_rec = textwrap.wrap(rec_text, width=80)
+                if chunk_rec:
+                    wrapped_rec = textwrap.wrap(chunk_rec, width=80)
                     for r_i, line_t in enumerate(wrapped_rec[:4]):
                         self._insert_text(page, 38, rec_lines[r_i] - 3, line_t, size=11, bold=False)
 
@@ -1572,8 +1581,17 @@ class IsoPdfEngine:
             # 2. Photo Sheets for this pump
             photos_per_page = 4
             num_chunks = max(1, (len(cover_photos) + photos_per_page - 1) // photos_per_page)
+            page_recs = c_info.get("page_recommendations") or data.get("page_recommendations") or {}
 
             for p_idx in range(num_chunks):
+                chunk_rec = ""
+                if isinstance(page_recs, dict):
+                    chunk_rec = page_recs.get(str(p_idx)) or page_recs.get(p_idx) or ""
+                elif isinstance(page_recs, list) and p_idx < len(page_recs):
+                    chunk_rec = page_recs[p_idx] or ""
+                
+                if not chunk_rec and p_idx == 0:
+                    chunk_rec = c_info.get("recommended") or data.get("recommended") or data.get("photo_recommended") or ""
                 prefix = f"P{c_idx + 1}_" if len(covers_list) > 1 else ""
                 sheet_title = f"{prefix}{p_idx + 1}"
 
@@ -1628,8 +1646,8 @@ class IsoPdfEngine:
                     ws[sc["desc_cell"]] = caption
 
                 # Recommended (ON EVERY PHOTO PAGE)
-                if rec_text:
-                    wrapped_rec = textwrap.wrap(rec_text, width=80)
+                if chunk_rec:
+                    wrapped_rec = textwrap.wrap(chunk_rec, width=80)
                     rec_rows = [41, 42, 43, 44]
                     for r_i, r_text in enumerate(wrapped_rec[:4]):
                         ws.cell(row=rec_rows[r_i], column=1, value=r_text)
@@ -1683,9 +1701,9 @@ class IsoPdfEngine:
         date_str = self._format_date_dmy(raw_date)
 
         if req_no:
-            self._insert_centered_text(page, 514.8, 133.0, req_no, size=10, bold=True)
+            self._insert_centered_text(page, 514.8, 133.0, req_no, size=11.5, bold=True)
         if date_str:
-            self._insert_centered_text(page, 520.8, 148.5, date_str, size=9.5)
+            self._insert_centered_text(page, 520.8, 148.5, date_str, size=10.5, bold=True)
 
         # 2. Box 1: Customer & Job Info (Underlines at y=170.70, 184.50, 198.30)
         cust = str(data.get("exp_customer") or data.get("customer") or "").strip()
@@ -1700,18 +1718,18 @@ class IsoPdfEngine:
             contact = f"{contact} ({tel})" if (contact and contact != "-") else tel
 
         # Line 1: y=170.70 -> text baseline at y=169.0
-        self._insert_text(page, 115.0, 169.0, cust or "-", size=9.5, bold=True, max_w=145)
-        self._insert_text(page, 356.0, 169.0, sales_person or "-", size=9.5, max_w=95)
+        self._insert_text(page, 115.0, 169.0, cust or "-", size=11.0, bold=True, max_w=145)
+        self._insert_text(page, 356.0, 169.0, sales_person or "-", size=10.5, bold=True, max_w=95)
         self._insert_centered_text(page, 544.3, 169.0, sales_group or "-", size=9.5)
 
         # Line 2: y=184.50 -> text baseline at y=182.8
-        self._insert_text(page, 115.0, 182.8, prod_model or "-", size=9.5, max_w=145)
-        self._insert_text(page, 356.0, 182.8, io_so or "-", size=9.5, max_w=215)
+        self._insert_text(page, 115.0, 182.8, prod_model or "-", size=11.0, bold=True, max_w=145)
+        self._insert_text(page, 356.0, 182.8, io_so or "-", size=10.5, bold=True, max_w=215)
 
         # Line 3: y=198.30 -> text baseline at y=196.8
-        self._insert_text(page, 115.0, 196.8, site_place or "-", size=9.5, max_w=145)
+        self._insert_text(page, 115.0, 196.8, site_place or "-", size=11.0, bold=True, max_w=145)
         if contact and contact != "-":
-            self._insert_text(page, 376.0, 196.8, contact, size=9.5, max_w=195)
+            self._insert_text(page, 376.0, 196.8, contact, size=10.5, bold=True, max_w=195)
         else:
             # Center dash perfectly on the 198 pt line (x=374.0 .. 572.4)
             self._insert_centered_text(page, 473.2, 196.8, "-", size=9.5)
@@ -1853,7 +1871,7 @@ class IsoPdfEngine:
         if tech_sig:
             self._insert_signature(page, (65, 635, 160, 674), tech_sig)
         elif tech_name and tech_name != "-":
-            self._insert_centered_text(page, 112.9, 672.0, tech_name, size=9.5, bold=True)
+            self._insert_centered_text(page, 112.9, 672.0, tech_name, size=11.0, bold=True)
         else:
             self._insert_centered_text(page, 112.9, 672.0, "-", size=9.5)
         tech_date = self._format_date_dmy(data.get("exp_tech_date") or raw_date)
@@ -1864,7 +1882,7 @@ class IsoPdfEngine:
         if sr_sig:
             self._insert_signature(page, (235, 635, 335, 674), sr_sig)
         elif sr_name and sr_name != "-":
-            self._insert_centered_text(page, 283.6, 672.0, sr_name, size=9.5, bold=True)
+            self._insert_centered_text(page, 283.6, 672.0, sr_name, size=11.0, bold=True)
         else:
             self._insert_centered_text(page, 283.6, 672.0, "-", size=9.5)
         sr_date = self._format_date_dmy(data.get("exp_sr_tech_date") or raw_date)
@@ -1875,7 +1893,7 @@ class IsoPdfEngine:
         if sales_sig:
             self._insert_signature(page, (410, 635, 508, 674), sales_sig)
         elif sales_n and sales_n != "-":
-            self._insert_centered_text(page, 459.0, 672.0, sales_n, size=9.5, bold=True)
+            self._insert_centered_text(page, 459.0, 672.0, sales_n, size=11.0, bold=True)
         else:
             self._insert_centered_text(page, 459.0, 672.0, "-", size=9.5)
         sales_d = self._format_date_dmy(data.get("exp_sales_date") or raw_date)
@@ -1886,7 +1904,7 @@ class IsoPdfEngine:
         if mgr_sig:
             self._insert_signature(page, (410, 685, 508, 723), mgr_sig)
         elif mgr_n and mgr_n != "-":
-            self._insert_centered_text(page, 459.0, 720.5, mgr_n, size=9.5, bold=True)
+            self._insert_centered_text(page, 459.0, 720.5, mgr_n, size=11.0, bold=True)
         else:
             self._insert_centered_text(page, 459.0, 720.5, "-", size=9.5)
         mgr_d = self._format_date_dmy(data.get("exp_mgr_date") or raw_date)
@@ -1897,9 +1915,12 @@ class IsoPdfEngine:
         doc.close()
         return output_path
     def generate_service_request_pdf(self, data: Dict[str, Any], output_path: str) -> str:
-        """Render official ISO Service Request Form (FM-EPS-28) from pure CRM data"""
+        """Render official ISO Service Request Form (FM-EPS-28) perfectly proportioned for A4"""
         doc = pymupdf.open()
-        page = doc.new_page(width=595.08, height=841.68) # A4
+        page = doc.new_page(width=595.3, height=841.9) # A4
+        if self.has_th_font:
+            page.insert_font(fontname="th", fontfile=FONT_TH)
+            page.insert_font(fontname="thb", fontfile=FONT_TH_B)
 
         def _clean(val: Any) -> str:
             if val is None:
@@ -1909,18 +1930,52 @@ class IsoPdfEngine:
                 return ""
             return s
 
-        def _txt(x, y, txt, size=13, bold=False, color=(0,0,0)):
+        def _dash(val: Any) -> str:
+            s = _clean(val)
+            return s if s else "-"
+
+        def _txt(x: float, y: float, txt: str, size: float = 12.5, bold: bool = False, color=(0,0,0), max_w: float = 0):
             if txt is None or txt == "":
                 return
             fn = "thb" if bold else "th"
             ff = FONT_TH_B if bold else FONT_TH
+            if max_w > 0:
+                try:
+                    f_obj = pymupdf.Font(fontfile=ff)
+                    w = f_obj.text_length(str(txt), fontsize=size)
+                    if w > max_w:
+                        size = max(7.5, size * (max_w / w))
+                except Exception:
+                    pass
             page.insert_text(pymupdf.Point(x, y), str(txt), fontsize=size, fontname=fn, fontfile=ff, color=color)
 
-        # 1. Title
-        _txt(220, 80, "Service Request Form", size=18, bold=True)
+        def _draw_box(rect: pymupdf.Rect, fill=None, border=(0.2, 0.2, 0.2), width=0.8):
+            page.draw_rect(rect, color=border, fill=fill, width=width)
 
-        # 2. Top Right
-        t_no = _clean(data.get("Title") or data.get("RequestNo") or data.get("TicketKey") or data.get("TicketNo") or data.get("ticket_no"))
+        # 1. Outer Frame
+        page.draw_rect(pymupdf.Rect(32, 28, 563, 814), color=(0.1, 0.1, 0.1), width=1.2)
+
+        # 2. Top Header Section: Official Siamraj Letterhead
+        header_logo = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "header_logo_siamraj.png")
+        if os.path.exists(header_logo):
+            page.insert_image(pymupdf.Rect(52, 34, 542, 95), filename=header_logo, keep_proportion=True)
+        else:
+            logo_mark = self._get_logo_path()
+            if logo_mark and os.path.exists(logo_mark):
+                page.insert_image(pymupdf.Rect(42, 36, 122, 102), filename=logo_mark, keep_proportion=True)
+            _txt(130, 52, "บริษัท สยามราช จำกัด (มหาชน)", size=16, bold=True)
+            _txt(130, 68, "SIAMRAJ PUBLIC COMPANY LIMITED", size=11, bold=True, color=(0.2, 0.2, 0.2))
+            _txt(130, 83, "289/9 หมู่ 10 ถ.รถรางสายเก่า ต.สำโรง อ.พระประแดง จ.สมุทรปราการ 10130", size=10, color=(0.3, 0.3, 0.3))
+            _txt(130, 97, "โทรศัพท์ : (02) 7435010-25  โทรสาร : (02) 7435007-8", size=10, color=(0.3, 0.3, 0.3))
+
+        # Divider line
+        page.draw_line(pymupdf.Point(32, 102), pymupdf.Point(563, 102), color=(0.1, 0.1, 0.1), width=1.0)
+
+        # 3. Title Banner & Request No / Date
+        _draw_box(pymupdf.Rect(32, 102, 563, 142), fill=(0.95, 0.96, 0.98), border=(0.1, 0.1, 0.1), width=0.8)
+        _txt(165, 128, "SERVICE REQUEST FORM", size=20, bold=True, color=(0.08, 0.18, 0.36))
+
+        t_no = _dash(data.get("Title") or data.get("RequestNo") or data.get("TicketKey") or data.get("TicketNo") or data.get("ticket_no"))
         raw_created = data.get("Created Time") or data.get("CreatedDate") or data.get("created_time") or ""
         issue_date = ""
         if raw_created and str(raw_created).strip().lower() not in ["-", "nan", "none", "null"]:
@@ -1934,33 +1989,48 @@ class IsoPdfEngine:
                     issue_date = raw_clean
             except Exception:
                 issue_date = str(raw_created).strip()
+        if not issue_date:
+            issue_date = "-"
 
-        _txt(359, 108, f"Service Request No. : {t_no}", size=12.5)
-        _txt(359, 124, f"Issue Date : {_clean(issue_date)}", size=12.5)
+        _txt(395, 121, "Request No. :", size=11, bold=True)
+        _txt(460, 121, t_no, size=12.5, bold=True, color=(0.7, 0, 0))
+        _txt(395, 136, "Issue Date   :", size=10.5, bold=False)
+        _txt(460, 136, issue_date, size=10.5, bold=False)
 
-        def _dash_sr(val: Any) -> str:
-            if val is None:
-                return "-"
-            s = str(val).strip()
-            if not s or s.lower() in ["nan", "none", "null"]:
-                return "-"
-            return s
+        def _draw_section_header(y_top: float, title_th: str, title_en: str):
+            _draw_box(pymupdf.Rect(32, y_top, 563, y_top + 22), fill=(0.90, 0.92, 0.95), border=(0.2, 0.2, 0.2), width=0.8)
+            _txt(42, y_top + 16, title_th, size=12.5, bold=True, color=(0.08, 0.18, 0.36))
+            if title_en:
+                _txt(220, y_top + 16, f"({title_en})", size=10.5, bold=False, color=(0.3, 0.3, 0.3))
 
-        # 3. Company & Site
-        cust = _dash_sr(data.get("Organization Name") or data.get("Customer")).replace("Accounts::::", "").strip() or "-"
-        contact = _dash_sr(data.get("Site Contact Person") or data.get("ContactPerson"))
-        phone = _dash_sr(data.get("Site Contact Phone") or data.get("ContactPhone"))
-        addr = _dash_sr(data.get("Address or Site") or data.get("Site"))
+        # 4. Section 1: Customer & Site Information
+        _draw_section_header(148, "1. ข้อมูลลูกค้าและสถานที่", "Customer & Site Information")
+        _draw_box(pymupdf.Rect(32, 170, 563, 243), border=(0.2, 0.2, 0.2), width=0.8)
 
-        _txt(68, 155, f"Company name : {cust}", size=12.5)
-        _txt(68, 175, f"Site Contact Person : {contact}", size=12.5)
-        _txt(68, 195, f"Site Contact Phone : {phone}", size=12.5)
-        _txt(68, 215, f"Address / Site : {addr}", size=12.5)
+        cust = _dash(data.get("Organization Name") or data.get("Customer")).replace("Accounts::::", "").strip() or "-"
+        contact = _dash(data.get("Site Contact Person") or data.get("ContactPerson"))
+        phone = _dash(data.get("Site Contact Phone") or data.get("ContactPhone"))
+        addr = _dash(data.get("Address or Site") or data.get("Site"))
 
-        # 4. Two Columns
-        so = _dash_sr(data.get("Sales Orders") or data.get("SalesOrder"))
-        prod = _dash_sr(data.get("Product") or data.get("ProductCode"))
-        serial = _dash_sr(data.get("Serial Number") or data.get("SerialNo"))
+        _txt(45, 190, "Company Name (ชื่อบริษัท/ลูกค้า) :", size=11.5, bold=True)
+        _txt(210, 190, cust, size=12.5, bold=True, color=(0, 0, 0), max_w=340)
+
+        _txt(45, 211, "Site Contact Person (ผู้ติดต่อ)  :", size=11.5, bold=True)
+        _txt(210, 211, contact, size=12, max_w=150)
+        _txt(370, 211, "Phone (เบอร์ติดต่อ) :", size=11.5, bold=True)
+        _txt(470, 211, phone, size=12, max_w=85)
+
+        _txt(45, 231, "Address / Site (สถานที่ปฏิบัติงาน) :", size=11.5, bold=True)
+        _txt(210, 231, addr, size=12, max_w=340)
+
+        # 5. Section 2: Equipment & Order Information
+        _draw_section_header(249, "2. ข้อมูลอุปกรณ์และคำสั่งขาย", "Equipment & Order Information")
+        _draw_box(pymupdf.Rect(32, 271, 563, 352), border=(0.2, 0.2, 0.2), width=0.8)
+        page.draw_line(pymupdf.Point(297, 271), pymupdf.Point(297, 352), color=(0.4, 0.4, 0.4), width=0.5)
+
+        so = _dash(data.get("Sales Orders") or data.get("SalesOrder"))
+        prod = _dash(data.get("Product") or data.get("ProductCode"))
+        serial = _dash(data.get("Serial Number") or data.get("SerialNo"))
 
         req_group = _clean(data.get("Request By Group") or data.get("Group"))
         assigned_to = _clean(data.get("Assigned To") or data.get("AssignedTo"))
@@ -1976,85 +2046,123 @@ class IsoPdfEngine:
         else:
             req_by = "-"
 
-        model = _dash_sr(data.get("Model") or data.get("PumpModel"))
-        typ = _dash_sr(data.get("Type"))
+        model = _dash(data.get("Model") or data.get("PumpModel"))
+        typ = _dash(data.get("Type"))
 
-        _txt(68, 240, f"Sales Order : {so}", size=12.5)
-        _txt(68, 256, f"Product : {prod}", size=12.5)
-        _txt(68, 272, f"Serial No. : {serial}", size=12.5)
+        _txt(45, 293, "Sales Order :", size=11.5, bold=True)
+        _txt(125, 293, so, size=12, bold=True, max_w=165)
+        _txt(45, 315, "Product       :", size=11.5, bold=True)
+        _txt(125, 315, prod, size=12, max_w=165)
+        _txt(45, 337, "Serial No.    :", size=11.5, bold=True)
+        _txt(125, 337, serial, size=12, bold=True, max_w=165)
 
-        _txt(275, 240, f"Request By : {req_by}", size=12.5)
-        _txt(275, 256, f"Pump Model : {model}", size=12.5)
-        _txt(275, 272, f"Type : {typ}", size=12.5)
+        _txt(310, 293, "Request By   :", size=11.5, bold=True)
+        _txt(390, 293, req_by, size=12, max_w=165)
+        _txt(310, 315, "Pump Model :", size=11.5, bold=True)
+        _txt(390, 315, model, size=12, bold=True, max_w=165)
+        _txt(310, 337, "Type             :", size=11.5, bold=True)
+        _txt(390, 337, typ, size=12, max_w=165)
 
-        # 5. Problem / Detail of work
-        desc = _clean(data.get("Description") or data.get("ProblemDetail"))
-        _txt(68, 300, "Problem / Detail of work :", size=12.5)
-        
-        y_curr = 300
+        # 6. Section 3: Problem / Detail of work
+        _draw_section_header(358, "3. รายละเอียดปัญหาและลักษณะงาน", "Problem / Detail of Work")
+        _draw_box(pymupdf.Rect(32, 380, 563, 473), border=(0.2, 0.2, 0.2), width=0.8)
+
+        desc = _clean(data.get("Problem / Detail of work") or data.get("Description") or data.get("ProblemDetail"))
         if desc:
-            lines = [line.strip() for line in desc.splitlines() if line.strip()]
-            if lines:
-                first_l = lines[0]
-                _txt(195, y_curr, first_l[:75], size=12.5)
-                y_curr += 18
-                for extra_line in lines[1:]:
-                    _txt(68, y_curr, extra_line[:95], size=12.5)
-                    y_curr += 18
+            d_lines = desc.splitlines()
+            all_wrapped = []
+            for dl in d_lines:
+                if dl.strip():
+                    all_wrapped.extend(textwrap.wrap(dl.strip(), width=92))
+                else:
+                    all_wrapped.append("")
+            y_d = 402
+            for w_line in all_wrapped[:4]:
+                _txt(45, y_d, w_line, size=12.5)
+                y_d += 18
         else:
-            _txt(195, y_curr, "-", size=12.5)
+            _txt(45, 408, "-", size=13)
 
-        # 6. Work Require
-        y_req_header = max(345, y_curr + 15)
-        _txt(66, y_req_header, "Work Require :", size=12.5, bold=True)
+        # 7. Section 4: Work Required (ขอบเขตงานที่ต้องการ)
+        _draw_section_header(479, "4. ขอบเขตงานที่ต้องการ", "Work Required")
+        _draw_box(pymupdf.Rect(32, 501, 563, 617), border=(0.2, 0.2, 0.2), width=0.8)
 
-        items = [
-            ("Start up Commissioning :", data.get("Start up Commissioning")),
-            ("Inspection :", data.get("Inspection")),
-            ("Reassembly :", data.get("Reassembly")),
-            ("Spare part Changing or Modification :", data.get("Spare part Changing or Modification")),
-            ("Repair :", data.get("Repair")),
-            ("Other :", data.get("Other"))
+        work_items = [
+            ("Start up Commissioning (การเริ่มเดินเครื่อง)", data.get("Start up Commissioning")),
+            ("Inspection (การตรวจสอบ)", data.get("Inspection")),
+            ("Reassembly (การประกอบคืนสภาพ)", data.get("Reassembly")),
+            ("Spare part Changing or Modification (การเปลี่ยนหรือดัดแปลงชิ้นส่วน)", data.get("Spare part Changing or Modification")),
+            ("Repair (งานซ่อมแซม)", data.get("Repair")),
+            ("Other (งานอื่นๆ)", data.get("Other"))
         ]
-        y_r = y_req_header + 16
-        for label, val in items:
-            _txt(68, y_r, label, size=12.5)
+
+        y_w = 520
+        for idx, (label, val) in enumerate(work_items):
             is_yes = str(val).strip() in ["1", "1.0", "True", "true", "Yes", "yes"]
-            _txt(348, y_r, "Yes" if is_yes else "No", size=12.5)
-            y_r += 16
+            if idx % 2 == 1:
+                page.draw_rect(pymupdf.Rect(33, y_w - 14, 562, y_w + 5), color=None, fill=(0.97, 0.98, 0.99))
+            
+            _txt(48, y_w, f"4.{idx+1}  {label}", size=11.5)
+            
+            if is_yes:
+                page.draw_rect(pymupdf.Rect(440, y_w - 11, 490, y_w + 3), color=(0.1, 0.5, 0.2), fill=(0.9, 0.97, 0.9), width=0.8)
+                _txt(448, y_w, "✓  Yes", size=11.5, bold=True, color=(0.1, 0.5, 0.2))
+                _txt(512, y_w, "   No", size=11, color=(0.6, 0.6, 0.6))
+            else:
+                _txt(448, y_w, "   Yes", size=11, color=(0.6, 0.6, 0.6))
+                page.draw_rect(pymupdf.Rect(505, y_w - 11, 555, y_w + 3), color=(0.4, 0.4, 0.4), fill=(0.95, 0.95, 0.95), width=0.8)
+                _txt(513, y_w, "-   No", size=11.5, bold=True, color=(0.2, 0.2, 0.2))
 
-        # 7. Documents & Appointments
-        y_doc = y_r + 14
-        _txt(67, y_doc, "Including Document :", size=12.5)
-        y_doc += 16
-        detail_val = _dash_sr(data.get("Detail"))
-        _txt(67, y_doc, f"Detail : {detail_val}", size=12.5)
+            y_w += 19
 
-        y_app = y_doc + 24
-        app_date = _dash_sr(data.get("Appointment Date") or data.get("AppointmentDate"))
+        # 8. Section 5: Included Document & Appointment
+        _draw_section_header(624, "5. เอกสารประกอบและวันนัดหมาย", "Included Document & Appointment")
+        _draw_box(pymupdf.Rect(32, 646, 563, 708), border=(0.2, 0.2, 0.2), width=0.8)
+
+        detail_val = _dash(data.get("Detail") or data.get("Including Document"))
+        app_date = _dash(data.get("Appointment Date") or data.get("AppointmentDate"))
         if app_date and " " in app_date:
             app_date = app_date.split(" ")[0]
-        app_time = _dash_sr(data.get("Appointment Time"))
-        _txt(66, y_app, f"Appointment Date : {app_date}", size=12.5)
-        y_app += 16
-        _txt(66, y_app, f"Appointment Time : {app_time}", size=12.5)
+        app_time = _dash(data.get("Appointment Time"))
 
-        # 8. Service & Assignment
-        y_serv = y_app + 24
-        serv_by = _dash_sr(data.get("Service By") or data.get("ServiceBy")).replace("|##|", ", ").strip() or "-"
-        assigned_by = _dash_sr(data.get("Assigned By") or data.get("AssignedTo"))
-        comp_d = _dash_sr(data.get("Completed Date") or data.get("CompletedDate"))
+        _txt(45, 666, "Included Document / Detail (เอกสารแนบ/รายละเอียด) :", size=11.5, bold=True)
+        _txt(310, 666, detail_val, size=12, max_w=240)
+
+        _txt(45, 691, "Appointment Date (วันนัดหมาย) :", size=11.5, bold=True)
+        _txt(215, 691, app_date, size=12, bold=True, max_w=120)
+
+        _txt(360, 691, "Appointment Time (เวลานัดหมาย) :", size=11.5, bold=True)
+        _txt(505, 691, app_time, size=12, bold=True, max_w=50)
+
+        # 9. Section 6: Assignment & Signatures
+        _draw_section_header(715, "6. การมอบหมายและผู้รับผิดชอบงาน", "Service Assignment & Signatures")
+        _draw_box(pymupdf.Rect(32, 737, 563, 795), border=(0.2, 0.2, 0.2), width=0.8)
+
+        serv_by = _dash(data.get("Service By") or data.get("ServiceBy")).replace("|##|", ", ").strip() or "-"
+        assigned_by = _dash(data.get("Assigned By") or data.get("AssignedTo"))
+        comp_d = _dash(data.get("Completed Date") or data.get("CompletedDate"))
         if comp_d and " " in comp_d:
             comp_d = comp_d.split(" ")[0]
 
-        _txt(67, y_serv, f"Service By : {serv_by}", size=12.5)
-        y_serv += 16
-        _txt(66, y_serv, f"Assigned By : {assigned_by}", size=12.5)
-        y_serv += 16
-        _txt(66, y_serv, f"Completed Date : {comp_d}", size=12.5)
+        col_w = (563 - 32) / 3.0
+        c1 = 32 + col_w
+        c2 = 32 + col_w * 2
 
-        # 9. Footer
-        _txt(390, 775, "FM-EPS-28, Rev.05, 21/09/63", size=10)
+        page.draw_line(pymupdf.Point(c1, 737), pymupdf.Point(c1, 795), color=(0.4, 0.4, 0.4), width=0.5)
+        page.draw_line(pymupdf.Point(c2, 737), pymupdf.Point(c2, 795), color=(0.4, 0.4, 0.4), width=0.5)
+
+        _txt(42, 756, "Service By (ช่างบริการ) :", size=11, bold=True)
+        _txt(42, 777, serv_by, size=11.5, bold=True, color=(0.1, 0.2, 0.5), max_w=165)
+
+        _txt(c1 + 10, 756, "Assigned By (ผู้มอบหมายงาน) :", size=11, bold=True)
+        _txt(c1 + 10, 777, assigned_by, size=11.5, bold=True, color=(0.1, 0.2, 0.5), max_w=165)
+
+        _txt(c2 + 10, 756, "Completed Date (วันที่แล้วเสร็จ) :", size=11, bold=True)
+        _txt(c2 + 10, 777, comp_d, size=11.5, bold=True, max_w=165)
+
+        # 10. Footer
+        _txt(42, 809, "FM-EPS-28, Rev.05, 21/09/63", size=9.5, color=(0.4, 0.4, 0.4))
+        _txt(495, 809, "Page 1 of 1", size=9.5, color=(0.4, 0.4, 0.4))
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)
@@ -2062,80 +2170,39 @@ class IsoPdfEngine:
         return output_path
 
     def get_or_create_service_request_pdf(self, ticket: str, data: Dict[str, Any], output_dir: str) -> Optional[str]:
-        """Find pre-existing CRM ticket PDF from drive or generate dynamically from CRM data"""
+        """Generate high-quality, perfectly-formatted A4 ISO Service Request Form (FM-EPS-28) from CRM data"""
         ticket_str = str(ticket).strip()
         out_req_pdf = os.path.join(output_dir, f"CRM_REQUEST_{ticket_str}.pdf")
 
-        # 1. Search CRM Ticket folders
-        search_dirs = [
-            r"g:\Shared drives\Service Report\ฝ่ายงาน (Back Office)\Service Photo App\1. CRM Ticket",
-            r"g:\Shared drives\Service Report\Service Report Automation\CRM Ticket",
-            os.path.join(BASE_DIR, "data", "crm_tickets")
-        ]
-        import shutil
-        for s_dir in search_dirs:
-            if os.path.exists(s_dir):
-                for fname in os.listdir(s_dir):
-                    if fname.lower().endswith(".pdf") and ticket_str in fname:
-                        src_file = os.path.join(s_dir, fname)
-                        try:
-                            shutil.copyfile(src_file, out_req_pdf)
-                            return out_req_pdf
-                        except Exception as e:
-                            print(f"[CRM Service Request] Error copying {src_file}: {e}")
-
-        # 2. Look up PURE CRM record (strictly from CRM database, NOT technician's form inputs)
-        pure_crm = {}
+        # Merge with CRM ticket cache if available to ensure all fields are complete
+        merged_data = dict(data) if data else {}
         csv_candidates = [
-            r"G:\My Drive\Service_App_Data\Tickets_Cleaned.csv",
-            r"G:\My Drive\Service_App_Data\Tickets.csv",
-            os.path.join(BASE_DIR, "data", "crm_tickets_cache.csv")
+            r"g:\Shared drives\Service Report\หลังบ้าน (Back Office)\01 Service Report\Data\CRM Tickets Cache.csv",
+            os.path.join(BASE_DIR, "data", "CRM Tickets Cache.csv")
         ]
         import csv
-        for cp in csv_candidates:
-            if os.path.exists(cp):
+        for c_path in csv_candidates:
+            if os.path.exists(c_path):
                 try:
-                    with open(cp, "r", encoding="utf-8-sig", errors="ignore") as cf:
+                    with open(c_path, "r", encoding="utf-8-sig") as cf:
                         reader = csv.DictReader(cf)
-                        for row in reader:
-                            t_title = str(row.get("Title") or "").strip()
-                            t_key = str(row.get("TicketKey") or "").strip()
-                            t_no = str(row.get("TicketNo") or "").strip()
-                            t_req = str(row.get("RequestNo") or "").strip()
-                            if ticket_str in [t_title, t_key, t_no, t_req] and ticket_str:
-                                pure_crm = {k: v for k, v in row.items() if v is not None}
+                        for r in reader:
+                            if r.get("TicketKey") == ticket_str or r.get("TicketNo") == ticket_str:
+                                for k, v in r.items():
+                                    if v and not merged_data.get(k):
+                                        merged_data[k] = v
                                 break
-                    if pure_crm:
-                        break
+                    break
                 except Exception as ex:
-                    print(f"[CRM Service Request] Error reading CSV {cp}: {ex}")
+                    print(f"[CRM Cache] Error reading cache: {ex}")
 
-        # If not found in CSVs, fallback to backend get_ticket
-        if not pure_crm:
-            try:
-                import sys
-                from app import get_ticket
-                t_obj = get_ticket(ticket_str)
-                if t_obj:
-                    pure_crm = dict(t_obj)
-            except Exception:
-                pass
-
-        if not pure_crm:
-            pure_crm = {"Title": ticket_str, "TicketNo": ticket_str}
-        else:
-            pure_crm["ticket_no"] = ticket_str
-
-        # 3. Generate dynamically from pure CRM ticket data
+        # Always generate our crisp, official A4 Service Request Form
         try:
-            return self.generate_service_request_pdf(pure_crm, out_req_pdf)
+            return self.generate_service_request_pdf(merged_data, out_req_pdf)
         except Exception as e:
-            print(f"[CRM Service Request] Error generating PDF for {ticket_str}: {e}")
+            print(f"[CRM PDF] Error generating CRM Request PDF: {e}")
             return None
 
-    # =========================================================================
-    # COMBINED ALL-IN-ONE PDF PACKAGE
-    # =========================================================================
     def merge_pdf_package(self, pdf_paths: List[str], output_path: str) -> str:
         merged_doc = pymupdf.open()
         for path in pdf_paths:

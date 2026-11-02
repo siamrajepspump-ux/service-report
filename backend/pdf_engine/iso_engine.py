@@ -1515,6 +1515,23 @@ class IsoPdfEngine:
         doc = pymupdf.open(template)
         page = doc[0]
 
+        # 0. Cleanly redact template date placeholders to prevent clashing slashes / trailing underscores
+        date_placeholders = [
+            pymupdf.Rect(477.0, 136.0, 565.0, 151.0), # Top Date
+            pymupdf.Rect(85.0, 690.0, 140.0, 705.0),   # Tech Date
+            pymupdf.Rect(255.0, 690.0, 311.0, 705.0),  # Sr Tech Date
+            pymupdf.Rect(430.0, 690.0, 487.0, 705.0),  # Sales Date
+            pymupdf.Rect(430.0, 733.0, 487.0, 748.0)   # Manager Date
+        ]
+        for r in date_placeholders:
+            page.add_redact_annot(r, fill=(1, 1, 1))
+        page.apply_redactions()
+
+        # Redraw clean crisp underlines for dates
+        page.draw_line(pymupdf.Point(478.0, 150.0), pymupdf.Point(564.0, 150.0), color=(0.4, 0.4, 0.4), width=0.5)
+        for x0, x1, y_line in [(87.1, 138.7, 702.5), (257.8, 309.4, 702.5), (433.2, 484.8, 702.5), (433.2, 484.8, 745.5)]:
+            page.draw_line(pymupdf.Point(x0, y_line), pymupdf.Point(x1, y_line), color=(0.4, 0.4, 0.4), width=0.5)
+
         # 1. Header: Request No. & Date
         # Line for Request No: x=468.3 .. 561.2 (Center 514.8), baseline y=134.9
         # Line for Date: x=477.7 .. 563.8 (Center 520.8), baseline y=150.0
@@ -1550,7 +1567,11 @@ class IsoPdfEngine:
 
         # Line 3: y=198.30 -> text baseline at y=196.8
         self._insert_text(page, 115.0, 196.8, site_place or "-", size=9.5, max_w=145)
-        self._insert_text(page, 376.0, 196.8, contact or "-", size=9.5, max_w=195)
+        if contact and contact != "-":
+            self._insert_text(page, 376.0, 196.8, contact, size=9.5, max_w=195)
+        else:
+            # Center dash perfectly on the 198 pt line (x=374.0 .. 572.4)
+            self._insert_centered_text(page, 473.2, 196.8, "-", size=9.5)
 
         # 3. Box 2: Job Checkboxes & Expenses
         # Exact bracket centers: Left cx = 87.44, Right cx = 314.53
@@ -1572,9 +1593,6 @@ class IsoPdfEngine:
                 self._insert_dash(page, 87.44, cy, size=8.5)
 
         # Underlines for Other 1, 2, 3 text (x0=164.2 .. 262.4)
-        # Line at y=290.39 -> baseline 288.5
-        # Line at y=302.73 -> baseline 301.0
-        # Line at y=315.08 -> baseline 313.5
         other_txt_map = [
             ("exp_job_other1_text", 288.5),
             ("exp_job_other2_text", 301.0),
@@ -1604,7 +1622,6 @@ class IsoPdfEngine:
                 self._insert_dash(page, 314.53, cy, size=8.5)
             self._insert_centered_text(page, 512.65, y_baseline, a_val if a_val else "-", size=9)
 
-        # Gas distance note if provided
         gas_dist = str(data.get("exp_gas_distance") or "").strip()
         if gas_dist:
             self._insert_text(page, 375.0, 258.9, gas_dist, size=8.5)
@@ -1623,7 +1640,6 @@ class IsoPdfEngine:
             self._insert_centered_text(page, 361.6, y_baseline, v_end if v_end else "-", size=9.5)
             self._insert_centered_text(page, 510.0, y_baseline, v_tot if v_tot else "-", size=9.5)
 
-        # Distance & Crew
         self._insert_centered_text(page, 163.2, 398.0, str(data.get("exp_distance") or "-"), size=9.5)
         self._insert_centered_text(page, 386.2, 398.0, str(data.get("exp_crew_tech") or "-"), size=9.5)
         self._insert_centered_text(page, 496.3, 398.0, str(data.get("exp_crew_sr_tech") or "-"), size=9.5)
@@ -1670,7 +1686,7 @@ class IsoPdfEngine:
             else:
                 self._insert_dash(page, 314.53, cy, size=8.5)
 
-        # 7. Box 6: Additional comments (Underline 1 starts at x=164.2 at y=601.48, Underlines 2..5 start at x=60.7)
+        # 7. Box 6: Additional comments
         comments = str(data.get("exp_comments") or data.get("comments") or "").strip()
         if comments and comments != "-":
             c_lines = comments.splitlines()
@@ -1689,10 +1705,6 @@ class IsoPdfEngine:
             self._insert_text(page, 168.0, 599.5, "-", size=9)
 
         # 8. Signatures:
-        # Tech: line cx = 112.9 (61.6 .. 164.2)
-        # Sr. Tech: line cx = 283.6 (212.9 .. 354.3)
-        # Sales: line cx = 459.0 (403.0 .. 515.0)
-        # Manager: line cx = 459.0 (403.0 .. 515.0, y=724.93)
         tech_sig = data.get("signature_tech") or data.get("sig_technician") or data.get("signature_engineer")
         tech_name = str(data.get("exp_tech_name") or data.get("technician_name") or data.get("tech_name") or data.get("serviced_by") or "").strip()
         if tech_sig:
@@ -1735,7 +1747,7 @@ class IsoPdfEngine:
         else:
             self._insert_centered_text(page, 459.0, 720.5, "-", size=9.5)
         mgr_d = self._format_date_dmy(data.get("exp_mgr_date") or raw_date)
-        self._insert_centered_text(page, 459.0, 743.5, mgr_d or "-", size=9)
+        self._insert_centered_text(page, 459.0, 743.0, mgr_d or "-", size=9)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)

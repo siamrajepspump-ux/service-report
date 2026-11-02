@@ -294,9 +294,9 @@ class IsoPdfEngine:
         checklist = data.get("visual_checklist", [])
         for i, y in enumerate(y_starts):
             item_data = checklist[i] if i < len(checklist) else {}
-            status = str(item_data.get("status", "normal")).lower()
-            tx = vis_ticks_x.get(status, 297.36)
-            self._insert_tick(page, tx, y)
+            status = str(item_data.get("status", "")).lower().strip()
+            if status in vis_ticks_x:
+                self._insert_tick(page, vis_ticks_x[status], y)
 
             remark = item_data.get("remark", "")
             if remark:

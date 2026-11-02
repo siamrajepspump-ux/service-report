@@ -1731,6 +1731,13 @@ function saveCurrentActiveInstanceData() {
       sheet_code: sheetCode
 
     };
+    const visList = VISUAL_ITEMS.map((item, idx) => {
+      const selected = document.querySelector(`input[name="vis_check_${idx}"]:checked`)?.value || "";
+      const remark = document.getElementById(`vis_rem_${idx}`)?.value || "";
+      const note = document.getElementById(`vis_note_${idx}`)?.value || "";
+      return { item, status: selected, remark, note };
+    });
+    activeInst.data.visual_checklist = visList;
 
     if (sheetModel) activeInst.data.pump_model = sheetModel;
 
@@ -2526,11 +2533,50 @@ function loadInstanceDataIntoDom(inst) {
       if (document.getElementById("cr_recommendation")) {
 
         document.getElementById("cr_recommendation").value = inst.data.recommendation || "";
-
       }
 
+      if (inst.data.visual_checklist && Array.isArray(inst.data.visual_checklist)) {
+        inst.data.visual_checklist.forEach((item, idx) => {
+          const radios = document.querySelectorAll(`input[name="vis_check_${idx}"]`);
+          radios.forEach(r => {
+            if (item.status && r.value === item.status) {
+              r.checked = true;
+              r.dataset.wasChecked = "true";
+            } else {
+              r.checked = false;
+              r.dataset.wasChecked = "false";
+            }
+          });
+          const remEl = document.getElementById(`vis_rem_${idx}`);
+          if (remEl) remEl.value = item.remark || "";
+          const noteEl = document.getElementById(`vis_note_${idx}`);
+          if (noteEl) noteEl.value = item.note || "";
+        });
+      } else {
+        VISUAL_ITEMS.forEach((_, idx) => {
+          const radios = document.querySelectorAll(`input[name="vis_check_${idx}"]`);
+          radios.forEach(r => {
+            r.checked = false;
+            r.dataset.wasChecked = "false";
+          });
+          const remEl = document.getElementById(`vis_rem_${idx}`);
+          if (remEl) remEl.value = "";
+          const noteEl = document.getElementById(`vis_note_${idx}`);
+          if (noteEl) noteEl.value = "";
+        });
+      }
     } else {
-
+      VISUAL_ITEMS.forEach((_, idx) => {
+        const radios = document.querySelectorAll(`input[name="vis_check_${idx}"]`);
+        radios.forEach(r => {
+          r.checked = false;
+          r.dataset.wasChecked = "false";
+        });
+        const remEl = document.getElementById(`vis_rem_${idx}`);
+        if (remEl) remEl.value = "";
+        const noteEl = document.getElementById(`vis_note_${idx}`);
+        if (noteEl) noteEl.value = "";
+      });
       if (sheetBrandInput) sheetBrandInput.value = "VIKING";
 
       if (sheetModelInput) sheetModelInput.value = "";
@@ -3042,52 +3088,86 @@ function clearCustSignature() {
 
 // =============================================================================
 
+function handleRadioClick(radio) {
+  if (radio.dataset.wasChecked === "true") {
+    radio.checked = false;
+    radio.dataset.wasChecked = "false";
+  } else {
+    const group = document.querySelectorAll(`input[name="${radio.name}"]`);
+    group.forEach(r => r.dataset.wasChecked = "false");
+    radio.dataset.wasChecked = "true";
+  }
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
+}
+
+function setAllVisualChecklist(status) {
+  VISUAL_ITEMS.forEach((_, idx) => {
+    const group = document.querySelectorAll(`input[name="vis_check_${idx}"]`);
+    group.forEach(r => {
+      if (r.value === status) {
+        r.checked = true;
+        r.dataset.wasChecked = "true";
+      } else {
+        r.checked = false;
+        r.dataset.wasChecked = "false";
+      }
+    });
+  });
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
+  showToast("ติ๊ก " + status + " ทั้งหมดเรียบร้อย", "success");
+}
+
+function clearAllVisualChecklist() {
+  VISUAL_ITEMS.forEach((_, idx) => {
+    const group = document.querySelectorAll(`input[name="vis_check_${idx}"]`);
+    group.forEach(r => {
+      r.checked = false;
+      r.dataset.wasChecked = "false";
+    });
+  });
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
+  showToast("ล้างการติ๊กทั้งหมดเรียบร้อย", "info");
+}
+
 function renderVisualChecklist() {
-
   const tbody = document.getElementById("visualChecklistTbody");
-
   if (!tbody) return;
 
   tbody.innerHTML = VISUAL_ITEMS.map((item, idx) => `
-
     <tr class="hover:bg-slate-50 transition">
-
       <td class="p-2.5 font-medium text-slate-700">${item}</td>
-
       <td class="p-2.5 text-center">
-
-        <input type="radio" name="vis_check_${idx}" value="normal" checked class="text-green-600 focus:ring-green-500">
-
+        <input type="radio" name="vis_check_${idx}" value="normal"
+          onpointerdown="this.dataset.wasChecked = this.checked ? 'true' : 'false'"
+          onclick="handleRadioClick(this)"
+          class="text-green-600 focus:ring-green-500 cursor-pointer w-4 h-4">
       </td>
-
       <td class="p-2.5 text-center">
-
-        <input type="radio" name="vis_check_${idx}" value="adjusted" class="text-yellow-500 focus:ring-yellow-400">
-
+        <input type="radio" name="vis_check_${idx}" value="adjusted"
+          onpointerdown="this.dataset.wasChecked = this.checked ? 'true' : 'false'"
+          onclick="handleRadioClick(this)"
+          class="text-yellow-500 focus:ring-yellow-400 cursor-pointer w-4 h-4">
       </td>
-
       <td class="p-2.5 text-center">
-
-        <input type="radio" name="vis_check_${idx}" value="service" class="text-red-600 focus:ring-red-500">
-
+        <input type="radio" name="vis_check_${idx}" value="service"
+          onpointerdown="this.dataset.wasChecked = this.checked ? 'true' : 'false'"
+          onclick="handleRadioClick(this)"
+          class="text-red-600 focus:ring-red-500 cursor-pointer w-4 h-4">
       </td>
-
       <td class="p-2.5">
-
-        <input type="text" id="vis_rem_${idx}" placeholder="Remark..." class="w-full px-2 py-1 border rounded text-xs">
-
+        <input type="text" id="vis_rem_${idx}" placeholder="Remark..." onchange="if(typeof saveCurrentActiveInstanceData==='function')saveCurrentActiveInstanceData()" class="w-full px-2 py-1 border rounded text-xs">
       </td>
-
       <td class="p-2.5">
-
-        <input type="text" id="vis_note_${idx}" placeholder="Note..." class="w-full px-2 py-1 border rounded text-xs">
-
+        <input type="text" id="vis_note_${idx}" placeholder="Note..." onchange="if(typeof saveCurrentActiveInstanceData==='function')saveCurrentActiveInstanceData()" class="w-full px-2 py-1 border rounded text-xs">
       </td>
-
     </tr>
-
   `).join("");
-
 }
 
 
@@ -4639,10 +4719,16 @@ function applyDraftData(d) {
   if (d.visual_checklist && Array.isArray(d.visual_checklist)) {
 
     d.visual_checklist.forEach((item, idx) => {
-
-      const rad = document.querySelector(`input[name="vis_check_${idx}"][value="${item.status}"]`);
-
-      if (rad) rad.checked = true;
+      const radios = document.querySelectorAll(`input[name="vis_check_${idx}"]`);
+      radios.forEach(r => {
+        if (item.status && r.value === item.status) {
+          r.checked = true;
+          r.dataset.wasChecked = "true";
+        } else {
+          r.checked = false;
+          r.dataset.wasChecked = "false";
+        }
+      });
 
       if (item.remark) {
 
@@ -6480,7 +6566,7 @@ function collectReportData() {
 
   const visualChecklist = VISUAL_ITEMS.map((item, idx) => {
 
-    const selected = document.querySelector(`input[name="vis_check_${idx}"]:checked`)?.value || "normal";
+    const selected = document.querySelector(`input[name="vis_check_${idx}"]:checked`)?.value || "";
 
     const remark = document.getElementById(`vis_rem_${idx}`)?.value || "";
 

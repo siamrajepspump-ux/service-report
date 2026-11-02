@@ -1743,20 +1743,30 @@ function saveCurrentActiveInstanceData() {
 
 
   } else if (activeInst.code === "FM-EPS-23") {
-
     const sheetModel = document.getElementById("sr_pump_model")?.value?.trim() || "";
-
     const sheetSerial = document.getElementById("sr_serial_no")?.value?.trim() || "";
-
     const sheetCode = document.getElementById("sr_pump_code")?.value?.trim() || "";
-
     const sheetBrand = document.getElementById("sr_pump_brand")?.value || "VIKING";
 
+    const srServDate = document.getElementById("sr_serviced_date")?.value || "";
+    const srStart = document.getElementById("sr_time_start")?.value || "";
+    const srFinish = document.getElementById("sr_time_finished")?.value || "";
 
+    const prevData = activeInst.data || {};
 
     activeInst.data = {
-
+      ...prevData,
       pump_brand: sheetBrand,
+      pump_model: sheetModel,
+      serial_no: sheetSerial,
+      pump_code: sheetCode,
+      sr_serviced_date: srServDate,
+      serviced_date: srServDate || prevData.serviced_date || (typeof formatIsoToDmy === "function" ? formatIsoToDmy(document.getElementById("sr_date")?.value) : "") || "",
+      sr_time_start: srStart,
+      time_start: srStart || prevData.time_start || "",
+      sr_time_finished: srFinish,
+      time_finished: srFinish || prevData.time_finished || "",
+
 
       pump_model: sheetModel,
 
@@ -2550,8 +2560,10 @@ function loadInstanceDataIntoDom(inst) {
     }
 
   } else if (inst.code === "FM-EPS-23") {
-
     if (inst.data) {
+      if (inst.data.serviced_date !== undefined && document.getElementById("sr_serviced_date")) document.getElementById("sr_serviced_date").value = inst.data.serviced_date;
+      if (inst.data.time_start !== undefined && document.getElementById("sr_time_start")) document.getElementById("sr_time_start").value = inst.data.time_start;
+      if (inst.data.time_finished !== undefined && document.getElementById("sr_time_finished")) document.getElementById("sr_time_finished").value = inst.data.time_finished;
 
       if (inst.data.pump_brand !== undefined && document.getElementById("sr_pump_brand")) document.getElementById("sr_pump_brand").value = inst.data.pump_brand;
 
@@ -2758,25 +2770,20 @@ function loadInstanceDataIntoDom(inst) {
 
 
 function syncDateTimeFromServiceReport() {
-
+  const srInst = state.packageInstances.find(i => i.code === "FM-EPS-23");
+  const srData = srInst?.data || {};
   const srRawDate = document.getElementById("sr_date")?.value || "";
   const srDate = (typeof formatIsoToDmy === "function" ? formatIsoToDmy(srRawDate) : "") || srRawDate;
-  const srServDate = document.getElementById("sr_serviced_date")?.value || srDate;
-  const srStart = document.getElementById("sr_time_start")?.value || "";
-  const srFinish = document.getElementById("sr_time_finished")?.value || "";
-
+  const srServDate = document.getElementById("sr_serviced_date")?.value || srData.serviced_date || srDate;
+  const srStart = document.getElementById("sr_time_start")?.value || srData.time_start || "";
+  const srFinish = document.getElementById("sr_time_finished")?.value || srData.time_finished || "";
   const finalDate = srDate || srServDate;
   if (document.getElementById("cr_date")) document.getElementById("cr_date").value = finalDate;
   if (document.getElementById("cr_serviced_date")) document.getElementById("cr_serviced_date").value = finalDate;
-
   if (document.getElementById("cr_time_start")) document.getElementById("cr_time_start").value = srStart;
-
   if (document.getElementById("cr_time_finished")) document.getElementById("cr_time_finished").value = srFinish;
-
   saveCurrentActiveInstanceData();
-
-  showToast("คัดลอกวันที่และเวลาจาก Service Report เรียบร้อยแล้ว", "success");
-
+  showToast("คัดลอกวันที่และเวลาจาก Service Report เรียบร้อย", "success");
 }
 
 

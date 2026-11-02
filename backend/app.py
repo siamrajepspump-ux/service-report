@@ -143,19 +143,7 @@ crm_cache_mtime: float = 0.0
 
 
 
-# Startup cleanup of test/corrupted draft submissions
-if os.path.exists(REPORTS_DIR):
-    for bad_file in ["260681_submitted.json", "260681_draft.json"]:
-        bf_path = os.path.join(REPORTS_DIR, bad_file)
-        if os.path.exists(bf_path):
-            try:
-                with open(bf_path, "r", encoding="utf-8") as bf:
-                    content_str = bf.read()
-                    if "should not" in content_str or "from web" in content_str or '"form_instances": []' in content_str or '"form_instances"' not in content_str:
-                        os.remove(bf_path)
-                        print(f"[Cleanup] Removed invalid test submission {bad_file}")
-            except Exception:
-                pass
+# Safe startup: preserve all user drafts and submissions
 
 def load_crm_cache(force: bool = False) -> List[Dict[str, Any]]:
 
@@ -1412,9 +1400,7 @@ def load_draft(ticket_no: str):
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            # If submitted file lacks form instances or contains test markers, ignore it
-            if "_submitted.json" in file_path and not data.get("form_instances"):
-                raise HTTPException(status_code=404, detail="No valid form instances in submitted report")
+# Return loaded draft or submitted data
             return data
     except HTTPException:
         raise

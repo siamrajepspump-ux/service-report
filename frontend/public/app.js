@@ -1019,27 +1019,18 @@ function removeFormFromPackage(instId) {
 
 
 function selectPackageInstance(instId) {
-
   if (!instId) {
-
     state.activeInstanceId = null;
-
     applyPackageViewMode();
-
     return;
-
   }
 
-
-
-  // 1. Save data of current active instance
-
-  saveCurrentActiveInstanceData();
-
-
+  // 1. Save data of previous active instance (only when switching between different instances)
+  if (state.activeInstanceId && state.activeInstanceId !== instId) {
+    saveCurrentActiveInstanceData();
+  }
 
   // 2. Set active instance
-
   state.activeInstanceId = instId;
 
   const inst = state.packageInstances.find(i => i.id === instId);
@@ -1888,6 +1879,16 @@ function saveCurrentActiveInstanceData() {
 
   }
 
+
+  // Auto-sync active data to localStorage so edits are continuously protected
+  try {
+    const autoTicket = document.getElementById("sr_request_no")?.value?.trim() || state.currentTicket?.TicketNo;
+    if (autoTicket && autoTicket !== "DRAFT") {
+      const liveData = collectReportData();
+      localStorage.setItem(`siamraj_draft_${autoTicket}`, JSON.stringify(liveData));
+      localStorage.setItem(`siamraj_draft_time_${autoTicket}`, new Date().toISOString());
+    }
+  } catch (_) {}
 }
 
 
@@ -4291,37 +4292,46 @@ async function selectTicket(ticketNo) {
 
 
 async function loadTicketDraft(ticketNo) {
-
+  let loaded = false;
   try {
-
-    const res = await fetch(`/api/reports/load-draft/${ticketNo}`);
-
+    const res = await fetch(`/api/reports/load-draft/${encodeURIComponent(ticketNo)}`);
     if (res.ok) {
-
       const draft = await res.json();
-
       applyDraftData(draft);
-
-      showToast(`โหลดร่างงานที่บันทึกไว้ของ ${ticketNo} แล้ว`);
-
+      try {
+        localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(draft));
+        localStorage.setItem(`siamraj_draft_time_${ticketNo}`, new Date().toISOString());
+      } catch (_) {}
+      showToast(`โหลดร่างงานที่บันทึกของ ${ticketNo} สำเร็จ`);
+      loaded = true;
     }
-
   } catch (e) {
-
-    // Draft doesn't exist, fine
-
+    console.warn("Server draft load notice:", e);
   }
 
+  // Fallback to browser localStorage if server disk was reset (e.g. Render restart or rebuild)
+  if (!loaded) {
+    try {
+      const localStr = localStorage.getItem(`siamraj_draft_${ticketNo}`);
+      if (localStr) {
+        const localDraft = JSON.parse(localStr);
+        applyDraftData(localDraft);
+        showToast(`กู้คืนร่างงาน ${ticketNo} จากหน่วยความจำเครื่องสำเร็จ`);
+        loaded = true;
+      }
+    } catch (le) {
+      console.warn("LocalStorage fallback load error:", le);
+    }
+  }
 }
-
-
 
 function applyDraftData(d) {
   if (d.form_instances && Array.isArray(d.form_instances) && d.form_instances.length > 0) {
     state.packageInstances = d.form_instances;
-    state.activeInstanceId = d.active_instance_id || d.activeInstanceId || state.packageInstances[0].id;
+    const targetId = d.active_instance_id || d.activeInstanceId || state.packageInstances[0].id;
+    state.activeInstanceId = null; // Prevent stale DOM from overwriting loaded instance data
     renderPackageTabs();
-    selectPackageInstance(state.activeInstanceId);
+    selectPackageInstance(targetId);
   }
 
   const isValidDraftVal = (v) => v && v !== "-" && !String(v).includes("should not") && !String(v).includes("from web");
@@ -7059,35 +7069,29 @@ async function previewFullPackagePdf() {
 
 
 async function saveDraft() {
-
   saveCurrentActiveInstanceData();
-
   const data = collectReportData();
-
   const ticketNo = data.request_no;
-
   if (!ticketNo || ticketNo === "DRAFT") {
-
-    alert("กรุณาระบุเลขที่งาน (Ticket No.) ก่อนบันทึก");
-
+    alert("กรุณาระบุเลขใบงาน (Ticket No.) ก่อนบันทึก");
     return;
-
   }
 
-  showToast("กำลังบันทึกข้อมูลใบงาน...");
-
+  // 1. Immediately backup to browser localStorage (Guarantees zero data loss across restarts)
   try {
+    localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(data));
+    localStorage.setItem(`siamraj_draft_time_${ticketNo}`, new Date().toISOString());
+  } catch (le) {
+    console.warn("LocalStorage save warning:", le);
+  }
 
+  showToast("กำลังบันทึกร่างใบงาน...");
+  try {
     const res = await fetch("/api/reports/save-draft", {
-
       method: "POST",
-
       headers: { "Content-Type": "application/json" },
-
       body: JSON.stringify({ ticket_no: ticketNo, data })
-
     });
-
     if (!res.ok) {
       const errText = await res.text();
       let errMsg = errText;
@@ -7095,26 +7099,17 @@ async function saveDraft() {
       throw new Error(errMsg || `Server Error ${res.status}`);
     }
     const result = await res.json();
-
     if (result.ok) {
-
-      showToast(`บันทึกข้อมูลใบงาน ${ticketNo} เรียบร้อยแล้ว`);
-
+      showToast(`บันทึกร่างใบงาน ${ticketNo} เรียบร้อยแล้ว (เซฟทั้งเครื่องและเซิร์ฟเวอร์)`);
       loadReportsList();
-
       showSaveSuccessModal(ticketNo);
-
     }
-
   } catch (e) {
-
-    showToast("บันทึกไม่สำเร็จ: " + e.message);
-
+    // If server has an issue, user is still safe because localStorage already saved it!
+    showToast(`บันทึกร่างในเครื่องเรียบร้อยแล้ว (เซิร์ฟเวอร์: ${e.message})`);
+    showSaveSuccessModal(ticketNo);
   }
-
 }
-
-
 
 async function savePhotoReportData() {
 
@@ -7264,13 +7259,36 @@ async function loadReportsList() {
 
 
 
+    // Merge any localStorage drafts that may not be on server (e.g. after container restart)
+    try {
+      const serverTicketSet = new Set(reports.map(r => String(r.ticket_no)));
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("siamraj_draft_") && !k.startsWith("siamraj_draft_time_")) {
+          const tNo = k.replace("siamraj_draft_", "");
+          if (!serverTicketSet.has(tNo)) {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              const savedTime = localStorage.getItem(`siamraj_draft_time_${tNo}`) || "";
+              reports.unshift({
+                ticket_no: tNo,
+                customer: parsed.customer || "-",
+                serviced_by: parsed.tech_name || parsed.serviced_by || "-",
+                updated_at: savedTime,
+                status: "draft",
+                _is_local: true
+              });
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     const draftEl = document.getElementById("metricDrafts");
-
     const readyEl = document.getElementById("metricReady");
-
-    if (draftEl) draftEl.innerText = draftsCount;
-
-    if (readyEl) readyEl.innerText = readyCount;
+    if (draftEl) draftEl.innerText = reports.filter(r => r.status === "draft").length;
+    if (readyEl) readyEl.innerText = reports.filter(r => r.status === "ready" || r.status === "submitted").length;
 
 
 

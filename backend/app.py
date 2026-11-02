@@ -1706,6 +1706,11 @@ def submit_and_generate(payload: SubmitPayload):
 
                         inst_data["customer_sign_datetime"] = None
 
+                    # Ensure inspection datasets from top-level payload are merged if missing in instance
+                    for k in ["alignment", "vibration", "operation", "visual_checklist", "recommendation"]:
+                        if not inst_data.get(k) and data.get(k):
+                            inst_data[k] = data[k]
+
 
 
                     out_file = f"CR_{ticket}{num_suffix}.pdf"

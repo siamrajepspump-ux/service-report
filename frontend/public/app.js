@@ -1739,6 +1739,86 @@ function saveCurrentActiveInstanceData() {
     });
     activeInst.data.visual_checklist = visList;
 
+    // Alignment
+    activeInst.data.alignment = {
+      check_radial: {
+        "0": document.getElementById("al_c_r_0")?.value || "",
+        "90": document.getElementById("al_c_r_90")?.value || "",
+        "180": document.getElementById("al_c_r_180")?.value || "",
+        "270": document.getElementById("al_c_r_270")?.value || ""
+      },
+      check_x: {
+        "0": document.getElementById("al_c_x_0")?.value || "",
+        "90": document.getElementById("al_c_x_90")?.value || "",
+        "180": document.getElementById("al_c_x_180")?.value || "",
+        "270": document.getElementById("al_c_x_270")?.value || ""
+      },
+      reset_radial: {
+        "0": document.getElementById("al_r_r_0")?.value || "",
+        "90": document.getElementById("al_r_r_90")?.value || "",
+        "180": document.getElementById("al_r_r_180")?.value || "",
+        "270": document.getElementById("al_r_r_270")?.value || ""
+      },
+      reset_x: {
+        "0": document.getElementById("al_r_x_0")?.value || "",
+        "90": document.getElementById("al_r_x_90")?.value || "",
+        "180": document.getElementById("al_r_x_180")?.value || "",
+        "270": document.getElementById("al_r_x_270")?.value || ""
+      },
+      sv_gauge: document.getElementById("al_sv_gauge")?.value || "",
+      note: document.getElementById("al_note")?.value || ""
+    };
+
+    // Vibration
+    activeInst.data.vibration = {
+      meter_sv: document.getElementById("vb_meter_sv")?.value || "",
+      thermometer_sv: document.getElementById("vb_thermometer_sv")?.value || "",
+      pump: {
+        dh: document.getElementById("vb_p_dh")?.value || "",
+        dv: document.getElementById("vb_p_dv")?.value || "",
+        da: document.getElementById("vb_p_da")?.value || "",
+        nh: document.getElementById("vb_p_nh")?.value || "",
+        nv: document.getElementById("vb_p_nv")?.value || "",
+        na: document.getElementById("vb_p_na")?.value || "",
+        t_de: document.getElementById("vb_p_tde")?.value || "",
+        t_nde: document.getElementById("vb_p_tnde")?.value || ""
+      },
+      motor: {
+        dh: document.getElementById("vb_m_dh")?.value || "",
+        dv: document.getElementById("vb_m_dv")?.value || "",
+        da: document.getElementById("vb_m_da")?.value || "",
+        nh: document.getElementById("vb_m_nh")?.value || "",
+        nv: document.getElementById("vb_m_nv")?.value || "",
+        na: document.getElementById("vb_m_na")?.value || "",
+        t_de: document.getElementById("vb_m_tde")?.value || "",
+        t_nde: document.getElementById("vb_m_tnde")?.value || ""
+      },
+      gear: {
+        dh: document.getElementById("vb_g_dh")?.value || "",
+        dv: document.getElementById("vb_g_dv")?.value || "",
+        da: document.getElementById("vb_g_da")?.value || "",
+        nh: document.getElementById("vb_g_nh")?.value || "",
+        nv: document.getElementById("vb_g_nv")?.value || "",
+        na: document.getElementById("vb_g_na")?.value || "",
+        t_de: document.getElementById("vb_g_tde")?.value || "",
+        t_nde: document.getElementById("vb_g_tnde")?.value || ""
+      }
+    };
+
+    // Operation
+    activeInst.data.operation = {
+      ins_u: document.getElementById("op_ins_u")?.value || "",
+      ins_v: document.getElementById("op_ins_v")?.value || "",
+      ins_w: document.getElementById("op_ins_w")?.value || "",
+      cur_u: document.getElementById("op_cur_u")?.value || "",
+      cur_v: document.getElementById("op_cur_v")?.value || "",
+      cur_w: document.getElementById("op_cur_w")?.value || "",
+      vol_uv: document.getElementById("op_vol_uv")?.value || "",
+      vol_uw: document.getElementById("op_vol_uw")?.value || "",
+      vol_vw: document.getElementById("op_vol_vw")?.value || "",
+      speed: document.getElementById("op_speed")?.value || ""
+    };
+
     if (sheetModel) activeInst.data.pump_model = sheetModel;
 
     if (sheetSerial) activeInst.data.serial_no = sheetSerial;
@@ -2532,8 +2612,51 @@ function loadInstanceDataIntoDom(inst) {
       if (gearSerialInput) gearSerialInput.value = inst.data.gear_serial || "";
 
       if (document.getElementById("cr_recommendation")) {
-
         document.getElementById("cr_recommendation").value = inst.data.recommendation || "";
+      }
+
+      // Alignment
+      const alData = inst.data?.alignment || state.loadedReportData?.alignment;
+      if (alData) {
+        if (document.getElementById("al_sv_gauge")) document.getElementById("al_sv_gauge").value = alData.sv_gauge || "";
+        if (document.getElementById("al_note")) document.getElementById("al_note").value = alData.note || "";
+        ['0', '90', '180', '270'].forEach(deg => {
+          if (alData.check_radial && document.getElementById(`al_c_r_${deg}`)) document.getElementById(`al_c_r_${deg}`).value = alData.check_radial[deg] || "";
+          if (alData.check_x && document.getElementById(`al_c_x_${deg}`)) document.getElementById(`al_c_x_${deg}`).value = alData.check_x[deg] || "";
+          if (alData.reset_radial && document.getElementById(`al_r_r_${deg}`)) document.getElementById(`al_r_r_${deg}`).value = alData.reset_radial[deg] || "";
+          if (alData.reset_x && document.getElementById(`al_r_x_${deg}`)) document.getElementById(`al_r_x_${deg}`).value = alData.reset_x[deg] || "";
+        });
+      }
+
+      // Vibration
+      const vbData = inst.data?.vibration || state.loadedReportData?.vibration;
+      if (vbData) {
+        if (document.getElementById("vb_meter_sv")) document.getElementById("vb_meter_sv").value = vbData.meter_sv || "";
+        if (document.getElementById("vb_thermometer_sv")) document.getElementById("vb_thermometer_sv").value = vbData.thermometer_sv || "";
+        ['pump', 'motor', 'gear'].forEach(m => {
+          const mData = vbData[m] || {};
+          const pfx = m === 'pump' ? 'vb_p_' : (m === 'motor' ? 'vb_m_' : 'vb_g_');
+          ['dh', 'dv', 'da', 'nh', 'nv', 'na', 't_de', 't_nde'].forEach(k => {
+            const domId = pfx + (k === 't_de' ? 'tde' : (k === 't_nde' ? 'tnde' : k));
+            const el = document.getElementById(domId);
+            if (el && mData[k] !== undefined) el.value = mData[k];
+          });
+        });
+      }
+
+      // Operation
+      const opData = inst.data?.operation || state.loadedReportData?.operation;
+      if (opData) {
+        if (document.getElementById("op_ins_u")) document.getElementById("op_ins_u").value = opData.ins_u || "";
+        if (document.getElementById("op_ins_v")) document.getElementById("op_ins_v").value = opData.ins_v || "";
+        if (document.getElementById("op_ins_w")) document.getElementById("op_ins_w").value = opData.ins_w || "";
+        if (document.getElementById("op_cur_u")) document.getElementById("op_cur_u").value = opData.cur_u || "";
+        if (document.getElementById("op_cur_v")) document.getElementById("op_cur_v").value = opData.cur_v || "";
+        if (document.getElementById("op_cur_w")) document.getElementById("op_cur_w").value = opData.cur_w || "";
+        if (document.getElementById("op_vol_uv")) document.getElementById("op_vol_uv").value = opData.vol_uv || "";
+        if (document.getElementById("op_vol_uw")) document.getElementById("op_vol_uw").value = opData.vol_uw || "";
+        if (document.getElementById("op_vol_vw")) document.getElementById("op_vol_vw").value = opData.vol_vw || "";
+        if (document.getElementById("op_speed")) document.getElementById("op_speed").value = opData.speed || "";
       }
 
       if (inst.data.visual_checklist && Array.isArray(inst.data.visual_checklist)) {

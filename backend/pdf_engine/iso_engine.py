@@ -289,93 +289,226 @@ class IsoPdfEngine:
             self._insert_dash(page, 460.4, 225.3)
 
         # 4. Visual Check Items (8 rows)
+
         vis_ticks_x = {"normal": 297.36, "adjusted": 329.04, "service": 360.72}
+
         y_starts = [278, 290, 302, 314, 326, 338, 350, 362]
+
         checklist = data.get("visual_checklist", [])
+
         for i, y in enumerate(y_starts):
+
             item_data = checklist[i] if i < len(checklist) else {}
+
             status = str(item_data.get("status", "")).lower().strip()
+
             if status in vis_ticks_x:
+
                 self._insert_tick(page, vis_ticks_x[status], y)
 
-            remark = item_data.get("remark", "")
-            if remark:
-                self._insert_text(page, 382, y, remark, size=8.5, max_w=86)
-            note = item_data.get("note", "")
-            if note:
-                self._insert_text(page, 477, y, note, size=8.5, max_w=93)
+            else:
+
+                for sx in vis_ticks_x.values():
+
+                    self._insert_centered_text(page, sx, y, "-", size=8.5)
+
+
+
+            # Remark column (cx = 425.0)
+
+            rem_val = _d(item_data.get("remark"))
+
+            if rem_val == "-":
+
+                self._insert_centered_text(page, 425.0, y, "-", size=8.5)
+
+            else:
+
+                self._insert_text(page, 382, y, rem_val, size=8.5, max_w=86)
+
+
+
+            # Note column (cx = 523.5)
+
+            note_val = _d(item_data.get("note"))
+
+            if note_val == "-":
+
+                self._insert_centered_text(page, 523.5, y, "-", size=8.5)
+
+            else:
+
+                self._insert_text(page, 477, y, note_val, size=8.5, max_w=93)
+
+
 
         # 5. Alignment Check & Reset
+
         al = data.get("alignment", {})
+
+        if not isinstance(al, dict): al = {}
+
         al_cols_cx = [99.48, 131.40, 165.48, 199.20] # 0, 90, 180, 270
 
+
+
         # Check: Radial (y=533), X (y=546)
+
         c_rad = al.get("check_radial", {})
+
+        if not isinstance(c_rad, dict): c_rad = {}
+
         c_x = al.get("check_x", {})
+
+        if not isinstance(c_x, dict): c_x = {}
+
         for idx, deg in enumerate(["0", "90", "180", "270"]):
-            self._insert_centered_text(page, al_cols_cx[idx], 533, c_rad.get(deg, "-"), size=8.5)
-            self._insert_centered_text(page, al_cols_cx[idx], 546, c_x.get(deg, "-"), size=8.5)
+
+            self._insert_centered_text(page, al_cols_cx[idx], 533, _d(c_rad.get(deg)), size=8.5)
+
+            self._insert_centered_text(page, al_cols_cx[idx], 546, _d(c_x.get(deg)), size=8.5)
+
+
 
         # Reset: Radial (y=584), X (y=597)
-        r_rad = al.get("reset_radial", {})
-        r_x = al.get("reset_x", {})
-        for idx, deg in enumerate(["0", "90", "180", "270"]):
-            self._insert_centered_text(page, al_cols_cx[idx], 584, r_rad.get(deg, "-"), size=8.5)
-            self._insert_centered_text(page, al_cols_cx[idx], 597, r_x.get(deg, "-"), size=8.5)
 
-        if al.get("sv_gauge"):
-            self._insert_text(page, 190, 609, str(al.get("sv_gauge")), size=8.5, max_w=70)
+        r_rad = al.get("reset_radial", {})
+
+        if not isinstance(r_rad, dict): r_rad = {}
+
+        r_x = al.get("reset_x", {})
+
+        if not isinstance(r_x, dict): r_x = {}
+
+        for idx, deg in enumerate(["0", "90", "180", "270"]):
+
+            self._insert_centered_text(page, al_cols_cx[idx], 584, _d(r_rad.get(deg)), size=8.5)
+
+            self._insert_centered_text(page, al_cols_cx[idx], 597, _d(r_x.get(deg)), size=8.5)
+
+
+
+        dial_sv = _d(al.get("sv_gauge"))
+
+        self._insert_text(page, 190, 609, dial_sv, size=8.5, max_w=70)
+
+
 
         # Alignment Note lines (4 lines)
+
         al_note = str(al.get("note", "")).strip()
-        if al_note:
+
+        if al_note and al_note.lower() not in ["-", "nan", "none"]:
+
             note_lines = al_note.split("\n")
+
             for l_idx, line_txt in enumerate(note_lines[:4]):
+
                 self._insert_text(page, 85 if l_idx == 0 else 60, 622 + (l_idx * 13), line_txt, size=8.5, max_w=150)
 
-        # 6. Vibration & Bearing Temp Table
-        vib = data.get("vibration", {})
-        vib_cols_cx = [297.36, 329.04, 360.72, 392.40, 424.08, 455.76, 497.52, 548.88] # DE H,V,A, NDE H,V,A, Temp DE, NDE
-        machine_y = {"pump": 558, "motor": 571, "gear": 583}
-        for m_key, y_val in machine_y.items():
-            m_data = vib.get(m_key, {})
-            vals = [
-                m_data.get("dh", "-"), m_data.get("dv", "-"), m_data.get("da", "-"),
-                m_data.get("nh", "-"), m_data.get("nv", "-"), m_data.get("na", "-"),
-                m_data.get("t_de", "-"), m_data.get("t_nde", "-")
-            ]
-            for c_idx, val in enumerate(vals):
-                self._insert_centered_text(page, vib_cols_cx[c_idx], y_val, str(val), size=8.5)
+        else:
 
-        if vib.get("meter_sv"):
-            self._insert_text(page, 440, 518, str(vib.get("meter_sv")), size=8)
-        if vib.get("thermometer_sv"):
-            self._insert_text(page, 510, 530, str(vib.get("thermometer_sv")), size=8)
+            self._insert_text(page, 85, 622, "-", size=8.5, max_w=150)
+
+
+
+        # 6. Vibration & Bearing Temp Table
+
+        vib = data.get("vibration", {})
+
+        if not isinstance(vib, dict): vib = {}
+
+        vib_cols_cx = [297.36, 329.04, 360.72, 392.40, 424.08, 455.76, 497.52, 548.88] # DE H,V,A, NDE H,V,A, Temp DE, NDE
+
+        machine_y = {"pump": 558, "motor": 571, "gear": 583}
+
+        for m_key, y_val in machine_y.items():
+
+            m_data = vib.get(m_key, {})
+
+            if not isinstance(m_data, dict): m_data = {}
+
+            vals = [
+
+                _d(m_data.get("dh")), _d(m_data.get("dv")), _d(m_data.get("da")),
+
+                _d(m_data.get("nh")), _d(m_data.get("nv")), _d(m_data.get("na")),
+
+                _d(m_data.get("t_de")), _d(m_data.get("t_nde"))
+
+            ]
+
+            for c_idx, val in enumerate(vals):
+
+                self._insert_centered_text(page, vib_cols_cx[c_idx], y_val, val, size=8.5)
+
+
+
+        meter_sv = _d(vib.get("meter_sv"))
+
+        self._insert_text(page, 440, 518, meter_sv, size=8)
+
+
+
+        therm_sv = _d(vib.get("thermometer_sv"))
+
+        self._insert_text(page, 510, 530, therm_sv, size=8)
+
+
 
         # 7. Operation Condition
+
         op = data.get("operation", {})
+
+        if not isinstance(op, dict): op = {}
+
         op_cx = [424.08, 455.76, 489.00] # U, V, W
+
         # Insulation
-        self._insert_centered_text(page, op_cx[0], 622, op.get("ins_u", "-"), size=8.5)
-        self._insert_centered_text(page, op_cx[1], 622, op.get("ins_v", "-"), size=8.5)
-        self._insert_centered_text(page, op_cx[2], 622, op.get("ins_w", "-"), size=8.5)
+
+        self._insert_centered_text(page, op_cx[0], 622, _d(op.get("ins_u")), size=8.5)
+
+        self._insert_centered_text(page, op_cx[1], 622, _d(op.get("ins_v")), size=8.5)
+
+        self._insert_centered_text(page, op_cx[2], 622, _d(op.get("ins_w")), size=8.5)
+
         # Current
-        self._insert_centered_text(page, op_cx[0], 634, op.get("cur_u", "-"), size=8.5)
-        self._insert_centered_text(page, op_cx[1], 634, op.get("cur_v", "-"), size=8.5)
-        self._insert_centered_text(page, op_cx[2], 634, op.get("cur_w", "-"), size=8.5)
+
+        self._insert_centered_text(page, op_cx[0], 634, _d(op.get("cur_u")), size=8.5)
+
+        self._insert_centered_text(page, op_cx[1], 634, _d(op.get("cur_v")), size=8.5)
+
+        self._insert_centered_text(page, op_cx[2], 634, _d(op.get("cur_w")), size=8.5)
+
         # Voltage
-        self._insert_centered_text(page, op_cx[0], 647, op.get("vol_uv", "-"), size=8.5)
-        self._insert_centered_text(page, op_cx[1], 647, op.get("vol_uw", "-"), size=8.5)
-        self._insert_centered_text(page, op_cx[2], 647, op.get("vol_vw", "-"), size=8.5)
+
+        self._insert_centered_text(page, op_cx[0], 647, _d(op.get("vol_uv")), size=8.5)
+
+        self._insert_centered_text(page, op_cx[1], 647, _d(op.get("vol_uw")), size=8.5)
+
+        self._insert_centered_text(page, op_cx[2], 647, _d(op.get("vol_vw")), size=8.5)
+
         # Speed
-        self._insert_centered_text(page, 457.32, 659, op.get("speed", "-"), size=8.5)
+
+        self._insert_centered_text(page, 457.32, 659, _d(op.get("speed")), size=8.5)
+
+
 
         # 8. Recommendation (4 lines max)
+
         rec_txt = str(data.get("recommendation", "")).strip()
-        if rec_txt:
-            rec_lines = rec_txt.split("\n")
+
+        if rec_txt and rec_txt.lower() not in ["-", "nan", "none"]:
+
+            rec_lines = self._wrap_text(rec_txt, width=80)
+
             for r_idx, r_line in enumerate(rec_lines[:4]):
+
                 self._insert_text(page, 60, 695 + (r_idx * 14), r_line, size=9.5, max_w=510)
+
+        else:
+
+            self._insert_text(page, 60, 695, "-", size=9.5, max_w=510)
 
         # 9. Signatures & Serviced Time
         # Technician Box (x=117 to 215, y=755 to 769)
@@ -928,10 +1061,14 @@ class IsoPdfEngine:
                     self._insert_centered_text(page, 175.26, std_y, std_text, size=7.5)
 
             # Measurement Values
-            in_a = str(m.get("in_a", "-")).strip()
-            in_b = str(m.get("in_b", "-")).strip()
-            fi_a = str(m.get("final_a", m.get("fi_a", "-"))).strip()
-            fi_b = str(m.get("final_b", m.get("fi_b", "-"))).strip()
+            def _val_dash(val):
+                if val is None: return "-"
+                s = str(val).strip()
+                return "-" if (not s or s.lower() in ["nan", "none", "null", "undefined"]) else s
+            in_a = _val_dash(m.get("in_a"))
+            in_b = _val_dash(m.get("in_b"))
+            fi_a = _val_dash(m.get("final_a", m.get("fi_a")))
+            fi_b = _val_dash(m.get("final_b", m.get("fi_b")))
 
             self._insert_centered_text(page, 309.78, row_y, in_a, size=8.0)
             self._insert_centered_text(page, 358.44, row_y, in_b, size=8.0)

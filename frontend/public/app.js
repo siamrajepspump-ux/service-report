@@ -8,6 +8,53 @@
 
 // Global State
 
+function stripDraftBloat(draft) {
+  if (!draft || typeof draft !== "object") return draft;
+  const cleanPhoto = (p) => {
+    if (!p || typeof p !== "object") return p;
+    const { base64, data_url, ...rest } = p;
+    return rest;
+  };
+  const cleaned = { ...draft };
+  if (Array.isArray(cleaned.photos)) {
+    cleaned.photos = cleaned.photos.map(cleanPhoto);
+  }
+  if (Array.isArray(cleaned.form_instances)) {
+    cleaned.form_instances = cleaned.form_instances.map(inst => {
+      if (inst && inst.data && Array.isArray(inst.data.photos)) {
+        return {
+          ...inst,
+          data: {
+            ...inst.data,
+            photos: inst.data.photos.map(cleanPhoto)
+          }
+        };
+      }
+      return inst;
+    });
+  }
+  return cleaned;
+}
+
+function cleanupBloatedLocalStorage() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("siamraj_draft_") && !k.startsWith("siamraj_draft_time_")) {
+        const raw = localStorage.getItem(k);
+        if (raw && (raw.length > 50000 || raw.includes("data:image/jpeg;base64,"))) {
+          try {
+            const parsed = JSON.parse(raw);
+            const cleaned = stripDraftBloat(parsed);
+            localStorage.setItem(k, JSON.stringify(cleaned));
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (_) {}
+}
+cleanupBloatedLocalStorage();
+
 const state = {
 
   currentTicket: null,
@@ -4581,9 +4628,10 @@ async function loadTicketDraft(ticketNo) {
     });
     if (res.ok) {
       const draft = await res.json();
-      applyDraftData(draft);
+      const cleanDraft = stripDraftBloat(draft);
+      applyDraftData(cleanDraft);
       try {
-        localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(draft));
+        localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(cleanDraft));
         localStorage.setItem(`siamraj_draft_time_${ticketNo}`, new Date().toISOString());
       } catch (_) {}
       loaded = true;
@@ -5214,13 +5262,6 @@ async function handlePhotoUpload(files) {
 
 
   for (let file of files) {
-    const dataUrl = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
-
     const formData = new FormData();
     formData.append("ticket_no", ticketNo);
     formData.append("category", category);
@@ -5235,36 +5276,28 @@ async function handlePhotoUpload(files) {
       if (res.ok) {
         const data = await res.json();
         if (data.photo) {
-          if (!data.photo.data_url && dataUrl) {
-            data.photo.data_url = dataUrl;
-            data.photo.base64 = dataUrl;
-          }
           state.activePhotoReportPhotos.push(data.photo);
         }
-      } else if (dataUrl) {
+      } else {
+        const objectUrl = URL.createObjectURL(file);
         state.activePhotoReportPhotos.push({
           id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
           filename: file.name,
           category: category,
           caption: caption,
-          data_url: dataUrl,
-          base64: dataUrl,
-          url: dataUrl
+          url: objectUrl
         });
       }
     } catch (e) {
       console.error(e);
-      if (dataUrl) {
-        state.activePhotoReportPhotos.push({
-          id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
-          filename: file.name,
-          category: category,
-          caption: caption,
-          data_url: dataUrl,
-          base64: dataUrl,
-          url: dataUrl
-        });
-      }
+      const objectUrl = URL.createObjectURL(file);
+      state.activePhotoReportPhotos.push({
+        id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+        filename: file.name,
+        category: category,
+        caption: caption,
+        url: objectUrl
+      });
     }
   }
 
@@ -5324,8 +5357,9 @@ async function loadTicketPhotos(ticketNo) {
         activeInst.data.photos.forEach((lp, idx) => {
           const sp = serverPhotos.find(s => s.id === lp.id || s.filename === lp.filename) || serverPhotos[idx];
           if (sp) {
-            if (!lp.data_url && sp.data_url) lp.data_url = sp.data_url;
-            if (!lp.base64 && sp.base64) lp.base64 = sp.base64;
+            if (!lp.url && sp.url) lp.url = sp.url;
+            delete lp.base64;
+            delete lp.data_url;
           }
         });
       }
@@ -5403,7 +5437,7 @@ function renderPhotoGallery() {
       return `
         <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col group hover:border-purple-400 transition">
           <div class="h-44 bg-slate-100 relative overflow-hidden flex items-center justify-center">
-            <img src="${p.data_url || p.base64 || p.url}" alt="${p.caption || ''}" class="w-full h-full object-cover">
+            <img src="${p.url || (p.data_url && p.data_url.startsWith('data:') ? p.data_url : '')}" alt="${p.caption || ''}" class="w-full h-full object-cover">
             <span class="absolute top-2 left-2 bg-slate-900/75 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-xs">
               ${p.category || 'ทั่วไป'}
             </span>
@@ -7337,7 +7371,7 @@ async function previewCurrentActiveForm() {
 
   try {
 
-    const data = collectReportData();
+    const data = stripDraftBloat(collectReportData());
 
     const res = await fetch("/api/reports/submit", {
 
@@ -7375,7 +7409,12 @@ async function previewCurrentActiveForm() {
 
       if (url) {
 
-        openPdfModal(`พรีวิว: ${activeInst.title || activeInst.code} - ${ticketNo}`, url + `?t=${Date.now()}`);
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        if (isMobile) {
+          window.open(url, '_blank');
+        } else {
+          openPdfModal(`พรีวิว: ${activeInst.title || activeInst.code} - ${ticketNo}`, url);
+        }
 
       } else {
 
@@ -7407,7 +7446,7 @@ async function previewFullPackagePdf() {
 
   saveCurrentActiveInstanceData();
 
-  const data = collectReportData();
+  const data = stripDraftBloat(collectReportData());
 
   const ticketNo = data.request_no;
 
@@ -7456,8 +7495,12 @@ async function previewFullPackagePdf() {
     if (result.ok && result.generated_files) {
 
       const fullUrl = result.generated_files["ALL_MERGED"] || `/api/download/${ticketNo}/ALL_${ticketNo}.pdf`;
-
-      openPdfModal(`รายงานรวมฉบับเต็ม (Full Package) - ${ticketNo}`, fullUrl);
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        window.open(fullUrl, '_blank');
+      } else {
+        openPdfModal(`รายงานรวมฉบับเต็ม (Full Package) - ${ticketNo}`, fullUrl);
+      }
 
     } else {
 
@@ -7477,12 +7520,15 @@ async function previewFullPackagePdf() {
 
 async function saveDraft() {
   saveCurrentActiveInstanceData();
-  const data = collectReportData();
-  const ticketNo = data.request_no;
+  const rawData = collectReportData();
+  const ticketNo = rawData.request_no;
   if (!ticketNo || ticketNo === "DRAFT") {
     alert("กรุณาระบุเลขใบงาน (Ticket No.) ก่อนบันทึก");
     return;
   }
+
+  // Strip photo base64/data_url to guarantee tiny payload and avoid browser memory overload
+  const data = stripDraftBloat(rawData);
 
   // 1. Immediately backup to browser localStorage (Guarantees zero data loss across restarts)
   try {
@@ -7568,7 +7614,7 @@ async function submitAndGenerate() {
 
   saveCurrentActiveInstanceData();
 
-  const data = collectReportData();
+  const data = stripDraftBloat(collectReportData());
 
   const ticketNo = data.request_no;
 
@@ -7624,7 +7670,12 @@ async function submitAndGenerate() {
 
       if (mergedUrl) {
 
-        openPdfModal(`เอกสารส่งมอบงาน ${ticketNo}`, mergedUrl + `?t=${Date.now()}`);
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        if (isMobile) {
+          window.open(mergedUrl, '_blank');
+        } else {
+          openPdfModal(`เอกสารส่งมอบงาน ${ticketNo}`, mergedUrl);
+        }
 
       }
 
@@ -7920,7 +7971,12 @@ async function previewPhotoReportPdf() {
 
       const label = activeInst?.customLabel ? ` (${activeInst.customLabel})` : "";
 
-      openPdfModal(`Photo Report${label} - ${ticketNo}`, result.pdf_url + `?t=${Date.now()}`);
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        window.open(result.pdf_url, '_blank');
+      } else {
+        openPdfModal(`Photo Report${label} - ${ticketNo}`, result.pdf_url);
+      }
 
     } else {
 

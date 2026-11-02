@@ -548,7 +548,9 @@ class IsoPdfEngine:
         if cust_dt and cust_dt != "-":
             self._insert_centered_text(page, 524, 779, cust_dt, size=10.0, bold=True)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -801,7 +803,9 @@ class IsoPdfEngine:
         c_date = self._format_date_dmy(raw_cd) if raw_cd else "-"
         self._insert_text(page, 482, 805, c_date, size=10.5, bold=True, max_w=90)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -970,7 +974,9 @@ class IsoPdfEngine:
                         self._insert_centered_text(page, 415.5, 779, d_parts[1], size=8.5)
                         self._insert_centered_text(page, 445.2, 779, d_parts[2][-2:], size=8.5)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -1120,7 +1126,9 @@ class IsoPdfEngine:
         if appr_fi and appr_fi != "-":
             self._insert_text(page, 400.0, 752.0, str(appr_fi), size=10.5, bold=True, max_w=128)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -1268,7 +1276,9 @@ class IsoPdfEngine:
             else:
                 self._insert_centered_text(page, 342.0, 733.0, "-", size=9.5)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -1446,9 +1456,15 @@ class IsoPdfEngine:
                         b64 = p_info.get("base64") or p_info.get("data_url")
                         if img_path and not os.path.exists(img_path):
                             fn = p_info.get("filename") or os.path.basename(img_path)
-                            alt = os.path.join(DATA_DIR, "photos", ticket, fn)
-                            if os.path.exists(alt):
-                                img_path = alt
+                            for alt in [
+                                os.path.join(DATA_DIR, "photos", ticket, fn),
+                                os.path.join(PHOTOS_DIR, ticket, fn),
+                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn),
+                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn)
+                            ]:
+                                if os.path.exists(alt):
+                                    img_path = alt
+                                    break
                         if img_path and os.path.exists(img_path):
                             try:
                                 inner = pymupdf.Rect(slot["img_rect"].x0 + 1, slot["img_rect"].y0 + 1, slot["img_rect"].x1 - 1, slot["img_rect"].y1 - 1)
@@ -1504,7 +1520,9 @@ class IsoPdfEngine:
                 rep_text = f"Reported By : {reported_by}" if reported_by else "Reported By :"
                 self._insert_text(page, 380, 792, rep_text, size=11, bold=False)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -1638,9 +1656,15 @@ class IsoPdfEngine:
                         b64 = p_info.get("base64") or p_info.get("data_url")
                         if img_path and not os.path.exists(img_path):
                             fn = p_info.get("filename") or os.path.basename(img_path)
-                            alt = os.path.join(DATA_DIR, "photos", ticket, fn)
-                            if os.path.exists(alt):
-                                img_path = alt
+                            for alt in [
+                                os.path.join(DATA_DIR, "photos", ticket, fn),
+                                os.path.join(PHOTOS_DIR, ticket, fn),
+                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn),
+                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn)
+                            ]:
+                                if os.path.exists(alt):
+                                    img_path = alt
+                                    break
                         if img_path and os.path.exists(img_path):
                             try:
                                 xl_img = OpenpyxlImage(img_path)
@@ -1683,7 +1707,9 @@ class IsoPdfEngine:
                 # Reported By
                 ws["I45"] = reported_by if reported_by else ""
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         wb.save(output_path)
         return output_path
 
@@ -1933,7 +1959,9 @@ class IsoPdfEngine:
         mgr_d = self._format_date_dmy(data.get("exp_mgr_date") or raw_date)
         self._insert_centered_text(page, 459.0, 743.0, mgr_d or "-", size=9)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -2187,7 +2215,9 @@ class IsoPdfEngine:
         _txt(42, 809, "FM-EPS-28, Rev.05, 21/09/63", size=9.5, color=(0.4, 0.4, 0.4))
         _txt(495, 809, "Page 1 of 1", size=9.5, color=(0.4, 0.4, 0.4))
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         doc.save(output_path)
         doc.close()
         return output_path
@@ -2237,7 +2267,9 @@ class IsoPdfEngine:
                 except Exception as e:
                     print(f"[MergePdf] Error merging {path}: {e}")
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         merged_doc.save(output_path, garbage=4, deflate=True, clean=True)
         merged_doc.close()
         return output_path

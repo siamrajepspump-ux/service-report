@@ -1353,45 +1353,36 @@ def save_draft(payload: SaveReportPayload, response: Response):
 
 
 
-    # Pre-compile package so full package PDF is immediately ready for viewing
+    # Strip photo base64/data_url to keep draft size tiny and prevent browser Out of Memory
+    if isinstance(payload_data.get("photos"), list):
+        payload_data["photos"] = [{k: v for k, v in p.items() if k not in ("base64", "data_url")} if isinstance(p, dict) else p for p in payload_data["photos"]]
+    if isinstance(payload_data.get("form_instances"), list):
+        for fi in payload_data["form_instances"]:
+            if isinstance(fi, dict) and isinstance(fi.get("data"), dict) and isinstance(fi["data"].get("photos"), list):
+                fi["data"]["photos"] = [{k: v for k, v in p.items() if k not in ("base64", "data_url")} if isinstance(p, dict) else p for p in fi["data"]["photos"]]
 
-    full_url = None
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(payload_data, f, ensure_ascii=False, indent=2)
+
+    storage_draft_path = os.path.join(STORAGE_DIR, "reports", f"{ticket}_draft.json")
+    try:
+        os.makedirs(os.path.dirname(storage_draft_path), exist_ok=True)
+        with open(storage_draft_path, "w", encoding="utf-8") as sf:
+            json.dump(payload_data, sf, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
     try:
-
-        if payload_data.get("form_instances"):
-
-            sub_res = submit_and_generate(SubmitPayload(ticket_no=ticket, data=payload_data, form_instances=payload_data.get("form_instances")))
-
-            full_url = sub_res.get("generated_files", {}).get("ALL_MERGED")
-
-    except Exception as e:
-        print(f"[SaveDraft] Auto compile notice: {e}")
-
-    # Auto sync draft & PDF to Google Drive & Google Sheets
-    try:
-        pdf_path = None
-        if full_url:
-            pdf_fname = f"FULL_PACKAGE_{ticket}.pdf"
-            p_check = os.path.join(OUTPUT_PDF_DIR, ticket, pdf_fname)
-            if os.path.exists(p_check):
-                pdf_path = p_check
-        gas_sync.sync_to_google_sheet(ticket, payload_data, pdf_path=pdf_path, async_mode=True)
+        gas_sync.sync_to_google_sheet(ticket, payload_data, pdf_path=None, async_mode=True)
     except Exception as ge:
         print(f"[SaveDraft] GAS sync notice: {ge}")
 
     return {
-
         "ok": True,
-
         "ticket_no": ticket,
-
         "status": "draft",
-
         "saved_at": payload_data["_updated_at"],
-
-        "full_package_url": full_url or f"/api/download/{ticket}/FULL_PACKAGE_{ticket}.pdf"
-
+        "full_package_url": f"/api/download/{ticket}/ALL_{ticket}.pdf"
     }
 
 
@@ -2666,24 +2657,14 @@ async def upload_photo(
     except Exception as e:
         print(f"[PhotoUpload] Mirror copy error: {e}")
     photo_entry = {
-
         "id": photo_id,
-
         "filename": saved_filename,
-
         "category": category,
-
         "caption": caption,
-
         "cover_id": cover_id or "cover_1",
-
         "uploaded_at": datetime.now().isoformat(),
-
         "url": f"/api/photos/view/{ticket}/{saved_filename}",
-
-        "file_path": saved_path,
-        "base64": b64_raw,
-        "data_url": data_url
+        "file_path": saved_path
     }
 
     photos_meta.append(photo_entry)

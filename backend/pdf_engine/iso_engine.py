@@ -1515,17 +1515,19 @@ class IsoPdfEngine:
         doc = pymupdf.open(template)
         page = doc[0]
 
-        # Header: Request No. & Date
+        # 1. Header: Request No. & Date
+        # Line for Request No: x=468.3 .. 561.2 (Center 514.8), baseline y=134.9
+        # Line for Date: x=477.7 .. 563.8 (Center 520.8), baseline y=150.0
         req_no = str(data.get("exp_request_no") or data.get("ticket_no") or data.get("request_no") or "").strip()
         raw_date = data.get("exp_date") or data.get("serviced_date") or data.get("date") or ""
         date_str = self._format_date_dmy(raw_date)
 
         if req_no:
-            self._insert_text(page, 480, 126, req_no, size=10, bold=True)
+            self._insert_centered_text(page, 514.8, 133.0, req_no, size=10, bold=True)
         if date_str:
-            self._insert_text(page, 495, 142, date_str, size=9.5)
+            self._insert_centered_text(page, 520.8, 148.5, date_str, size=9.5)
 
-        # Box 1: Customer & Job Info (Aligned with horizontal underlines at y=170.7, 184.5, 198.3)
+        # 2. Box 1: Customer & Job Info (Underlines at y=170.70, 184.50, 198.30)
         cust = str(data.get("exp_customer") or data.get("customer") or "").strip()
         sales_person = str(data.get("exp_sales") or data.get("sales_person") or data.get("sales") or "").strip()
         sales_group = str(data.get("exp_group") or data.get("sales_group") or data.get("group") or "").strip()
@@ -1537,173 +1539,203 @@ class IsoPdfEngine:
         if tel and tel != "-":
             contact = f"{contact} ({tel})" if (contact and contact != "-") else tel
 
-        self._insert_text(page, 115, 169.5, cust or "-", size=9.5, bold=True, max_w=140)
-        self._insert_text(page, 356, 169.5, sales_person or "-", size=9.5, max_w=95)
-        self._insert_text(page, 515, 169.5, sales_group or "-", size=9.5, max_w=55)
+        # Line 1: y=170.70 -> text baseline at y=169.0
+        self._insert_text(page, 115.0, 169.0, cust or "-", size=9.5, bold=True, max_w=145)
+        self._insert_text(page, 356.0, 169.0, sales_person or "-", size=9.5, max_w=95)
+        self._insert_centered_text(page, 544.3, 169.0, sales_group or "-", size=9.5)
 
-        self._insert_text(page, 115, 183.0, prod_model or "-", size=9.5, max_w=140)
-        self._insert_text(page, 356, 183.0, io_so or "-", size=9.5, max_w=200)
+        # Line 2: y=184.50 -> text baseline at y=182.8
+        self._insert_text(page, 115.0, 182.8, prod_model or "-", size=9.5, max_w=145)
+        self._insert_text(page, 356.0, 182.8, io_so or "-", size=9.5, max_w=215)
 
-        self._insert_text(page, 115, 197.0, site_place or "-", size=9.5, max_w=140)
-        self._insert_text(page, 376, 197.0, contact or "-", size=9.5, max_w=200)
+        # Line 3: y=198.30 -> text baseline at y=196.8
+        self._insert_text(page, 115.0, 196.8, site_place or "-", size=9.5, max_w=145)
+        self._insert_text(page, 376.0, 196.8, contact or "-", size=9.5, max_w=195)
 
-        # Box 2: Job Checkboxes
-        job_map = [
-            ("exp_job_install", 233),
-            ("exp_job_startup", 245),
-            ("exp_job_repair", 257),
-            ("exp_job_alignment", 269),
-            ("exp_job_other1", 281),
-            ("exp_job_other2", 293),
-            ("exp_job_other3", 305)
+        # 3. Box 2: Job Checkboxes & Expenses
+        # Exact bracket centers: Left cx = 87.44, Right cx = 314.53
+        # cy coordinates: 234.22, 246.57, 258.91, 271.26, 283.60, 295.95, 308.29
+        job_cys = [
+            ("exp_job_install", 234.22),
+            ("exp_job_startup", 246.57),
+            ("exp_job_repair", 258.91),
+            ("exp_job_alignment", 271.26),
+            ("exp_job_other1", 283.60),
+            ("exp_job_other2", 295.95),
+            ("exp_job_other3", 308.29)
         ]
-        for key, y_pos in job_map:
+        for key, cy in job_cys:
             val = data.get(key)
             if val in [True, "true", "True", "1", 1, "yes", "Yes"]:
-                self._insert_tick(page, 86.5, y_pos, size=8.5, color=(0, 0, 0))
+                self._insert_tick(page, 87.44, cy, size=8.5, color=(0, 0, 0))
             else:
-                self._insert_dash(page, 86.5, y_pos, size=8.5)
+                self._insert_dash(page, 87.44, cy, size=8.5)
 
-        for key_txt, y_pos in [("exp_job_other1_text", 281), ("exp_job_other2_text", 293), ("exp_job_other3_text", 305)]:
-            txt_val = str(data.get(key_txt) or "").strip()
-            self._insert_text(page, 130, y_pos, txt_val if txt_val else "-", size=9)
-
-        # Box 2: Expenses
-        exp_items = [
-            ("exp_cost_labor", "exp_amt_labor", 233),
-            ("exp_cost_toll", "exp_amt_toll", 245),
-            ("exp_cost_gas", "exp_amt_gas", 257),
-            ("exp_cost_equip", "exp_amt_equip", 269),
-            ("exp_cost_allowance", "exp_amt_allowance", 281),
-            ("exp_cost_hotel", "exp_amt_hotel", 293),
-            ("exp_cost_other", "exp_amt_other", 305)
+        # Underlines for Other 1, 2, 3 text (x0=164.2 .. 262.4)
+        # Line at y=290.39 -> baseline 288.5
+        # Line at y=302.73 -> baseline 301.0
+        # Line at y=315.08 -> baseline 313.5
+        other_txt_map = [
+            ("exp_job_other1_text", 288.5),
+            ("exp_job_other2_text", 301.0),
+            ("exp_job_other3_text", 313.5)
         ]
-        for chk_key, amt_key, y_pos in exp_items:
+        for key_txt, y_baseline in other_txt_map:
+            txt_val = str(data.get(key_txt) or "").strip()
+            self._insert_text(page, 166.0, y_baseline, txt_val if txt_val else "-", size=9, max_w=95)
+
+        # Expenses (Right column): cx = 314.53
+        # Underlines for amounts: x0=451.7 .. 573.6 (Center cx = 512.65)
+        exp_cys = [
+            ("exp_cost_labor", "exp_amt_labor", 234.22, 239.0),
+            ("exp_cost_toll", "exp_amt_toll", 246.57, 251.5),
+            ("exp_cost_gas", "exp_amt_gas", 258.91, 263.8),
+            ("exp_cost_equip", "exp_amt_equip", 271.26, 276.0),
+            ("exp_cost_allowance", "exp_amt_allowance", 283.60, 288.5),
+            ("exp_cost_hotel", "exp_amt_hotel", 295.95, 301.0),
+            ("exp_cost_other", "exp_amt_other", 308.29, 313.5)
+        ]
+        for chk_key, amt_key, cy, y_baseline in exp_cys:
             c_val = data.get(chk_key)
             a_val = str(data.get(amt_key) or "").strip()
             if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val != "-"):
-                self._insert_tick(page, 313.5, y_pos, size=8.5, color=(0, 0, 0))
+                self._insert_tick(page, 314.53, cy, size=8.5, color=(0, 0, 0))
             else:
-                self._insert_dash(page, 313.5, y_pos, size=8.5)
-            self._insert_text(page, 430, y_pos, a_val if a_val else "-", size=9)
+                self._insert_dash(page, 314.53, cy, size=8.5)
+            self._insert_centered_text(page, 512.65, y_baseline, a_val if a_val else "-", size=9)
 
         # Gas distance note if provided
         gas_dist = str(data.get("exp_gas_distance") or "").strip()
         if gas_dist:
-            self._insert_text(page, 375, 257, gas_dist, size=8.5)
+            self._insert_text(page, 375.0, 258.9, gas_dist, size=8.5)
 
-        # Box 3: Work Summary & Time (Underline baselines at y=356.5, 370.5, 384.5, 398.0)
-        summary_times = [
-            ("exp_work_start", 225, 356.5), ("exp_work_end", 340, 356.5), ("exp_work_total", 495, 356.5),
-            ("exp_travel_to_start", 225, 370.5), ("exp_travel_to_end", 340, 370.5), ("exp_travel_to_total", 495, 370.5),
-            ("exp_travel_back_start", 225, 384.5), ("exp_travel_back_end", 340, 384.5), ("exp_travel_back_total", 495, 384.5)
+        # 4. Box 3: Work Summary & Time (Underline centers: cx=242.0, 361.6, 510.0)
+        summary_rows = [
+            ("exp_work_start", "exp_work_end", "exp_work_total", 356.5),
+            ("exp_travel_to_start", "exp_travel_to_end", "exp_travel_to_total", 370.5),
+            ("exp_travel_back_start", "exp_travel_back_end", "exp_travel_back_total", 384.5)
         ]
-        for k, x_pos, y_pos in summary_times:
-            v = str(data.get(k) or "").strip()
-            self._insert_text(page, x_pos, y_pos, v if v else "-", size=9)
+        for k_start, k_end, k_tot, y_baseline in summary_rows:
+            v_start = str(data.get(k_start) or "").strip()
+            v_end = str(data.get(k_end) or "").strip()
+            v_tot = str(data.get(k_tot) or "").strip()
+            self._insert_centered_text(page, 242.0, y_baseline, v_start if v_start else "-", size=9.5)
+            self._insert_centered_text(page, 361.6, y_baseline, v_end if v_end else "-", size=9.5)
+            self._insert_centered_text(page, 510.0, y_baseline, v_tot if v_tot else "-", size=9.5)
 
-        self._insert_text(page, 135, 398.0, str(data.get("exp_distance") or "-"), size=9.5)
-        self._insert_text(page, 375, 398.0, str(data.get("exp_crew_tech") or "-"), size=9.5)
-        self._insert_text(page, 485, 398.0, str(data.get("exp_crew_sr_tech") or "-"), size=9.5)
-        self._insert_text(page, 415, 412.0, str(data.get("exp_crew_eng") or "-"), size=9.5)
+        # Distance & Crew
+        self._insert_centered_text(page, 163.2, 398.0, str(data.get("exp_distance") or "-"), size=9.5)
+        self._insert_centered_text(page, 386.2, 398.0, str(data.get("exp_crew_tech") or "-"), size=9.5)
+        self._insert_centered_text(page, 496.3, 398.0, str(data.get("exp_crew_sr_tech") or "-"), size=9.5)
+        self._insert_centered_text(page, 427.1, 412.0, str(data.get("exp_crew_eng") or "-"), size=9.5)
 
-        # Box 4: Charge to
+        # 5. Box 4: Charge to (cx = 87.44, amount lines x0=274.7 .. 451.7, center cx=363.2)
         charge_items = [
-            ("exp_charge_sales", "exp_charge_sales_amt", 448),
-            ("exp_charge_service", "exp_charge_service_amt", 460),
-            ("exp_charge_company", "exp_charge_company_amt", 472)
+            ("exp_charge_sales", "exp_charge_sales_amt", 450.15, 455.0),
+            ("exp_charge_service", "exp_charge_service_amt", 463.23, 468.0),
+            ("exp_charge_company", "exp_charge_company_amt", 476.32, 481.0)
         ]
-        for chk_key, amt_key, y_pos in charge_items:
+        for chk_key, amt_key, cy, y_baseline in charge_items:
             c_val = data.get(chk_key)
             a_val = str(data.get(amt_key) or "").strip()
             if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val != "-"):
-                self._insert_tick(page, 86.5, y_pos, size=8.5, color=(0, 0, 0))
+                self._insert_tick(page, 87.44, cy, size=8.5, color=(0, 0, 0))
             else:
-                self._insert_dash(page, 86.5, y_pos, size=8.5)
-            self._insert_text(page, 370, y_pos, a_val if a_val else "-", size=9)
+                self._insert_dash(page, 87.44, cy, size=8.5)
+            self._insert_centered_text(page, 363.2, y_baseline, a_val if a_val else "-", size=9)
 
-        # Box 5: Result & Fund from
+        # 6. Box 5: Result (Left, cx = 87.44) & Fund from (Right, cx = 314.53)
         result_items = [
-            ("exp_res_completed", 517),
-            ("exp_res_in_progress", 529.5),
-            ("exp_res_pending_approval", 542),
-            ("exp_res_pending_parts", 554.5),
-            ("exp_res_no_repair", 567)
+            ("exp_res_completed", 516.99),
+            ("exp_res_in_progress", 529.33),
+            ("exp_res_pending_approval", 541.68),
+            ("exp_res_pending_parts", 554.03),
+            ("exp_res_no_repair", 566.37)
         ]
-        for key, y_pos in result_items:
+        for key, cy in result_items:
             if data.get(key) in [True, "true", "True", "1", 1, "yes", "Yes"]:
-                self._insert_tick(page, 86.5, y_pos + 4.5, size=8.5, color=(0, 0, 0))
+                self._insert_tick(page, 87.44, cy, size=8.5, color=(0, 0, 0))
             else:
-                self._insert_dash(page, 86.5, y_pos, size=8.5)
+                self._insert_dash(page, 87.44, cy, size=8.5)
 
         fund_items = [
-            ("exp_fund_io_job", 517),
-            ("exp_fund_io_orderer", 529.5),
-            ("exp_fund_budget", 542),
-            ("exp_fund_other", 554.5)
+            ("exp_fund_io_job", 516.99),
+            ("exp_fund_io_orderer", 529.33),
+            ("exp_fund_budget", 541.68),
+            ("exp_fund_other", 554.03)
         ]
-        for key, y_pos in fund_items:
+        for key, cy in fund_items:
             if data.get(key) in [True, "true", "True", "1", 1, "yes", "Yes"]:
-                self._insert_tick(page, 313.5, y_pos, size=8.5, color=(0, 0, 0))
+                self._insert_tick(page, 314.53, cy, size=8.5, color=(0, 0, 0))
             else:
-                self._insert_dash(page, 313.5, y_pos, size=8.5)
+                self._insert_dash(page, 314.53, cy, size=8.5)
 
-        # Box 6: Additional comments
+        # 7. Box 6: Additional comments (Underline 1 starts at x=164.2 at y=601.48, Underlines 2..5 start at x=60.7)
         comments = str(data.get("exp_comments") or data.get("comments") or "").strip()
         if comments and comments != "-":
             c_lines = comments.splitlines()
-            curr_y = 608
-            for cl in c_lines[:3]:
-                if cl.strip():
-                    self._insert_text(page, 65, curr_y, cl.strip()[:95], size=9)
-                curr_y += 14
+            line_configs = [
+                (168.0, 599.5, 400),
+                (65.0, 613.5, 505),
+                (65.0, 627.5, 505),
+                (65.0, 641.5, 505),
+                (65.0, 655.0, 505)
+            ]
+            for idx, cl in enumerate(c_lines[:5]):
+                if cl.strip() and idx < len(line_configs):
+                    x_c, y_c, max_wc = line_configs[idx]
+                    self._insert_text(page, x_c, y_c, cl.strip(), size=9, max_w=max_wc)
         else:
-            self._insert_text(page, 65, 608, "-", size=9)
+            self._insert_text(page, 168.0, 599.5, "-", size=9)
 
-        # Signatures (Line at y=676.2, Date underline at y=701.0)
+        # 8. Signatures:
+        # Tech: line cx = 112.9 (61.6 .. 164.2)
+        # Sr. Tech: line cx = 283.6 (212.9 .. 354.3)
+        # Sales: line cx = 459.0 (403.0 .. 515.0)
+        # Manager: line cx = 459.0 (403.0 .. 515.0, y=724.93)
         tech_sig = data.get("signature_tech") or data.get("sig_technician") or data.get("signature_engineer")
         tech_name = str(data.get("exp_tech_name") or data.get("technician_name") or data.get("tech_name") or data.get("serviced_by") or "").strip()
         if tech_sig:
             self._insert_signature(page, (65, 635, 160, 674), tech_sig)
         elif tech_name and tech_name != "-":
-            self._insert_centered_text(page, 112, 672, tech_name, size=9.5, bold=True)
+            self._insert_centered_text(page, 112.9, 672.0, tech_name, size=9.5, bold=True)
         else:
-            self._insert_centered_text(page, 112, 672, "-", size=9.5)
+            self._insert_centered_text(page, 112.9, 672.0, "-", size=9.5)
         tech_date = self._format_date_dmy(data.get("exp_tech_date") or raw_date)
-        self._insert_text(page, 85, 701, tech_date or "-", size=9)
+        self._insert_centered_text(page, 112.9, 700.0, tech_date or "-", size=9)
 
         sr_sig = data.get("exp_sr_tech_sig")
         sr_name = str(data.get("exp_sr_tech_name") or "").strip()
         if sr_sig:
-            self._insert_signature(page, (215, 635, 310, 674), sr_sig)
+            self._insert_signature(page, (235, 635, 335, 674), sr_sig)
         elif sr_name and sr_name != "-":
-            self._insert_centered_text(page, 260, 672, sr_name, size=9.5, bold=True)
+            self._insert_centered_text(page, 283.6, 672.0, sr_name, size=9.5, bold=True)
         else:
-            self._insert_centered_text(page, 260, 672, "-", size=9.5)
+            self._insert_centered_text(page, 283.6, 672.0, "-", size=9.5)
         sr_date = self._format_date_dmy(data.get("exp_sr_tech_date") or raw_date)
-        self._insert_text(page, 255, 701, sr_date or "-", size=9)
+        self._insert_centered_text(page, 283.6, 700.0, sr_date or "-", size=9)
 
         sales_sig = data.get("exp_sales_sig") or data.get("signature_cust") or data.get("sig_customer")
         sales_n = str(data.get("exp_sales_name") or sales_person).strip()
         if sales_sig:
-            self._insert_signature(page, (390, 635, 480, 674), sales_sig)
+            self._insert_signature(page, (410, 635, 508, 674), sales_sig)
         elif sales_n and sales_n != "-":
-            self._insert_centered_text(page, 435, 672, sales_n, size=9.5, bold=True)
+            self._insert_centered_text(page, 459.0, 672.0, sales_n, size=9.5, bold=True)
         else:
-            self._insert_centered_text(page, 435, 672, "-", size=9.5)
+            self._insert_centered_text(page, 459.0, 672.0, "-", size=9.5)
         sales_d = self._format_date_dmy(data.get("exp_sales_date") or raw_date)
-        self._insert_text(page, 430, 701, sales_d or "-", size=9)
+        self._insert_centered_text(page, 459.0, 700.0, sales_d or "-", size=9)
 
         mgr_sig = data.get("exp_mgr_sig")
         mgr_n = str(data.get("exp_mgr_name") or "").strip()
         if mgr_sig:
-            self._insert_signature(page, (390, 695, 480, 725), mgr_sig)
+            self._insert_signature(page, (410, 685, 508, 723), mgr_sig)
         elif mgr_n and mgr_n != "-":
-            self._insert_centered_text(page, 435, 722, mgr_n, size=9.5, bold=True)
+            self._insert_centered_text(page, 459.0, 720.5, mgr_n, size=9.5, bold=True)
         else:
-            self._insert_centered_text(page, 435, 722, "-", size=9.5)
+            self._insert_centered_text(page, 459.0, 720.5, "-", size=9.5)
         mgr_d = self._format_date_dmy(data.get("exp_mgr_date") or raw_date)
-        self._insert_text(page, 430, 745, mgr_d or "-", size=9)
+        self._insert_centered_text(page, 459.0, 743.5, mgr_d or "-", size=9)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         doc.save(output_path)

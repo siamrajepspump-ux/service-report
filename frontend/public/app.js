@@ -1761,6 +1761,14 @@ function saveCurrentActiveInstanceData() {
 
     const prevData = activeInst.data || {};
 
+    const subjects = [];
+    document.querySelectorAll('input[name="sr_subject"]:checked').forEach(el => subjects.push(el.value));
+    const problems = [];
+    document.querySelectorAll('input[name="sr_problem"]:checked').forEach(el => problems.push(el.value));
+    const prevs = [];
+    document.querySelectorAll('input[name="sr_prev"]:checked').forEach(el => prevs.push(el.value));
+    const testResEl = document.querySelector('input[name="sr_test_result"]:checked');
+
     activeInst.data = {
       ...prevData,
       pump_brand: sheetBrand,
@@ -1773,46 +1781,39 @@ function saveCurrentActiveInstanceData() {
       time_start: srStart || prevData.time_start || "",
       sr_time_finished: srFinish,
       time_finished: srFinish || prevData.time_finished || "",
-
-
-      pump_model: sheetModel,
-
-      serial_no: sheetSerial,
-
-      pump_code: sheetCode,
-
       motor_brand: document.getElementById("sr_motor_brand")?.value || "",
-
       motor_kw: document.getElementById("sr_motor_kw")?.value || "",
-
       motor_rpm: document.getElementById("sr_motor_rpm")?.value || "",
-
       motor_max_amp: document.getElementById("sr_motor_max_amp")?.value || "",
-
       gear_brand: document.getElementById("sr_gear_brand")?.value || "",
-
       gear_ratio: document.getElementById("sr_gear_ratio")?.value || "",
-
       gear_model: document.getElementById("sr_gear_model")?.value || "",
-
       gear_serial: document.getElementById("sr_gear_serial")?.value || "",
-
-      cause: document.getElementById("sr_cause")?.value || "",
-
-      repairing: document.getElementById("sr_repairing")?.value || "",
-
+      service_subjects: subjects,
       subject_other: document.getElementById("sr_subject_other")?.value || "",
-
+      problem_ticks: problems,
       problem_etc: document.getElementById("sr_problem_etc")?.value || "",
-
+      cause: document.getElementById("sr_cause")?.value || "",
+      cause_ref_check: document.getElementById("sr_cause_ref_check")?.checked || false,
+      cause_ref: document.getElementById("sr_cause_ref")?.value || "",
+      repairing: document.getElementById("sr_repairing")?.value || "",
+      repairing_ref_check: document.getElementById("sr_repairing_ref_check")?.checked || false,
+      repairing_ref: document.getElementById("sr_repairing_ref")?.value || "",
+      prevention_ticks: prevs,
+      prevention_other: document.getElementById("sr_prevention_other")?.value || "",
+      prev_ref_check: document.getElementById("sr_prev_ref_check")?.checked || false,
+      prev_ref: document.getElementById("sr_prev_ref")?.value || "",
+      test_result: testResEl ? testResEl.value : "",
       test_run_detail: document.getElementById("sr_test_run_detail")?.value || "",
-
+      no_test_run_detail: document.getElementById("sr_no_test_run_detail")?.value || "",
+      service_again_detail: document.getElementById("sr_service_again_detail")?.value || "",
+      return_shop_detail: document.getElementById("sr_return_shop_detail")?.value || "",
+      test_other_detail: document.getElementById("sr_test_other_detail")?.value || "",
+      test_ref_check: document.getElementById("sr_test_ref_check")?.checked || false,
+      test_ref: document.getElementById("sr_test_ref")?.value || "",
       sheet_model: sheetModel,
-
       sheet_serial: sheetSerial,
-
       sheet_code: sheetCode
-
     };
 
     if (sheetModel) activeInst.data.pump_model = sheetModel;
@@ -2612,38 +2613,60 @@ function loadInstanceDataIntoDom(inst) {
       if (inst.data.time_finished !== undefined && document.getElementById("sr_time_finished")) document.getElementById("sr_time_finished").value = inst.data.time_finished;
 
       if (inst.data.pump_brand !== undefined && document.getElementById("sr_pump_brand")) document.getElementById("sr_pump_brand").value = inst.data.pump_brand;
-
       if (inst.data.pump_model !== undefined && document.getElementById("sr_pump_model")) document.getElementById("sr_pump_model").value = inst.data.pump_model;
-
       if (inst.data.serial_no !== undefined && document.getElementById("sr_serial_no")) document.getElementById("sr_serial_no").value = inst.data.serial_no;
-
       if (inst.data.pump_code !== undefined && document.getElementById("sr_pump_code")) document.getElementById("sr_pump_code").value = inst.data.pump_code;
-
       if (inst.data.motor_brand !== undefined && document.getElementById("sr_motor_brand")) document.getElementById("sr_motor_brand").value = inst.data.motor_brand;
-
       if (inst.data.motor_kw !== undefined && document.getElementById("sr_motor_kw")) document.getElementById("sr_motor_kw").value = inst.data.motor_kw;
-
       if (inst.data.motor_rpm !== undefined && document.getElementById("sr_motor_rpm")) document.getElementById("sr_motor_rpm").value = inst.data.motor_rpm;
-
       if (inst.data.motor_max_amp !== undefined && document.getElementById("sr_motor_max_amp")) document.getElementById("sr_motor_max_amp").value = inst.data.motor_max_amp;
-
       if (inst.data.gear_brand !== undefined && document.getElementById("sr_gear_brand")) document.getElementById("sr_gear_brand").value = inst.data.gear_brand;
-
       if (inst.data.gear_ratio !== undefined && document.getElementById("sr_gear_ratio")) document.getElementById("sr_gear_ratio").value = inst.data.gear_ratio;
-
       if (inst.data.gear_model !== undefined && document.getElementById("sr_gear_model")) document.getElementById("sr_gear_model").value = inst.data.gear_model;
-
       if (inst.data.gear_serial !== undefined && document.getElementById("sr_gear_serial")) document.getElementById("sr_gear_serial").value = inst.data.gear_serial;
 
-      if (inst.data.cause !== undefined && document.getElementById("sr_cause")) document.getElementById("sr_cause").value = inst.data.cause;
-
-      if (inst.data.repairing !== undefined && document.getElementById("sr_repairing")) document.getElementById("sr_repairing").value = inst.data.repairing;
-
+      if (inst.data.service_subjects && Array.isArray(inst.data.service_subjects)) {
+        document.querySelectorAll('input[name="sr_subject"]').forEach(el => {
+          el.checked = inst.data.service_subjects.includes(el.value);
+        });
+      }
       if (inst.data.subject_other !== undefined && document.getElementById("sr_subject_other")) document.getElementById("sr_subject_other").value = inst.data.subject_other;
 
+      if (inst.data.problem_ticks && Array.isArray(inst.data.problem_ticks)) {
+        document.querySelectorAll('input[name="sr_problem"]').forEach(el => {
+          el.checked = inst.data.problem_ticks.includes(el.value);
+        });
+      }
       if (inst.data.problem_etc !== undefined && document.getElementById("sr_problem_etc")) document.getElementById("sr_problem_etc").value = inst.data.problem_etc;
 
+      if (inst.data.cause !== undefined && document.getElementById("sr_cause")) document.getElementById("sr_cause").value = inst.data.cause;
+      if (inst.data.cause_ref_check !== undefined && document.getElementById("sr_cause_ref_check")) document.getElementById("sr_cause_ref_check").checked = !!inst.data.cause_ref_check;
+      if (inst.data.cause_ref !== undefined && document.getElementById("sr_cause_ref")) document.getElementById("sr_cause_ref").value = inst.data.cause_ref;
+
+      if (inst.data.repairing !== undefined && document.getElementById("sr_repairing")) document.getElementById("sr_repairing").value = inst.data.repairing;
+      if (inst.data.repairing_ref_check !== undefined && document.getElementById("sr_repairing_ref_check")) document.getElementById("sr_repairing_ref_check").checked = !!inst.data.repairing_ref_check;
+      if (inst.data.repairing_ref !== undefined && document.getElementById("sr_repairing_ref")) document.getElementById("sr_repairing_ref").value = inst.data.repairing_ref;
+
+      if (inst.data.prevention_ticks && Array.isArray(inst.data.prevention_ticks)) {
+        document.querySelectorAll('input[name="sr_prev"]').forEach(el => {
+          el.checked = inst.data.prevention_ticks.includes(el.value);
+        });
+      }
+      if (inst.data.prevention_other !== undefined && document.getElementById("sr_prevention_other")) document.getElementById("sr_prevention_other").value = inst.data.prevention_other;
+      if (inst.data.prev_ref_check !== undefined && document.getElementById("sr_prev_ref_check")) document.getElementById("sr_prev_ref_check").checked = !!inst.data.prev_ref_check;
+      if (inst.data.prev_ref !== undefined && document.getElementById("sr_prev_ref")) document.getElementById("sr_prev_ref").value = inst.data.prev_ref;
+
+      if (inst.data.test_result) {
+        const r = document.querySelector(`input[name="sr_test_result"][value="${inst.data.test_result}"]`);
+        if (r) r.checked = true;
+      }
       if (inst.data.test_run_detail !== undefined && document.getElementById("sr_test_run_detail")) document.getElementById("sr_test_run_detail").value = inst.data.test_run_detail;
+      if (inst.data.no_test_run_detail !== undefined && document.getElementById("sr_no_test_run_detail")) document.getElementById("sr_no_test_run_detail").value = inst.data.no_test_run_detail;
+      if (inst.data.service_again_detail !== undefined && document.getElementById("sr_service_again_detail")) document.getElementById("sr_service_again_detail").value = inst.data.service_again_detail;
+      if (inst.data.return_shop_detail !== undefined && document.getElementById("sr_return_shop_detail")) document.getElementById("sr_return_shop_detail").value = inst.data.return_shop_detail;
+      if (inst.data.test_other_detail !== undefined && document.getElementById("sr_test_other_detail")) document.getElementById("sr_test_other_detail").value = inst.data.test_other_detail;
+      if (inst.data.test_ref_check !== undefined && document.getElementById("sr_test_ref_check")) document.getElementById("sr_test_ref_check").checked = !!inst.data.test_ref_check;
+      if (inst.data.test_ref !== undefined && document.getElementById("sr_test_ref")) document.getElementById("sr_test_ref").value = inst.data.test_ref;
 
     } else {
 
@@ -4383,20 +4406,29 @@ async function selectTicket(ticketNo) {
     clearCustSignature();
 
     // Load existing draft if present
-    await loadTicketDraft(ticketNo);
+    const hasDraft = await loadTicketDraft(ticketNo);
 
-    // Render package tabs (if draft has instances, activate first; otherwise let user choose forms via '+ เพิ่มใบงาน')
-    renderPackageTabs();
+    // Ensure first instance (prefer FM-EPS-23 Service Report) is active and rendered
     if (state.packageInstances && state.packageInstances.length > 0) {
-      if (!state.activeInstanceId) state.activeInstanceId = state.packageInstances[0].id;
-      selectPackageInstance(state.activeInstanceId);
+      const defaultInst = state.packageInstances.find(i => i.code === "FM-EPS-23") || state.packageInstances[0];
+      state.activeInstanceId = null;
+      renderPackageTabs();
+      selectPackageInstance(defaultInst.id);
     } else {
       selectPackageInstance(null);
+      renderPackageTabs();
     }
 
     loadTicketPhotos(ticketNo);
 
-    showToast(`ดึงข้อมูลลูกค้า Request No: ${activeReqNo} เรียบร้อยแล้ว (ข้อมูลปั๊มและชื่อช่างกรอกด้วยตนเอง)`);
+    if (hasDraft) {
+      showToast(`โหลดร่างงานที่บันทึกของ ${activeReqNo} สำเร็จแล้ว (${state.packageInstances.length} ใบงาน)`);
+      if (document.getElementById("bannerStatus")) {
+        document.getElementById("bannerStatus").innerHTML = `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">ร่างงาน (${state.packageInstances.length} ใบ)</span>`;
+      }
+    } else {
+      showToast(`ดึงข้อมูลลูกค้า Request No: ${activeReqNo} เรียบร้อยแล้ว (ข้อมูลปั๊มและชื่อช่างกรอกด้วยตนเอง)`);
+    }
 
   } catch (e) {
 
@@ -4411,7 +4443,9 @@ async function selectTicket(ticketNo) {
 async function loadTicketDraft(ticketNo) {
   let loaded = false;
   try {
-    const res = await fetch(`/api/reports/load-draft/${encodeURIComponent(ticketNo)}`);
+    const res = await fetch(`/api/reports/load-draft/${encodeURIComponent(ticketNo)}?_t=${Date.now()}`, {
+      cache: "no-store"
+    });
     if (res.ok) {
       const draft = await res.json();
       applyDraftData(draft);
@@ -4419,8 +4453,8 @@ async function loadTicketDraft(ticketNo) {
         localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(draft));
         localStorage.setItem(`siamraj_draft_time_${ticketNo}`, new Date().toISOString());
       } catch (_) {}
-      showToast(`โหลดร่างงานที่บันทึกของ ${ticketNo} สำเร็จ`);
       loaded = true;
+      return true;
     }
   } catch (e) {
     console.warn("Server draft load notice:", e);
@@ -4433,22 +4467,48 @@ async function loadTicketDraft(ticketNo) {
       if (localStr) {
         const localDraft = JSON.parse(localStr);
         applyDraftData(localDraft);
-        showToast(`กู้คืนร่างงาน ${ticketNo} จากหน่วยความจำเครื่องสำเร็จ`);
         loaded = true;
+        return true;
       }
     } catch (le) {
       console.warn("LocalStorage fallback load error:", le);
     }
   }
+  return false;
 }
 
 function applyDraftData(d) {
   if (d.form_instances && Array.isArray(d.form_instances) && d.form_instances.length > 0) {
+    // Backfill any root fields into FM-EPS-23 and FM-EPS-22 if missing
+    d.form_instances.forEach(fi => {
+      if (fi.code === "FM-EPS-23") {
+        if (!fi.data) fi.data = {};
+        if (!fi.data.cause && d.cause) fi.data.cause = d.cause;
+        if (!fi.data.repairing && d.repairing) fi.data.repairing = d.repairing;
+        if (!fi.data.pump_brand && d.pump_brand) fi.data.pump_brand = d.pump_brand;
+        if (!fi.data.pump_model && d.pump_model) fi.data.pump_model = d.pump_model;
+        if (!fi.data.serial_no && d.serial_no) fi.data.serial_no = d.serial_no;
+        if (!fi.data.service_subjects && d.service_subjects) fi.data.service_subjects = d.service_subjects;
+        if (!fi.data.problem_ticks && d.problem_ticks) fi.data.problem_ticks = d.problem_ticks;
+        if (!fi.data.prevention_ticks && d.prevention_ticks) fi.data.prevention_ticks = d.prevention_ticks;
+        if (!fi.data.test_result && d.test_result) fi.data.test_result = d.test_result;
+        if (!fi.data.test_other_detail && d.test_other_detail) fi.data.test_other_detail = d.test_other_detail;
+      }
+      if (fi.code === "FM-EPS-22") {
+        if (!fi.data) fi.data = {};
+        if (!fi.data.pump_model && d.pump_model) fi.data.pump_model = d.pump_model;
+        if (!fi.data.sheet_model && d.pump_model) fi.data.sheet_model = d.pump_model;
+        if (!fi.data.serial_no && d.serial_no) fi.data.serial_no = d.serial_no;
+        if (!fi.data.sheet_serial && d.serial_no) fi.data.sheet_serial = d.serial_no;
+        if (!fi.data.visual_checklist && d.visual_checklist) fi.data.visual_checklist = d.visual_checklist;
+      }
+    });
     state.packageInstances = d.form_instances;
-    const targetId = d.active_instance_id || d.activeInstanceId || state.packageInstances[0].id;
-    state.activeInstanceId = null; // Prevent stale DOM from overwriting loaded instance data
+    // Always activate FM-EPS-23 (Service Report) first when opening report
+    const targetInst = state.packageInstances.find(i => i.code === "FM-EPS-23") || state.packageInstances[0];
+    state.activeInstanceId = null;
     renderPackageTabs();
-    selectPackageInstance(targetId);
+    selectPackageInstance(targetInst.id);
   }
 
   const isValidDraftVal = (v) => v && v !== "-" && !String(v).includes("should not") && !String(v).includes("from web");

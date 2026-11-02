@@ -26,7 +26,7 @@ from datetime import datetime
 
 import openpyxl
 
-from fastapi import FastAPI, UploadFile, File, Form, Query, HTTPException, BackgroundTasks, Body
+from fastapi import FastAPI, UploadFile, File, Form, Query, HTTPException, BackgroundTasks, Body, Response
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -1327,9 +1327,10 @@ class SaveReportPayload(BaseModel):
 
 
 @app.post("/api/reports/save-draft")
-
-def save_draft(payload: SaveReportPayload):
-
+def save_draft(payload: SaveReportPayload, response: Response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     ticket = payload.ticket_no.strip()
 
     if not ticket:
@@ -1396,7 +1397,10 @@ def save_draft(payload: SaveReportPayload):
 
 
 @app.get("/api/reports/load-draft/{ticket_no}")
-def load_draft(ticket_no: str):
+def load_draft(ticket_no: str, response: Response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     ticket = ticket_no.strip()
     file_path = os.path.join(REPORTS_DIR, f"{ticket}_draft.json")
     if not os.path.exists(file_path):
@@ -1448,8 +1452,10 @@ def reset_report(ticket_no: str):
 
 
 @app.get("/api/reports")
-
-def list_reports():
+def list_reports(response: Response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
 
     reports = []
 

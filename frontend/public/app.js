@@ -2759,19 +2759,15 @@ function loadInstanceDataIntoDom(inst) {
 
 function syncDateTimeFromServiceReport() {
 
-  const srDate = document.getElementById("sr_date")?.value || "";
-
+  const srRawDate = document.getElementById("sr_date")?.value || "";
+  const srDate = (typeof formatIsoToDmy === "function" ? formatIsoToDmy(srRawDate) : "") || srRawDate;
   const srServDate = document.getElementById("sr_serviced_date")?.value || srDate;
-
   const srStart = document.getElementById("sr_time_start")?.value || "";
-
   const srFinish = document.getElementById("sr_time_finished")?.value || "";
 
-
-
-  if (document.getElementById("cr_date")) document.getElementById("cr_date").value = srDate;
-
-  if (document.getElementById("cr_serviced_date")) document.getElementById("cr_serviced_date").value = srServDate;
+  const finalDate = srDate || srServDate;
+  if (document.getElementById("cr_date")) document.getElementById("cr_date").value = finalDate;
+  if (document.getElementById("cr_serviced_date")) document.getElementById("cr_serviced_date").value = finalDate;
 
   if (document.getElementById("cr_time_start")) document.getElementById("cr_time_start").value = srStart;
 

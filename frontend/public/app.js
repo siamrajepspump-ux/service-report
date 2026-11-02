@@ -15,6 +15,10 @@ const state = {
   techPad: null,
 
   custPad: null,
+  savedTechSign: "",
+  savedCustSign: "",
+  savedTechPoints: null,
+  savedCustPoints: null,
 
   photos: [],
 
@@ -1127,12 +1131,9 @@ function selectPackageInstance(instId) {
 
 
 
-  // 7. If FM-EPS-23 or FM-EPS-22 (signatures enabled), resize pads
-
+  // 7. If FM-EPS-23 or FM-EPS-22 (signatures enabled), resize pads and restore signatures
   if (inst.code === "FM-EPS-23" || inst.code === "FM-EPS-22") {
-
-    resizeSignPads();
-
+    setTimeout(resizeSignPads, 50);
   }
 
 
@@ -2928,75 +2929,92 @@ function selectPackageFormByCode(code) {
 // =============================================================================
 
 function initSignaturePads() {
-
   const techCanvas = document.getElementById("techSignPad");
-
   const custCanvas = document.getElementById("custSignPad");
 
-
-
   if (techCanvas && window.SignaturePad) {
-
     state.techPad = new SignaturePad(techCanvas, { backgroundColor: "rgb(255, 255, 255)", penColor: "rgb(0, 0, 140)" });
-
+    state.techPad.addEventListener("endStroke", () => {
+      try {
+        state.savedTechSign = state.techPad.toDataURL();
+        state.savedTechPoints = state.techPad.toData();
+      } catch (_) {}
+    });
   }
-
   if (custCanvas && window.SignaturePad) {
-
     state.custPad = new SignaturePad(custCanvas, { backgroundColor: "rgb(255, 255, 255)", penColor: "rgb(0, 0, 140)" });
-
+    state.custPad.addEventListener("endStroke", () => {
+      try {
+        state.savedCustSign = state.custPad.toDataURL();
+        state.savedCustPoints = state.custPad.toData();
+      } catch (_) {}
+    });
   }
-
   window.addEventListener("resize", resizeSignPads);
-
   window.addEventListener("orientationchange", () => setTimeout(resizeSignPads, 250));
-
   setTimeout(resizeSignPads, 200);
-
 }
 
+function restoreSignatureToPad(type) {
+  const isTech = (type === "tech");
+  const pad = isTech ? state.techPad : state.custPad;
+  const b64 = isTech ? state.savedTechSign : state.savedCustSign;
+  const pts = isTech ? state.savedTechPoints : state.savedCustPoints;
 
+  if (!pad) return;
+  const canvas = pad.canvas;
+  if (!canvas || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
+
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(ratio, ratio);
+
+  if (Array.isArray(pts) && pts.length > 0) {
+    pad.fromData(pts);
+  } else if (b64 && typeof b64 === "string" && b64.startsWith("data:image/")) {
+    pad.clear();
+    pad.fromDataURL(b64);
+  }
+}
 
 function resizeSignPads() {
-
-  [state.techPad, state.custPad].forEach(pad => {
-
+  [
+    { pad: state.techPad, type: "tech" },
+    { pad: state.custPad, type: "cust" }
+  ].forEach(({ pad, type }) => {
     if (!pad) return;
-
     const canvas = pad.canvas;
+    if (!canvas || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
 
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const isTech = (type === "tech");
+    const pts = pad.toData();
+    if (Array.isArray(pts) && pts.length > 0) {
+      if (isTech) state.savedTechPoints = pts;
+      else state.savedCustPoints = pts;
+    } else if (!pad.isEmpty()) {
+      try {
+        const b64 = pad.toDataURL();
+        if (isTech) state.savedTechSign = b64;
+        else state.savedCustSign = b64;
+      } catch (_) {}
+    }
 
-    if (canvas.offsetWidth === 0) return;
-
-    const data = pad.toData();
-
-    canvas.width = canvas.offsetWidth * ratio;
-
-    canvas.height = canvas.offsetHeight * ratio;
-
-    canvas.getContext("2d").scale(ratio, ratio);
-
-    pad.fromData(data);
-
+    restoreSignatureToPad(type);
   });
-
 }
-
-
 
 function clearTechSignature() {
-
   if (state.techPad) state.techPad.clear();
-
+  state.savedTechSign = "";
+  state.savedTechPoints = null;
 }
 
-
-
 function clearCustSignature() {
-
   if (state.custPad) state.custPad.clear();
-
+  state.savedCustSign = "";
+  state.savedCustPoints = null;
 }
 
 
@@ -4264,6 +4282,8 @@ async function selectTicket(ticketNo) {
     // Reset package instances when switching tickets so no previous ticket forms persist
     state.packageInstances = [];
     state.activeInstanceId = null;
+    clearTechSignature();
+    clearCustSignature();
 
     // Load existing draft if present
     await loadTicketDraft(ticketNo);
@@ -4571,14 +4591,29 @@ function applyDraftData(d) {
 
 
   // FM-EPS-23: Signatures & Timing
-
   if (d.serviced_date) document.getElementById("sr_serviced_date").value = d.serviced_date;
-
   if (d.time_start) document.getElementById("sr_time_start").value = d.time_start;
-
   if (d.time_finished) document.getElementById("sr_time_finished").value = d.time_finished;
-
   if (d.customer_sign_date) document.getElementById("cust_sign_date").value = d.customer_sign_date;
+
+  // Restore Digital Signatures
+  const loadedTechSign = d.sign_tech || d.signature_tech || d.sig_technician || "";
+  const loadedTechPoints = d.sign_tech_points || null;
+  const loadedCustSign = d.sign_customer || d.signature_customer || d.sig_customer || "";
+  const loadedCustPoints = d.sign_customer_points || null;
+
+  if (loadedTechSign || loadedTechPoints) {
+    state.savedTechSign = loadedTechSign;
+    state.savedTechPoints = loadedTechPoints;
+    setTimeout(() => restoreSignatureToPad("tech"), 100);
+    setTimeout(() => restoreSignatureToPad("tech"), 350);
+  }
+  if (loadedCustSign || loadedCustPoints) {
+    state.savedCustSign = loadedCustSign;
+    state.savedCustPoints = loadedCustPoints;
+    setTimeout(() => restoreSignatureToPad("cust"), 100);
+    setTimeout(() => restoreSignatureToPad("cust"), 350);
+  }
 
 
 
@@ -6661,14 +6696,32 @@ function collectReportData() {
 
 
   // Signatures
-
   let techSignB64 = "";
-
   let custSignB64 = "";
+  let techPoints = state.savedTechPoints || null;
+  let custPoints = state.savedCustPoints || null;
 
-  if (state.techPad && !state.techPad.isEmpty()) techSignB64 = state.techPad.toDataURL();
+  if (state.techPad && !state.techPad.isEmpty()) {
+    try {
+      techSignB64 = state.techPad.toDataURL();
+      techPoints = state.techPad.toData();
+      state.savedTechSign = techSignB64;
+      state.savedTechPoints = techPoints;
+    } catch (_) {}
+  } else if (state.savedTechSign) {
+    techSignB64 = state.savedTechSign;
+  }
 
-  if (state.custPad && !state.custPad.isEmpty()) custSignB64 = state.custPad.toDataURL();
+  if (state.custPad && !state.custPad.isEmpty()) {
+    try {
+      custSignB64 = state.custPad.toDataURL();
+      custPoints = state.custPad.toData();
+      state.savedCustSign = custSignB64;
+      state.savedCustPoints = custPoints;
+    } catch (_) {}
+  } else if (state.savedCustSign) {
+    custSignB64 = state.savedCustSign;
+  }
 
 
 
@@ -6787,8 +6840,11 @@ function collectReportData() {
     customer_sign_date: document.getElementById("cust_sign_date")?.value || "",
 
     sign_tech: techSignB64,
-
     sign_customer: custSignB64,
+    signature_tech: techSignB64,
+    signature_customer: custSignB64,
+    sign_tech_points: techPoints,
+    sign_customer_points: custPoints,
 
     visual_checklist: visualChecklist,
 

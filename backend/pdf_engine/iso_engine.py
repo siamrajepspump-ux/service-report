@@ -379,8 +379,9 @@ class IsoPdfEngine:
 
         # 9. Signatures & Serviced Time
         # Technician Box (x=117 to 215, y=755 to 769)
-        if data.get("sign_tech"):
-            self._insert_signature(page, (120, 755, 212, 768), data["sign_tech"])
+        tech_sig = data.get("sign_tech") or data.get("signature_tech") or data.get("sig_technician")
+        if tech_sig:
+            self._insert_signature(page, (120, 755, 212, 768), tech_sig)
         else:
             self._insert_centered_text(page, 166, 765, data.get("serviced_by", ""), size=9.5)
 
@@ -394,8 +395,9 @@ class IsoPdfEngine:
         cust_name_val = str(data.get("customer_signer_name") or data.get("cust_name") or data.get("custSignerName") or data.get("contact_person") or data.get("sr_contact_person") or "").strip()
         if cust_name_val in ["-", "nan", "none", "None"]: cust_name_val = ""
 
-        if data.get("sign_customer"):
-            self._insert_signature(page, (475, 755, 573, 768), data["sign_customer"])
+        cust_sig = data.get("sign_customer") or data.get("signature_customer") or data.get("sig_customer")
+        if cust_sig:
+            self._insert_signature(page, (475, 755, 573, 768), cust_sig)
         elif cust_name_val:
             self._insert_centered_text(page, 524, 765, cust_name_val, size=9.5, bold=True)
 
@@ -631,8 +633,9 @@ class IsoPdfEngine:
         tech_name_val = str(data.get("serviced_by") or data.get("tech_name") or data.get("techSignerName") or "").strip()
         if tech_name_val in ["-", "nan", "none", "None"]: tech_name_val = ""
 
-        if data.get("sign_tech"):
-            self._insert_signature(page, (95, 781, 220, 795), data["sign_tech"])
+        tech_sig = data.get("sign_tech") or data.get("signature_tech") or data.get("sig_technician")
+        if tech_sig:
+            self._insert_signature(page, (95, 781, 220, 795), tech_sig)
         elif tech_name_val:
             self._insert_centered_text(page, 157, 791, tech_name_val, size=9.5, bold=True)
         else:
@@ -651,8 +654,9 @@ class IsoPdfEngine:
         cust_name_val = str(data.get("customer_signer_name") or data.get("cust_name") or data.get("custSignerName") or data.get("contact_person") or data.get("sr_contact_person") or data.get("sat_contact_person") or "").strip()
         if cust_name_val in ["-", "nan", "none", "None"]: cust_name_val = ""
 
-        if data.get("sign_customer"):
-            self._insert_signature(page, (482, 781, 570, 795), data["sign_customer"])
+        cust_sig = data.get("sign_customer") or data.get("signature_customer") or data.get("sig_customer")
+        if cust_sig:
+            self._insert_signature(page, (482, 781, 570, 795), cust_sig)
         elif cust_name_val:
             self._insert_centered_text(page, 526, 791, cust_name_val, size=9.5, bold=True)
         else:
@@ -1106,8 +1110,9 @@ class IsoPdfEngine:
             self._insert_text(page, 92.0, 759.0, signer, size=9.0, max_w=115.0)
             self._insert_text(page, 255.0, 759.0, cust, size=9.0, max_w=170.0)
             self._insert_text(page, 480.0, 759.0, tel, size=9.0, max_w=90.0)
-            if data.get("sign_customer"):
-                self._insert_signature(page, (60, 705, 190, 745), data["sign_customer"])
+            cust_sig = data.get("sign_customer") or data.get("signature_customer") or data.get("sig_customer")
+            if cust_sig:
+                self._insert_signature(page, (60, 705, 190, 745), cust_sig)
             elif signer and signer != "-":
                 self._insert_centered_text(page, 125.0, 725.0, signer, size=9.5, bold=True)
             else:
@@ -1118,8 +1123,9 @@ class IsoPdfEngine:
             self._insert_text(page, 480.0, 765.0, tel, size=9.0, max_w=95.0)
             if date_str and date_str != "-":
                 self._insert_text(page, 120.0, 794.0, date_str, size=9.0, max_w=115.0)
-            if data.get("sign_customer"):
-                self._insert_signature(page, (280, 715, 405, 752), data["sign_customer"])
+            cust_sig = data.get("sign_customer") or data.get("signature_customer") or data.get("sig_customer")
+            if cust_sig:
+                self._insert_signature(page, (280, 715, 405, 752), cust_sig)
             elif signer and signer != "-":
                 self._insert_centered_text(page, 342.0, 733.0, signer, size=9.5, bold=True)
             else:
@@ -1705,7 +1711,7 @@ class IsoPdfEngine:
             self._insert_text(page, 168.0, 599.5, "-", size=9)
 
         # 8. Signatures:
-        tech_sig = data.get("signature_tech") or data.get("sig_technician") or data.get("signature_engineer")
+        tech_sig = data.get("sign_tech") or data.get("signature_tech") or data.get("sig_technician") or data.get("signature_engineer")
         tech_name = str(data.get("exp_tech_name") or data.get("technician_name") or data.get("tech_name") or data.get("serviced_by") or "").strip()
         if tech_sig:
             self._insert_signature(page, (65, 635, 160, 674), tech_sig)

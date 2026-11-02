@@ -1365,10 +1365,19 @@ def save_draft(payload: SaveReportPayload):
             full_url = sub_res.get("generated_files", {}).get("ALL_MERGED")
 
     except Exception as e:
-
         print(f"[SaveDraft] Auto compile notice: {e}")
 
-
+    # Auto sync draft & PDF to Google Drive & Google Sheets
+    try:
+        pdf_path = None
+        if full_url:
+            pdf_fname = f"FULL_PACKAGE_{ticket}.pdf"
+            p_check = os.path.join(OUTPUT_PDF_DIR, ticket, pdf_fname)
+            if os.path.exists(p_check):
+                pdf_path = p_check
+        gas_sync.sync_to_google_sheet(ticket, payload_data, pdf_path=pdf_path, async_mode=True)
+    except Exception as ge:
+        print(f"[SaveDraft] GAS sync notice: {ge}")
 
     return {
 
@@ -1396,6 +1405,20 @@ def load_draft(ticket_no: str):
         if os.path.exists(sub_path):
             file_path = sub_path
         else:
+            # Try fetching from Google Apps Script / Google Drive
+            try:
+                cfg = gas_sync.get_gas_config()
+                if cfg.get("enabled") and cfg.get("webapp_url"):
+                    gas_url = cfg["webapp_url"]
+                    resp = requests.get(f"{gas_url}?action=get_draft&ticket_no={ticket}", timeout=15, allow_redirects=True)
+                    if resp.status_code == 200:
+                        gas_data = resp.json()
+                        if gas_data and gas_data.get("ok") is not False and (gas_data.get("request_no") or gas_data.get("ticket_no") or gas_data.get("customer")):
+                            with open(file_path, "w", encoding="utf-8") as f:
+                                json.dump(gas_data, f, ensure_ascii=False, indent=2)
+                            return gas_data
+            except Exception as ge:
+                print(f"[GAS] Draft recovery notice: {ge}")
             raise HTTPException(status_code=404, detail="No draft found for this ticket")
     try:
         with open(file_path, "r", encoding="utf-8") as f:

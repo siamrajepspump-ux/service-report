@@ -125,6 +125,23 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
+    // 0. Save full draft/report JSON to Google Drive folder 'Service_Reports_Data'
+    if (data.raw_json || data.raw_data || data.draft_json) {
+      try {
+        const dataFolder = getOrCreateFolder('Service_Reports_Data');
+        const jsonName = `${requestNo}_data.json`;
+        const oldJsonFiles = dataFolder.getFilesByName(jsonName);
+        while (oldJsonFiles.hasNext()) oldJsonFiles.next().setTrashed(true);
+        let rawStr = data.raw_json;
+        if (!rawStr) {
+          rawStr = JSON.stringify(data.draft_json || data.raw_data || data);
+        }
+        dataFolder.createFile(jsonName, rawStr, 'application/json');
+      } catch (errJson) {
+        // notice
+      }
+    }
+    
     // 1. Upload PDF to Google Drive if base64 provided
     let drivePdfUrl = '';
     if (data.pdf_base64) {
@@ -207,8 +224,22 @@ function doGet(e) {
   try {
     const ss = getSpreadsheet();
     const sheet = setupSheet();
-    const count = Math.max(0, sheet.getLastRow() - 1);
     
+    // Action: Get Draft JSON from Google Drive
+    if (e && e.parameter && e.parameter.action === 'get_draft' && e.parameter.ticket_no) {
+      const ticket = String(e.parameter.ticket_no).trim();
+      const dataFolder = getOrCreateFolder('Service_Reports_Data');
+      const files = dataFolder.getFilesByName(`${ticket}_data.json`);
+      if (files.hasNext()) {
+        const fileContent = files.next().getBlob().getDataAsString();
+        return ContentService.createTextOutput(fileContent).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Draft not found in Drive' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    const count = Math.max(0, sheet.getLastRow() - 1);
     return ContentService.createTextOutput(JSON.stringify({
       ok: true,
       service: 'Siamraj Service Report GAS Database API',

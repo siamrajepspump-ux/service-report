@@ -113,11 +113,8 @@ def build_gas_payload(ticket_no: str, data: Dict[str, Any], pdf_path: Optional[s
         "sat_score": sat_score,
         "pdf_filename": pdf_filename,
         "pdf_base64": pdf_base64,
-        "raw_data": {
-            "ticket_no": ticket_no,
-            "status": status,
-            "updated_at": datetime.now().isoformat()
-        }
+        "raw_json": json.dumps(data, ensure_ascii=False),
+        "raw_data": data
     }
 
 def sync_to_google_sheet(ticket_no: str, data: Dict[str, Any], pdf_path: Optional[str] = None, async_mode: bool = True) -> Dict[str, Any]:

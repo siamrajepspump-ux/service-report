@@ -2148,7 +2148,7 @@ def submit_and_generate(payload: SubmitPayload):
                 shutil.copyfile(merged_path, named_path)
             except Exception as ce:
                 print(f"[Merge] Error copying named PDF: {ce}")
-            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/{named_report_pdf}"
+            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/ALL_{ticket}.pdf"
         except Exception as e:
             print(f"Error generating ALL_MERGED: {e}")
     elif len(ordered_merge_paths) == 1:
@@ -2160,7 +2160,7 @@ def submit_and_generate(payload: SubmitPayload):
             named_path = os.path.join(ticket_out_dir, named_report_pdf)
             shutil.copyfile(merged_path, full_merged_path)
             shutil.copyfile(merged_path, named_path)
-            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/{named_report_pdf}"
+            generated_files["ALL_MERGED"] = f"/api/download/{ticket}/ALL_{ticket}.pdf"
         except Exception as ce:
             print(f"[Merge] Error copying single PDF: {ce}")
 

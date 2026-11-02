@@ -7457,7 +7457,7 @@ async function previewFullPackagePdf() {
 
       const fullUrl = result.generated_files["ALL_MERGED"] || `/api/download/${ticketNo}/ALL_${ticketNo}.pdf`;
 
-      openPdfModal(`รายงานรวมฉบับเต็ม (Full Package) - ${ticketNo}`, fullUrl + `?t=${Date.now()}`);
+      openPdfModal(`รายงานรวมฉบับเต็ม (Full Package) - ${ticketNo}`, fullUrl);
 
     } else {
 
@@ -7798,13 +7798,19 @@ function renderPdfLinks(ticketNo, files) {
 // =============================================================================
 
 function openPdfModal(title, url) {
-
+  const safeUrl = encodeURI(url);
   document.getElementById("pdfModalTitle").innerText = title;
 
-  document.getElementById("pdfModalIframe").src = url;
+  const iframe = document.getElementById("pdfModalIframe");
+  if (iframe) iframe.src = safeUrl;
 
   const dlBtn = document.getElementById("pdfModalDownloadBtn");
-  dlBtn.href = url;
+  if (dlBtn) dlBtn.href = safeUrl;
+
+  const openTabBtn = document.getElementById("pdfModalOpenTabBtn");
+  if (openTabBtn) {
+    openTabBtn.href = safeUrl;
+  }
 
   // Set suggested download filename with Customer name for full packages
   if (url && (url.includes("ALL_") || url.includes("FULL_PACKAGE_") || url.includes("SERVICE_REPORT_"))) {
@@ -7812,25 +7818,19 @@ function openPdfModal(title, url) {
     const cleanCust = String(customer).replace(/[\\/:*?"<>|]/g, '').trim();
     const ticketNo = (window.state && window.state.currentTicket) || "";
     const suggestedName = cleanCust ? `SERVICE_REPORT_${ticketNo}_${cleanCust}.pdf` : `SERVICE_REPORT_${ticketNo}.pdf`;
-    dlBtn.setAttribute("download", suggestedName);
+    if (dlBtn) dlBtn.setAttribute("download", suggestedName);
   } else {
-    dlBtn.removeAttribute("download");
+    if (dlBtn) dlBtn.removeAttribute("download");
   }
 
   document.getElementById("pdfModal").classList.remove("hidden");
-
   initIcons();
-
 }
 
-
-
 function closePdfModal() {
-
+  const iframe = document.getElementById("pdfModalIframe");
+  if (iframe) iframe.src = "about:blank";
   document.getElementById("pdfModal").classList.add("hidden");
-
-  document.getElementById("pdfModalIframe").src = "";
-
 }
 
 

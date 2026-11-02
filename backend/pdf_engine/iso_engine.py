@@ -1245,16 +1245,15 @@ class IsoPdfEngine:
 
         if is_rev00:
             # ชื่อลูกค้า : ………………………….………     ,   บริษัท :  …………....................................................…   , เบอร์โทร : ……………………………
-            self._insert_text(page, 92.0, 759.0, signer, size=9.0, max_w=115.0)
-            self._insert_text(page, 255.0, 759.0, cust, size=9.0, max_w=170.0)
-            self._insert_text(page, 480.0, 759.0, tel, size=9.0, max_w=90.0)
             cust_sig = data.get("sign_customer") or data.get("signature_customer") or data.get("sig_customer")
             if cust_sig:
-                self._insert_signature(page, (60, 705, 190, 745), cust_sig)
+                self._insert_signature(page, (85, 735, 205, 762), cust_sig)
             elif signer and signer != "-":
-                self._insert_centered_text(page, 125.0, 725.0, signer, size=9.5, bold=True)
+                self._insert_text(page, 92.0, 759.0, signer, size=9.0, max_w=115.0)
             else:
-                self._insert_centered_text(page, 125.0, 725.0, "-", size=9.5)
+                self._insert_text(page, 92.0, 759.0, "-", size=9.0)
+            self._insert_text(page, 255.0, 759.0, cust, size=9.0, max_w=170.0)
+            self._insert_text(page, 480.0, 759.0, tel, size=9.0, max_w=90.0)
         else:
             self._insert_text(page, 58.0, 765.0, cust, size=9.0, max_w=175.0)
             self._insert_text(page, 282.0, 765.0, signer, size=9.0, max_w=130.0)
@@ -2239,6 +2238,6 @@ class IsoPdfEngine:
                     print(f"[MergePdf] Error merging {path}: {e}")
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        merged_doc.save(output_path)
+        merged_doc.save(output_path, garbage=4, deflate=True, clean=True)
         merged_doc.close()
         return output_path

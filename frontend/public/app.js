@@ -4625,19 +4625,16 @@ async function selectTicket(ticketNo) {
     // Load existing draft if present
     const hasDraft = await loadTicketDraft(ticketNo);
 
-    // Ensure first instance (prefer FM-EPS-23 Service Report) is active and rendered
+    // If draft has instances, select the first one; otherwise leave empty for user to choose
     if (state.packageInstances && state.packageInstances.length > 0) {
-      const defaultInst = state.packageInstances.find(i => i.code === "FM-EPS-23") || state.packageInstances[0];
+      const firstInst = state.packageInstances[0];
       state.activeInstanceId = null;
       renderPackageTabs();
-      selectPackageInstance(defaultInst.id);
+      selectPackageInstance(firstInst.id);
     } else {
-      if (typeof addFormToPackage === "function") {
-        addFormToPackage("FM-EPS-23");
-      } else {
-        selectPackageInstance(null);
-        renderPackageTabs();
-      }
+      selectPackageInstance(null);
+      renderPackageTabs();
+      applyPackageViewMode();
     }
 
     loadTicketPhotos(ticketNo);
@@ -7404,11 +7401,9 @@ async function previewCurrentActiveForm() {
   const activeInst = state.packageInstances.find(i => i.id === state.activeInstanceId);
 
   if (!activeInst) {
-
-    alert("กรุณาเลือกใบงานที่ต้องการพรีวิว");
-
+    showToast("กรุณากด '+ เพิ่มใบงาน' หรือเลือกแบบฟอร์มที่ต้องการใช้งานก่อนครับ");
+    if (typeof openAddFormModal === "function") openAddFormModal();
     return;
-
   }
 
   saveCurrentActiveInstanceData();
@@ -7501,9 +7496,9 @@ async function previewCurrentActiveForm() {
 
 async function previewFullPackagePdf() {
   if (!state.packageInstances || state.packageInstances.length === 0) {
-    if (typeof addFormToPackage === "function") {
-      addFormToPackage("FM-EPS-23");
-    }
+    showToast("กรุณากด '+ เพิ่มใบงาน' หรือเลือกแบบฟอร์มที่ต้องการใช้งานก่อนพรีวิวชุดรายงานครับ");
+    if (typeof openAddFormModal === "function") openAddFormModal();
+    return;
   }
   saveCurrentActiveInstanceData();
   const data = stripDraftBloat(collectReportData());
@@ -7654,9 +7649,9 @@ function closeSaveSuccessModal() {
 
 async function submitAndGenerate() {
   if (!state.packageInstances || state.packageInstances.length === 0) {
-    if (typeof addFormToPackage === "function") {
-      addFormToPackage("FM-EPS-23");
-    }
+    showToast("กรุณากด '+ เพิ่มใบงาน' หรือเลือกแบบฟอร์มที่ต้องการใช้งานก่อนส่งงานออกเอกสาร PDF ครับ");
+    if (typeof openAddFormModal === "function") openAddFormModal();
+    return;
   }
   saveCurrentActiveInstanceData();
   const data = stripDraftBloat(collectReportData());

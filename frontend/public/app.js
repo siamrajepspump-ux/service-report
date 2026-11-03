@@ -3557,6 +3557,263 @@ function updateTotalSatScore() {
 
 
 
+function renderInspectionTable() {
+
+  const tbody = document.getElementById("inspMeasurementsTbody");
+
+  if (!tbody) return;
+
+
+
+  const rows = (state.currentInspRows && state.currentInspRows.length > 0)
+
+    ? state.currentInspRows
+
+    : INSP_DEFAULT_ROWS.map(r => ({
+
+        part: r.part,
+
+        pos: r.pos,
+
+        std_in: "-",
+
+        std_mm: "-",
+
+        cmp: "",
+
+        val_min: null,
+
+        val_max: null
+
+      }));
+
+
+
+  tbody.innerHTML = rows.map((row, idx) => {
+
+    const stdInText = row.std_in || "-";
+
+    const stdMmText = row.std_mm || "-";
+
+    
+
+    // Existing values in DOM if already rendered
+
+    const existingInA = document.getElementById(`insp_in_a_${idx}`)?.value;
+
+    const existingInB = document.getElementById(`insp_in_b_${idx}`)?.value;
+
+    const existingFiA = document.getElementById(`insp_fi_a_${idx}`)?.value;
+
+    const existingFiB = document.getElementById(`insp_fi_b_${idx}`)?.value;
+
+    const existingRem = document.getElementById(`insp_rem_${idx}`)?.value;
+
+
+
+    let defPlaceholder = "";
+
+    if (row.val_mm && !isNaN(row.val_mm)) {
+
+      defPlaceholder = row.val_mm.toFixed(2);
+
+    } else if (row.min) {
+
+      defPlaceholder = row.min;
+
+    }
+
+
+
+    const inA = (existingInA !== undefined && existingInA !== "") ? existingInA : (row.in_a || "-");
+
+    const inB = (existingInB !== undefined && existingInB !== "") ? existingInB : (row.in_b || "-");
+
+    const fiA = (existingFiA !== undefined && existingFiA !== "") ? existingFiA : (row.final_a || "-");
+
+    const fiB = (existingFiB !== undefined && existingFiB !== "") ? existingFiB : (row.final_b || "-");
+
+    const rem = (existingRem !== undefined && existingRem !== "") ? existingRem : (row.remark || "");
+
+
+
+    return `
+
+      <tr class="hover:bg-slate-50 text-center transition" id="insp_row_${idx}">
+
+        <td class="p-2.5 text-left font-semibold text-slate-800">${row.part}</td>
+
+        <td class="p-2 text-slate-600 font-medium">${row.pos}</td>
+
+        <td class="p-2 text-amber-900 font-mono font-bold bg-amber-50/70 border-x text-xs whitespace-nowrap">${stdInText}</td>
+
+        <td class="p-2 text-emerald-900 font-mono font-bold bg-emerald-50/70 border-x text-xs whitespace-nowrap">${stdMmText}</td>
+
+        <td class="p-1 bg-blue-50/30">
+
+          <input type="text" id="insp_in_a_${idx}" value="${inA}" placeholder="-" 
+
+                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
+
+                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
+
+        </td>
+
+        <td class="p-1 bg-blue-50/30">
+
+          <input type="text" id="insp_in_b_${idx}" value="${inB}" placeholder="-" 
+
+                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
+
+                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
+
+        </td>
+
+        <td class="p-1 bg-green-50/30">
+
+          <input type="text" id="insp_fi_a_${idx}" value="${fiA}" placeholder="-" 
+
+                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
+
+                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
+
+        </td>
+
+        <td class="p-1 bg-green-50/30">
+
+          <input type="text" id="insp_fi_b_${idx}" value="${fiB}" placeholder="-" 
+
+                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
+
+                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
+
+        </td>
+
+        <td class="p-2">
+
+          <span id="insp_badge_${idx}" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">-</span>
+
+        </td>
+
+        <td class="p-1">
+
+          <input type="text" id="insp_rem_${idx}" value="${rem}" placeholder="-" class="w-24 p-1 text-center border rounded text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
+
+        </td>
+
+      </tr>
+
+    `;
+
+  }).join("");
+
+
+
+  rows.forEach((_, idx) => evaluateInspectionRow(idx));
+
+}
+
+
+
+function evaluateInspectionRow(idx) {
+
+  const rows = (state.currentInspRows && state.currentInspRows.length > 0)
+
+    ? state.currentInspRows
+
+    : INSP_DEFAULT_ROWS;
+
+  const row = rows[idx];
+
+  if (!row) return;
+
+
+
+  const badge = document.getElementById(`insp_badge_${idx}`);
+
+  if (!badge) return;
+
+
+
+  const fiA = parseFloat(document.getElementById(`insp_fi_a_${idx}`)?.value || "NaN");
+
+  const fiB = parseFloat(document.getElementById(`insp_fi_b_${idx}`)?.value || "NaN");
+
+  const inA = parseFloat(document.getElementById(`insp_in_a_${idx}`)?.value || "NaN");
+
+  const inB = parseFloat(document.getElementById(`insp_in_b_${idx}`)?.value || "NaN");
+
+
+
+  // Determine which measurements to evaluate: prefer Final measurements if available, else Incoming
+
+  let testVals = [fiA, fiB].filter(v => !isNaN(v));
+
+  if (testVals.length === 0) {
+
+    testVals = [inA, inB].filter(v => !isNaN(v));
+
+  }
+
+
+
+  if (testVals.length === 0 || row.std_mm === "-" || (!row.val_mm && !row.min)) {
+
+    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500";
+
+    badge.innerText = "-";
+
+    return;
+
+  }
+
+
+
+  let pass = true;
+
+  if (row.cmp === "≥" || row.cmp === ">=") {
+
+    pass = testVals.every(v => v >= (row.val_mm - 0.05));
+
+  } else if (row.cmp === "≤" || row.cmp === "<=") {
+
+    pass = testVals.every(v => v <= (row.val_mm + 0.05));
+
+  } else if (row.min !== undefined && row.max !== undefined) {
+
+    const min = parseFloat(row.min);
+
+    const max = parseFloat(row.max);
+
+    pass = testVals.every(v => v >= min && v <= max);
+
+  }
+
+
+
+  if (pass) {
+
+    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700";
+
+    badge.innerText = "PASS";
+
+  } else {
+
+    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700";
+
+    badge.innerText = "FAIL";
+
+  }
+
+}
+
+
+
+
+
+
+
+
 function renderPartsTable() {
 
   const tbody = document.getElementById("partsTableTbody");
@@ -7218,12 +7475,7 @@ async function previewCurrentActiveForm() {
 
       if (url) {
 
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-        if (isMobile) {
-          window.open(url, '_blank');
-        } else {
-          openPdfModal(`พรีวิว: ${activeInst.title || activeInst.code} - ${ticketNo}`, url);
-        }
+        openPdfModal(`พรีวิว: ${activeInst.title || activeInst.code} - ${ticketNo}`, url);
 
       } else {
 
@@ -7304,12 +7556,7 @@ async function previewFullPackagePdf() {
     if (result.ok && result.generated_files) {
 
       const fullUrl = result.generated_files["ALL_MERGED"] || `/api/download/${ticketNo}/ALL_${ticketNo}.pdf`;
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-      if (isMobile) {
-        window.open(fullUrl, '_blank');
-      } else {
-        openPdfModal(`รายงานรวมฉบับเต็ม (Full Package) - ${ticketNo}`, fullUrl);
-      }
+      openPdfModal(`รายงานรวมฉบับเต็ม (Full Package) - ${ticketNo}`, fullUrl);
 
     } else {
 
@@ -7479,12 +7726,7 @@ async function submitAndGenerate() {
 
       if (mergedUrl) {
 
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-        if (isMobile) {
-          window.open(mergedUrl, '_blank');
-        } else {
-          openPdfModal(`เอกสารส่งมอบงาน ${ticketNo}`, mergedUrl);
-        }
+        openPdfModal(`เอกสารส่งมอบงาน ${ticketNo}`, mergedUrl);
 
       }
 
@@ -7777,16 +8019,8 @@ async function previewPhotoReportPdf() {
     const result = await res.json();
 
     if (result.ok && result.pdf_url) {
-
       const label = activeInst?.customLabel ? ` (${activeInst.customLabel})` : "";
-
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-      if (isMobile) {
-        window.open(result.pdf_url, '_blank');
-      } else {
-        openPdfModal(`Photo Report${label} - ${ticketNo}`, result.pdf_url);
-      }
-
+      openPdfModal(`Photo Report${label} - ${ticketNo}`, result.pdf_url);
     } else {
 
       showToast("สร้างรายงานไม่สำเร็จ");

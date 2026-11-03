@@ -1981,9 +1981,9 @@ class IsoPdfEngine:
         doc.close()
         return output_path
     def generate_service_request_pdf(self, data: Dict[str, Any], output_path: str) -> str:
-        """Render official ISO Service Request Form (FM-EPS-28) from pure CRM data matching authentic operational form"""
+        """Render official ISO Service Request Form (FM-EPS-28) perfectly proportioned for A4"""
         doc = pymupdf.open()
-        page = doc.new_page(width=595.08, height=841.68) # A4
+        page = doc.new_page(width=595.3, height=841.9) # A4
         if self.has_th_font:
             page.insert_font(fontname="th", fontfile=FONT_TH)
             page.insert_font(fontname="thb", fontfile=FONT_TH_B)
@@ -1996,18 +1996,52 @@ class IsoPdfEngine:
                 return ""
             return s
 
-        def _txt(x, y, txt, size=13, bold=False, color=(0,0,0)):
+        def _dash(val: Any) -> str:
+            s = _clean(val)
+            return s if s else "-"
+
+        def _txt(x: float, y: float, txt: str, size: float = 12.5, bold: bool = False, color=(0,0,0), max_w: float = 0):
             if txt is None or txt == "":
                 return
             fn = "thb" if bold else "th"
             ff = FONT_TH_B if bold else FONT_TH
+            if max_w > 0:
+                try:
+                    f_obj = pymupdf.Font(fontfile=ff)
+                    w = f_obj.text_length(str(txt), fontsize=size)
+                    if w > max_w:
+                        size = max(7.5, size * (max_w / w))
+                except Exception:
+                    pass
             page.insert_text(pymupdf.Point(x, y), str(txt), fontsize=size, fontname=fn, fontfile=ff, color=color)
 
-        # 1. Title
-        _txt(220, 80, "Service Request Form", size=18, bold=True)
+        def _draw_box(rect: pymupdf.Rect, fill=None, border=(0.2, 0.2, 0.2), width=0.8):
+            page.draw_rect(rect, color=border, fill=fill, width=width)
 
-        # 2. Top Right
-        t_no = _clean(data.get("Title") or data.get("RequestNo") or data.get("TicketKey") or data.get("TicketNo") or data.get("ticket_no") or data.get("ticket"))
+        # 1. Outer Frame
+        page.draw_rect(pymupdf.Rect(32, 28, 563, 814), color=(0.1, 0.1, 0.1), width=1.2)
+
+        # 2. Top Header Section: Official Siamraj Letterhead
+        header_logo = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "header_logo_siamraj.png")
+        if os.path.exists(header_logo):
+            page.insert_image(pymupdf.Rect(52, 34, 542, 95), filename=header_logo, keep_proportion=True)
+        else:
+            logo_mark = self._get_logo_path()
+            if logo_mark and os.path.exists(logo_mark):
+                page.insert_image(pymupdf.Rect(42, 36, 122, 102), filename=logo_mark, keep_proportion=True)
+            _txt(130, 52, "บริษัท สยามราช จำกัด (มหาชน)", size=16, bold=True)
+            _txt(130, 68, "SIAMRAJ PUBLIC COMPANY LIMITED", size=11, bold=True, color=(0.2, 0.2, 0.2))
+            _txt(130, 83, "289/9 หมู่ 10 ถ.รถรางสายเก่า ต.สำโรง อ.พระประแดง จ.สมุทรปราการ 10130", size=10, color=(0.3, 0.3, 0.3))
+            _txt(130, 97, "โทรศัพท์ : (02) 7435010-25  โทรสาร : (02) 7435007-8", size=10, color=(0.3, 0.3, 0.3))
+
+        # Divider line
+        page.draw_line(pymupdf.Point(32, 102), pymupdf.Point(563, 102), color=(0.1, 0.1, 0.1), width=1.0)
+
+        # 3. Title Banner & Request No / Date
+        _draw_box(pymupdf.Rect(32, 102, 563, 142), fill=(0.95, 0.96, 0.98), border=(0.1, 0.1, 0.1), width=0.8)
+        _txt(165, 128, "SERVICE REQUEST FORM", size=20, bold=True, color=(0.08, 0.18, 0.36))
+
+        t_no = _dash(data.get("Title") or data.get("RequestNo") or data.get("TicketKey") or data.get("TicketNo") or data.get("ticket_no"))
         raw_created = data.get("Created Time") or data.get("CreatedDate") or data.get("created_time") or ""
         issue_date = ""
         if raw_created and str(raw_created).strip().lower() not in ["-", "nan", "none", "null"]:
@@ -2021,37 +2055,52 @@ class IsoPdfEngine:
                     issue_date = raw_clean
             except Exception:
                 issue_date = str(raw_created).strip()
+        if not issue_date:
+            issue_date = "-"
 
-        _txt(359, 108, f"Service Request No. : {t_no}", size=12.5)
-        _txt(359, 124, f"Issue Date : {_clean(issue_date)}", size=12.5)
+        _txt(395, 121, "Request No. :", size=11, bold=True)
+        _txt(460, 121, t_no, size=12.5, bold=True, color=(0.7, 0, 0))
+        _txt(395, 136, "Issue Date   :", size=10.5, bold=False)
+        _txt(460, 136, issue_date, size=10.5, bold=False)
 
-        def _dash_sr(val: Any) -> str:
-            if val is None:
-                return "-"
-            s = str(val).strip()
-            if not s or s.lower() in ["nan", "none", "null"]:
-                return "-"
-            return s
+        def _draw_section_header(y_top: float, title_th: str, title_en: str):
+            _draw_box(pymupdf.Rect(32, y_top, 563, y_top + 22), fill=(0.90, 0.92, 0.95), border=(0.2, 0.2, 0.2), width=0.8)
+            _txt(42, y_top + 16, title_th, size=12.5, bold=True, color=(0.08, 0.18, 0.36))
+            if title_en:
+                _txt(220, y_top + 16, f"({title_en})", size=10.5, bold=False, color=(0.3, 0.3, 0.3))
 
-        # 3. Company & Site
-        cust = _dash_sr(data.get("Organization Name") or data.get("Customer") or data.get("customer")).replace("Accounts::::", "").strip() or "-"
-        contact = _dash_sr(data.get("Site Contact Person") or data.get("ContactPerson") or data.get("contact_person"))
-        phone = _dash_sr(data.get("Site Contact Phone") or data.get("ContactPhone") or data.get("contact_phone"))
-        addr = _dash_sr(data.get("Address or Site") or data.get("Site") or data.get("site"))
+        # 4. Section 1: Customer & Site Information
+        _draw_section_header(148, "1. ข้อมูลลูกค้าและสถานที่", "Customer & Site Information")
+        _draw_box(pymupdf.Rect(32, 170, 563, 243), border=(0.2, 0.2, 0.2), width=0.8)
 
-        _txt(68, 155, f"Company name : {cust}", size=12.5)
-        _txt(68, 175, f"Site Contact Person : {contact}", size=12.5)
-        _txt(68, 195, f"Site Contact Phone : {phone}", size=12.5)
-        _txt(68, 215, f"Address / Site : {addr}", size=12.5)
+        cust = _dash(data.get("Organization Name") or data.get("Customer")).replace("Accounts::::", "").strip() or "-"
+        contact = _dash(data.get("Site Contact Person") or data.get("ContactPerson"))
+        phone = _dash(data.get("Site Contact Phone") or data.get("ContactPhone"))
+        addr = _dash(data.get("Address or Site") or data.get("Site"))
 
-        # 4. Two Columns
-        so = _dash_sr(data.get("Sales Orders") or data.get("SalesOrder") or data.get("sales_order"))
-        prod = _dash_sr(data.get("Product") or data.get("ProductCode") or data.get("product"))
-        serial = _dash_sr(data.get("Serial Number") or data.get("SerialNo") or data.get("serial_no"))
+        _txt(45, 190, "Company Name (ชื่อบริษัท/ลูกค้า) :", size=11.5, bold=True)
+        _txt(210, 190, cust, size=12.5, bold=True, color=(0, 0, 0), max_w=340)
 
-        req_group = _clean(data.get("Request By Group") or data.get("Group") or data.get("group"))
-        assigned_to = _clean(data.get("Assigned To") or data.get("AssignedTo") or data.get("assigned_to"))
-        assigned_by = _clean(data.get("Assigned By") or data.get("assigned_by"))
+        _txt(45, 211, "Site Contact Person (ผู้ติดต่อ)  :", size=11.5, bold=True)
+        _txt(210, 211, contact, size=12, max_w=150)
+        _txt(370, 211, "Phone (เบอร์ติดต่อ) :", size=11.5, bold=True)
+        _txt(470, 211, phone, size=12, max_w=85)
+
+        _txt(45, 231, "Address / Site (สถานที่ปฏิบัติงาน) :", size=11.5, bold=True)
+        _txt(210, 231, addr, size=12, max_w=340)
+
+        # 5. Section 2: Equipment & Order Information
+        _draw_section_header(249, "2. ข้อมูลอุปกรณ์และคำสั่งขาย", "Equipment & Order Information")
+        _draw_box(pymupdf.Rect(32, 271, 563, 352), border=(0.2, 0.2, 0.2), width=0.8)
+        page.draw_line(pymupdf.Point(297, 271), pymupdf.Point(297, 352), color=(0.4, 0.4, 0.4), width=0.5)
+
+        so = _dash(data.get("Sales Orders") or data.get("SalesOrder"))
+        prod = _dash(data.get("Product") or data.get("ProductCode"))
+        serial = _dash(data.get("Serial Number") or data.get("SerialNo"))
+
+        req_group = _clean(data.get("Request By Group") or data.get("Group"))
+        assigned_to = _clean(data.get("Assigned To") or data.get("AssignedTo"))
+        assigned_by = _clean(data.get("Assigned By"))
         if req_group and assigned_to:
             req_by = f"{req_group} / {assigned_to.title()}"
         elif req_group:
@@ -2063,86 +2112,123 @@ class IsoPdfEngine:
         else:
             req_by = "-"
 
-        model = _dash_sr(data.get("Model") or data.get("PumpModel") or data.get("pump_model") or data.get("model"))
-        typ = _dash_sr(data.get("Type") or data.get("type"))
+        model = _dash(data.get("Model") or data.get("PumpModel"))
+        typ = _dash(data.get("Type"))
 
-        _txt(68, 240, f"Sales Order : {so}", size=12.5)
-        _txt(68, 256, f"Product : {prod}", size=12.5)
-        _txt(68, 272, f"Serial No. : {serial}", size=12.5)
+        _txt(45, 293, "Sales Order :", size=11.5, bold=True)
+        _txt(125, 293, so, size=12, bold=True, max_w=165)
+        _txt(45, 315, "Product       :", size=11.5, bold=True)
+        _txt(125, 315, prod, size=12, max_w=165)
+        _txt(45, 337, "Serial No.    :", size=11.5, bold=True)
+        _txt(125, 337, serial, size=12, bold=True, max_w=165)
 
-        _txt(275, 240, f"Request By : {req_by}", size=12.5)
-        _txt(275, 256, f"Pump Model : {model}", size=12.5)
-        _txt(275, 272, f"Type : {typ}", size=12.5)
+        _txt(310, 293, "Request By   :", size=11.5, bold=True)
+        _txt(390, 293, req_by, size=12, max_w=165)
+        _txt(310, 315, "Pump Model :", size=11.5, bold=True)
+        _txt(390, 315, model, size=12, bold=True, max_w=165)
+        _txt(310, 337, "Type             :", size=11.5, bold=True)
+        _txt(390, 337, typ, size=12, max_w=165)
 
-        # 5. Problem / Detail of work
-        desc = _clean(data.get("Description") or data.get("ProblemDetail") or data.get("problem_detail") or data.get("detail_of_work"))
-        _txt(68, 300, "Problem / Detail of work :", size=12.5)
-        
-        y_curr = 300
+        # 6. Section 3: Problem / Detail of work
+        _draw_section_header(358, "3. รายละเอียดปัญหาและลักษณะงาน", "Problem / Detail of Work")
+        _draw_box(pymupdf.Rect(32, 380, 563, 473), border=(0.2, 0.2, 0.2), width=0.8)
+
+        desc = _clean(data.get("Problem / Detail of work") or data.get("Description") or data.get("ProblemDetail"))
         if desc:
-            lines = [line.strip() for line in desc.splitlines() if line.strip()]
-            if lines:
-                first_l = lines[0]
-                _txt(195, y_curr, first_l[:75], size=12.5)
-                y_curr += 18
-                for extra_line in lines[1:]:
-                    _txt(68, y_curr, extra_line[:95], size=12.5)
-                    y_curr += 18
+            d_lines = desc.splitlines()
+            all_wrapped = []
+            for dl in d_lines:
+                if dl.strip():
+                    all_wrapped.extend(textwrap.wrap(dl.strip(), width=92))
+                else:
+                    all_wrapped.append("")
+            y_d = 402
+            for w_line in all_wrapped[:4]:
+                _txt(45, y_d, w_line, size=12.5)
+                y_d += 18
         else:
-            _txt(195, y_curr, "-", size=12.5)
+            _txt(45, 408, "-", size=13)
 
-        # 6. Work Require
-        y_req_header = max(345, y_curr + 15)
-        _txt(66, y_req_header, "Work Require :", size=12.5, bold=True)
-        page.draw_line(pymupdf.Point(66, y_req_header + 2.5), pymupdf.Point(145, y_req_header + 2.5), color=(0,0,0), width=0.8)
+        # 7. Section 4: Work Required (ขอบเขตงานที่ต้องการ)
+        _draw_section_header(479, "4. ขอบเขตงานที่ต้องการ", "Work Required")
+        _draw_box(pymupdf.Rect(32, 501, 563, 617), border=(0.2, 0.2, 0.2), width=0.8)
 
-        items = [
-            ("Start up Commissioning :", data.get("Start up Commissioning") or data.get("work_req_startup")),
-            ("Inspection :", data.get("Inspection") or data.get("work_req_inspection")),
-            ("Reassembly :", data.get("Reassembly") or data.get("work_req_reassembly")),
-            ("Spare part Changing or Modification :", data.get("Spare part Changing or Modification") or data.get("work_req_spare")),
-            ("Repair :", data.get("Repair") or data.get("work_req_repair")),
-            ("Other :", data.get("Other") or data.get("work_req_other"))
+        work_items = [
+            ("Start up Commissioning (การเริ่มเดินเครื่อง)", data.get("Start up Commissioning")),
+            ("Inspection (การตรวจสอบ)", data.get("Inspection")),
+            ("Reassembly (การประกอบคืนสภาพ)", data.get("Reassembly")),
+            ("Spare part Changing or Modification (การเปลี่ยนหรือดัดแปลงชิ้นส่วน)", data.get("Spare part Changing or Modification")),
+            ("Repair (งานซ่อมแซม)", data.get("Repair")),
+            ("Other (งานอื่นๆ)", data.get("Other"))
         ]
-        y_r = y_req_header + 16
-        for label, val in items:
-            _txt(68, y_r, label, size=12.5)
+
+        y_w = 520
+        for idx, (label, val) in enumerate(work_items):
             is_yes = str(val).strip() in ["1", "1.0", "True", "true", "Yes", "yes"]
-            _txt(348, y_r, "Yes" if is_yes else "No", size=12.5)
-            y_r += 16
+            if idx % 2 == 1:
+                page.draw_rect(pymupdf.Rect(33, y_w - 14, 562, y_w + 5), color=None, fill=(0.97, 0.98, 0.99))
+            
+            _txt(48, y_w, f"4.{idx+1}  {label}", size=11.5)
+            
+            if is_yes:
+                page.draw_rect(pymupdf.Rect(440, y_w - 11, 490, y_w + 3), color=(0.1, 0.5, 0.2), fill=(0.9, 0.97, 0.9), width=0.8)
+                _txt(448, y_w, "✓  Yes", size=11.5, bold=True, color=(0.1, 0.5, 0.2))
+                _txt(512, y_w, "   No", size=11, color=(0.6, 0.6, 0.6))
+            else:
+                _txt(448, y_w, "   Yes", size=11, color=(0.6, 0.6, 0.6))
+                page.draw_rect(pymupdf.Rect(505, y_w - 11, 555, y_w + 3), color=(0.4, 0.4, 0.4), fill=(0.95, 0.95, 0.95), width=0.8)
+                _txt(513, y_w, "-   No", size=11.5, bold=True, color=(0.2, 0.2, 0.2))
 
-        # 7. Documents & Appointments
-        y_doc = y_r + 14
-        _txt(67, y_doc, "Including Document :", size=12.5)
-        y_doc += 16
-        detail_val = _dash_sr(data.get("Detail") or data.get("detail"))
-        _txt(67, y_doc, f"Detail : {detail_val}", size=12.5)
+            y_w += 19
 
-        y_app = y_doc + 24
-        app_date = _dash_sr(data.get("Appointment Date") or data.get("AppointmentDate") or data.get("appointment_date"))
+        # 8. Section 5: Included Document & Appointment
+        _draw_section_header(624, "5. เอกสารประกอบและวันนัดหมาย", "Included Document & Appointment")
+        _draw_box(pymupdf.Rect(32, 646, 563, 708), border=(0.2, 0.2, 0.2), width=0.8)
+
+        detail_val = _dash(data.get("Detail") or data.get("Including Document"))
+        app_date = _dash(data.get("Appointment Date") or data.get("AppointmentDate"))
         if app_date and " " in app_date:
             app_date = app_date.split(" ")[0]
-        app_time = _dash_sr(data.get("Appointment Time") or data.get("appointment_time"))
-        _txt(66, y_app, f"Appointment Date : {app_date}", size=12.5)
-        y_app += 16
-        _txt(66, y_app, f"Appointment Time : {app_time}", size=12.5)
+        app_time = _dash(data.get("Appointment Time"))
 
-        # 8. Service & Assignment
-        y_serv = y_app + 24
-        serv_by = _dash_sr(data.get("Service By") or data.get("ServiceBy") or data.get("service_by")).replace("|##|", ", ").strip() or "-"
-        assigned_by = _dash_sr(data.get("Assigned By") or data.get("AssignedTo") or data.get("assigned_by"))
-        comp_d = _dash_sr(data.get("Completed Date") or data.get("CompletedDate") or data.get("completed_date"))
+        _txt(45, 666, "Included Document / Detail (เอกสารแนบ/รายละเอียด) :", size=11.5, bold=True)
+        _txt(310, 666, detail_val, size=12, max_w=240)
+
+        _txt(45, 691, "Appointment Date (วันนัดหมาย) :", size=11.5, bold=True)
+        _txt(215, 691, app_date, size=12, bold=True, max_w=120)
+
+        _txt(360, 691, "Appointment Time (เวลานัดหมาย) :", size=11.5, bold=True)
+        _txt(505, 691, app_time, size=12, bold=True, max_w=50)
+
+        # 9. Section 6: Assignment & Signatures
+        _draw_section_header(715, "6. การมอบหมายและผู้รับผิดชอบงาน", "Service Assignment & Signatures")
+        _draw_box(pymupdf.Rect(32, 737, 563, 795), border=(0.2, 0.2, 0.2), width=0.8)
+
+        serv_by = _dash(data.get("Service By") or data.get("ServiceBy")).replace("|##|", ", ").strip() or "-"
+        assigned_by = _dash(data.get("Assigned By") or data.get("AssignedTo"))
+        comp_d = _dash(data.get("Completed Date") or data.get("CompletedDate"))
         if comp_d and " " in comp_d:
             comp_d = comp_d.split(" ")[0]
 
-        _txt(67, y_serv, f"Service By : {serv_by}", size=12.5)
-        y_serv += 16
-        _txt(66, y_serv, f"Assigned By : {assigned_by}", size=12.5)
-        y_serv += 16
-        _txt(66, y_serv, f"Completed Date : {comp_d}", size=12.5)
+        col_w = (563 - 32) / 3.0
+        c1 = 32 + col_w
+        c2 = 32 + col_w * 2
 
-        # 9. Footer
-        _txt(390, 775, "FM-EPS-28, Rev.05, 21/09/63", size=10)
+        page.draw_line(pymupdf.Point(c1, 737), pymupdf.Point(c1, 795), color=(0.4, 0.4, 0.4), width=0.5)
+        page.draw_line(pymupdf.Point(c2, 737), pymupdf.Point(c2, 795), color=(0.4, 0.4, 0.4), width=0.5)
+
+        _txt(42, 756, "Service By (ช่างบริการ) :", size=11, bold=True)
+        _txt(42, 777, serv_by, size=11.5, bold=True, color=(0.1, 0.2, 0.5), max_w=165)
+
+        _txt(c1 + 10, 756, "Assigned By (ผู้มอบหมายงาน) :", size=11, bold=True)
+        _txt(c1 + 10, 777, assigned_by, size=11.5, bold=True, color=(0.1, 0.2, 0.5), max_w=165)
+
+        _txt(c2 + 10, 756, "Completed Date (วันที่แล้วเสร็จ) :", size=11, bold=True)
+        _txt(c2 + 10, 777, comp_d, size=11.5, bold=True, max_w=165)
+
+        # 10. Footer
+        _txt(42, 809, "FM-EPS-28, Rev.05, 21/09/63", size=9.5, color=(0.4, 0.4, 0.4))
+        _txt(495, 809, "Page 1 of 1", size=9.5, color=(0.4, 0.4, 0.4))
 
         out_dir = os.path.dirname(output_path)
         if out_dir:
@@ -2151,6 +2237,7 @@ class IsoPdfEngine:
         doc.close()
         return output_path
 
+    
     def get_or_create_service_request_pdf(self, ticket: str, data: Dict[str, Any], output_dir: str) -> Optional[str]:
         """Generate high-quality, perfectly-formatted A4 ISO Service Request Form (FM-EPS-28) from CRM data matching authentic operational form"""
         ticket_str = str(ticket).strip()

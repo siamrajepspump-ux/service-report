@@ -4267,7 +4267,7 @@
 
   <!-- ================= MOBILE STICKY QUICK ACTION BAR (Only on screen < 640px) ================= -->
 
-  <aside id="mobileQuickActionBar" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 shadow-2xl flex items-center justify-between gap-1 w-full" style="padding-bottom: calc(0.4rem + var(--safe-bottom));">
+  <aside id="mobileQuickActionBar" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 shadow-2xl flex items-center justify-between gap-1 w-full" style="padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));">
 
     <button type="button" onclick="openAddFormModal()" class="flex-1 min-w-0 py-1.5 px-0.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center transition cursor-pointer">
 
@@ -4305,7 +4305,7 @@
 
 
 
-  <script src="app.js?v=20261103_v16_sat_mobile_fix"></script>
+  <script src="app.js?v=20261103_v19_mobile_fm28_fix"></script>
 
 
 

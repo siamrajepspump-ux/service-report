@@ -1212,31 +1212,35 @@ class IsoPdfEngine:
 
         ratings = data.get("ratings", {})
         total_score = 0
+        has_any_rating = False
 
         for q_idx, q_key in enumerate(question_keys):
             score = ratings.get(q_key)
             if score is None:
-                score = ratings.get(str(q_idx + 1), ratings.get(q_idx, 4))
-            try:
-                score = int(score)
-            except (ValueError, TypeError):
-                score = 4
+                score = ratings.get(str(q_idx + 1), ratings.get(q_idx))
 
-            score = max(0, min(4, score))
-            total_score += score
+            if score is not None and str(score).strip() != "":
+                try:
+                    score_val = int(score)
+                    score_val = max(0, min(4, score_val))
+                    total_score += score_val
+                    has_any_rating = True
 
-            # Draw vector checkmark
-            x = x_scores.get(score, 351.8 if is_rev00 else 377.6)
-            y = y_centers[q_idx]
-            self._insert_tick(page, x, y)
+                    # Draw vector checkmark only if rated
+                    x = x_scores.get(score_val, 351.8 if is_rev00 else 377.6)
+                    y = y_centers[q_idx]
+                    self._insert_tick(page, x, y)
+                except (ValueError, TypeError):
+                    pass
 
-        # 3. Total Score
-        percent = round((total_score / 56.0) * 100) if total_score > 0 else 0
-        score_text = f"{total_score} / 56  ({percent}%)"
-        if is_rev00:
-            self._insert_centered_text(page, 452.8, 634.5, score_text, size=10.5, bold=True)
-        else:
-            self._insert_centered_text(page, 468.6, 638.5, score_text, size=10.5, bold=True)
+        # 3. Total Score (render only if there are ratings)
+        if has_any_rating:
+            percent = round((total_score / 56.0) * 100) if total_score > 0 else 0
+            score_text = f"{total_score} / 56  ({percent}%)"
+            if is_rev00:
+                self._insert_centered_text(page, 452.8, 634.5, score_text, size=10.5, bold=True)
+            else:
+                self._insert_centered_text(page, 468.6, 638.5, score_text, size=10.5, bold=True)
 
         # 4. Suggestions (up to 3 lines)
         raw_sugg = str(data.get("suggestions") or "").strip()

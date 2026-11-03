@@ -1996,11 +1996,14 @@ function saveCurrentActiveInstanceData() {
 
       const checked = document.querySelector(`input[name="sat_${it.id}"]:checked`);
 
-      const val = checked ? parseInt(checked.value, 10) : 4;
+      const val = checked ? parseInt(checked.value, 10) : null;
 
       ratings[it.id] = val;
 
-      total += val;
+      if (val !== null) {
+        ratings[it.id] = val;
+        total += val;
+      }
 
     });
 
@@ -2996,6 +2999,12 @@ function loadInstanceDataIntoDom(inst) {
 
     }
 
+    // Clear all radios first before applying saved ratings
+    ALL_SAT_ITEMS.forEach(it => {
+      const checkedRad = document.querySelector(`input[name="sat_${it.id}"]:checked`);
+      if (checkedRad) checkedRad.checked = false;
+    });
+
     if (d.ratings) {
 
       Object.keys(d.ratings).forEach(id => {
@@ -3417,7 +3426,7 @@ function renderSatisfactionTable() {
 
             <td class="p-2 text-center cursor-pointer" onclick="selectSatScore('${item.id}', ${score})">
 
-              <input type="radio" name="sat_${item.id}" value="${score}" ${score === 4 ? "checked" : ""}
+              <input type="radio" name="sat_${item.id}" value="${score}"
 
                 onchange="updateTotalSatScore()"
 
@@ -3480,47 +3489,47 @@ function setAllSatScores(score = 4) {
 
 
 function updateTotalSatScore() {
-
   let total = 0;
-
+  let hasChecked = false;
   ALL_SAT_ITEMS.forEach(it => {
-
     const checked = document.querySelector(`input[name="sat_${it.id}"]:checked`);
-
     if (checked) {
-
       total += parseInt(checked.value, 10);
-
-    } else {
-
-      total += 4;
-
+      hasChecked = true;
     }
-
   });
 
-
-
   const max = 56;
-
-  const pct = Math.round((total / max) * 100);
-
-
+  const pct = hasChecked ? Math.round((total / max) * 100) : 0;
 
   const lblTotal = document.getElementById("lblTotalSatScore");
-
   const lblPct = document.getElementById("lblPercentSatScore");
-
   const lblTableTotal = document.getElementById("lblTableTotalSatScore");
 
+  if (lblTotal) lblTotal.innerText = hasChecked ? total : "-";
+  if (lblPct) {
+    lblPct.innerText = hasChecked ? `${pct}%` : "รอประเมิน";
+    lblPct.className = hasChecked 
+      ? "bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200"
+      : "bg-slate-100 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-200";
+  }
+  if (lblTableTotal) {
+    lblTableTotal.innerText = hasChecked 
+      ? `${total} / ${max} คะแนน (${pct}%)`
+      : `ยังไม่มีการประเมิน (0 / ${max} คะแนน)`;
+  }
+}
 
-
-  if (lblTotal) lblTotal.innerText = total;
-
-  if (lblPct) lblPct.innerText = `${pct}%`;
-
-  if (lblTableTotal) lblTableTotal.innerText = `${total} / ${max} คะแนน (${pct}%)`;
-
+function clearAllSatScores() {
+  ALL_SAT_ITEMS.forEach(it => {
+    const checked = document.querySelector(`input[name="sat_${it.id}"]:checked`);
+    if (checked) checked.checked = false;
+  });
+  updateTotalSatScore();
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
+  showToast("ล้างคะแนนประเมินเรียบร้อย ให้ลูกค้าเป็นผู้ประเมิน", "info");
 }
 
 
@@ -7030,11 +7039,14 @@ function collectReportData() {
 
     const checked = document.querySelector(`input[name="sat_${it.id}"]:checked`);
 
-    const val = checked ? parseInt(checked.value, 10) : 4;
+    const val = checked ? parseInt(checked.value, 10) : null;
 
     ratings[it.id] = val;
 
-    satTotal += val;
+    if (val !== null) {
+      ratings[it.id] = val;
+      satTotal += val;
+    }
 
   });
 

@@ -1529,7 +1529,7 @@ class IsoPdfEngine:
         out_dir = os.path.dirname(output_path)
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
-        doc.save(output_path)
+        doc.save(output_path, garbage=4, deflate=True, clean=True)
         doc.close()
         return output_path
 

@@ -2615,6 +2615,20 @@ async def upload_photo(
 
         shutil.copyfileobj(file.file, buffer)
 
+    # Auto-optimize uploaded photo to prevent giant files & OOM
+    try:
+        from PIL import Image, ImageOps
+        with Image.open(saved_path) as img:
+            img = ImageOps.exif_transpose(img)
+            max_dim = 1600
+            if max(img.size) > max_dim:
+                img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.save(saved_path, "JPEG", quality=85, optimize=True)
+    except Exception as ie:
+        print(f"[PhotoUpload] Auto-optimize warning: {ie}")
+
 
 
     # Read/Update photos metadata

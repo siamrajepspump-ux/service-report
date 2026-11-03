@@ -29,6 +29,7 @@ import openpyxl
 from fastapi import FastAPI, UploadFile, File, Form, Query, HTTPException, BackgroundTasks, Body, Response
 
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from fastapi.staticfiles import StaticFiles
 
@@ -67,6 +68,9 @@ app = FastAPI(
 
 
 
+# Enable GZip compression for responses > 1000 bytes (compresses JSON, HTML, JS by ~80-85%)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Enable CORS for local development and mobile network access
 
 app.add_middleware(
@@ -86,19 +90,17 @@ app.add_middleware(
 
 
 @app.middleware("http")
-
-async def add_no_cache_header(request, call_next):
-
+async def add_cache_control_headers(request, call_next):
     response = await call_next(request)
-
-    if any(request.url.path.endswith(ext) for ext in [".js", ".html", ".css", ".json"]):
-
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-
+    path = request.url.path
+    if path == "/" or path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
-
-        response.headers["Expires"] = "0"
-
+    elif any(path.endswith(ext) for ext in [".js", ".css"]):
+        # Cache with validation: browser checks ETag/304 without re-downloading entire 250KB file
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    elif any(path.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".svg", ".ico", ".woff", ".woff2"]):
+        response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
 

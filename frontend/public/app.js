@@ -4632,8 +4632,12 @@ async function selectTicket(ticketNo) {
       renderPackageTabs();
       selectPackageInstance(defaultInst.id);
     } else {
-      selectPackageInstance(null);
-      renderPackageTabs();
+      if (typeof addFormToPackage === "function") {
+        addFormToPackage("FM-EPS-23");
+      } else {
+        selectPackageInstance(null);
+        renderPackageTabs();
+      }
     }
 
     loadTicketPhotos(ticketNo);
@@ -7496,27 +7500,17 @@ async function previewCurrentActiveForm() {
 
 
 async function previewFullPackagePdf() {
-
   if (!state.packageInstances || state.packageInstances.length === 0) {
-
-    alert("กรุณาเพิ่มใบงานอย่างน้อย 1 ใบก่อนพรีวิวรวมชุด");
-
-    return;
-
+    if (typeof addFormToPackage === "function") {
+      addFormToPackage("FM-EPS-23");
+    }
   }
-
   saveCurrentActiveInstanceData();
-
   const data = stripDraftBloat(collectReportData());
-
-  const ticketNo = data.request_no;
-
+  const ticketNo = data.request_no || document.getElementById("sr_request_no")?.value?.trim() || (state.currentTicket && (state.currentTicket.RequestNo || state.currentTicket.TicketNo || state.currentTicket.TicketKey || state.currentTicket.Title));
   if (!ticketNo || ticketNo === "DRAFT") {
-
     alert("กรุณาระบุเลขที่งาน (Ticket No.)");
-
     return;
-
   }
 
 
@@ -7659,27 +7653,17 @@ function closeSaveSuccessModal() {
 
 
 async function submitAndGenerate() {
-
   if (!state.packageInstances || state.packageInstances.length === 0) {
-
-    alert("กรุณาเลือกใบงานอย่างน้อย 1 ใบก่อนส่งออกเอกสาร PDF");
-
-    return;
-
+    if (typeof addFormToPackage === "function") {
+      addFormToPackage("FM-EPS-23");
+    }
   }
-
   saveCurrentActiveInstanceData();
-
   const data = stripDraftBloat(collectReportData());
-
-  const ticketNo = data.request_no;
-
+  const ticketNo = data.request_no || document.getElementById("sr_request_no")?.value?.trim() || (state.currentTicket && (state.currentTicket.RequestNo || state.currentTicket.TicketNo || state.currentTicket.TicketKey || state.currentTicket.Title));
   if (!ticketNo || ticketNo === "DRAFT") {
-
     alert("กรุณาระบุเลขที่งาน (Ticket No.)");
-
     return;
-
   }
 
 
@@ -7901,7 +7885,8 @@ function renderPdfLinks(ticketNo, files) {
 
 function openPdfModal(title, url) {
   const safeUrl = encodeURI(url);
-  document.getElementById("pdfModalTitle").innerText = title;
+  const titleEl = document.getElementById("pdfModalTitle");
+  if (titleEl) titleEl.innerText = title;
 
   const iframe = document.getElementById("pdfModalIframe");
   if (iframe) iframe.src = safeUrl;
@@ -7910,23 +7895,51 @@ function openPdfModal(title, url) {
   if (dlBtn) dlBtn.href = safeUrl;
 
   const openTabBtn = document.getElementById("pdfModalOpenTabBtn");
-  if (openTabBtn) {
-    openTabBtn.href = safeUrl;
+  if (openTabBtn) openTabBtn.href = safeUrl;
+
+  const mobileDlBtn = document.getElementById("pdfModalMobileDlBtn");
+  if (mobileDlBtn) mobileDlBtn.href = safeUrl;
+
+  const mobileTabBtn = document.getElementById("pdfModalMobileTabBtn");
+  if (mobileTabBtn) mobileTabBtn.href = safeUrl;
+
+  // Set suggested download filename with Customer name
+  const ticketNo = (window.state && window.state.currentTicket && (window.state.currentTicket.RequestNo || window.state.currentTicket.TicketNo)) || document.getElementById("sr_request_no")?.value?.trim() || "";
+  const customer = (window.state && window.state.currentTicket && (window.state.currentTicket.Customer || window.state.currentTicket["Organization Name"])) || document.getElementById("sr_customer")?.value?.trim() || "";
+  const cleanCust = String(customer).replace(/[\\/:*?"<>|]/g, '').trim();
+
+  let suggestedName = `DOCUMENT_${ticketNo}.pdf`;
+  if (url && (url.includes("ALL_") || url.includes("FULL_PACKAGE_") || url.includes("SERVICE_REPORT_"))) {
+    suggestedName = cleanCust ? `SERVICE_REPORT_${ticketNo}_${cleanCust}.pdf` : `SERVICE_REPORT_${ticketNo}.pdf`;
+  } else if (url && url.includes("CRM_REQUEST_")) {
+    suggestedName = `SERVICE_REQUEST_FORM_${ticketNo}.pdf`;
+  } else if (url && url.includes("PHOTO_")) {
+    suggestedName = `PHOTO_REPORT_${ticketNo}.pdf`;
+  } else if (url && url.includes("SAT_")) {
+    suggestedName = `SATISFACTION_${ticketNo}.pdf`;
   }
 
-  // Set suggested download filename with Customer name for full packages
-  if (url && (url.includes("ALL_") || url.includes("FULL_PACKAGE_") || url.includes("SERVICE_REPORT_"))) {
-    const customer = (window.state && window.state.data && (window.state.data.customer || window.state.data.Customer || window.state.data.exp_customer)) || "";
-    const cleanCust = String(customer).replace(/[\\/:*?"<>|]/g, '').trim();
-    const ticketNo = (window.state && window.state.currentTicket) || "";
-    const suggestedName = cleanCust ? `SERVICE_REPORT_${ticketNo}_${cleanCust}.pdf` : `SERVICE_REPORT_${ticketNo}.pdf`;
-    if (dlBtn) dlBtn.setAttribute("download", suggestedName);
-  } else {
-    if (dlBtn) dlBtn.removeAttribute("download");
-  }
+  if (dlBtn) dlBtn.setAttribute("download", suggestedName);
+  if (mobileDlBtn) mobileDlBtn.setAttribute("download", suggestedName);
 
   document.getElementById("pdfModal").classList.remove("hidden");
   initIcons();
+
+  // On mobile devices, also attempt direct download trigger
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+  if (isMobile) {
+    try {
+      const a = document.createElement("a");
+      a.href = safeUrl;
+      a.download = suggestedName;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { document.body.removeChild(a); } catch(_) {}
+      }, 500);
+    } catch (_) {}
+  }
 }
 
 function closePdfModal() {

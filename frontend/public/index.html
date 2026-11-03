@@ -4197,6 +4197,27 @@
 
       </div>
 
+      <!-- Mobile Quick Actions & Direct Download Bar (Always accessible on Phone Screens) -->
+      <div id="pdfModalMobileBar" class="sm:hidden bg-gradient-to-r from-red-50 via-slate-50 to-amber-50 border-b border-slate-200 p-2.5 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-slate-800 flex items-center space-x-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+            <span>สร้างเอกสารสำเร็จแล้ว</span>
+          </span>
+          <span class="text-[11px] text-slate-500">แตะเพื่อดาวน์โหลดหรือเปิดดู</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="pdfModalMobileDlBtn" href="#" download class="flex-1 py-2 px-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow transition cursor-pointer">
+            <i data-lucide="download" class="w-4 h-4 text-yellow-300"></i>
+            <span>ดาวน์โหลด PDF</span>
+          </a>
+          <a id="pdfModalMobileTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow transition cursor-pointer">
+            <i data-lucide="external-link" class="w-4 h-4 text-indigo-300"></i>
+            <span>เปิดดูเต็มจอ</span>
+          </a>
+        </div>
+      </div>
+
       <div class="flex-1 bg-slate-100">
 
         <iframe id="pdfModalIframe" class="w-full h-full border-none"></iframe>
@@ -4305,7 +4326,7 @@
 
 
 
-  <script src="app.js?v=20261103_v19_mobile_fm28_fix"></script>
+  <script src="app.js?v=20261103_v20_mobile_export_fix"></script>
 
 
 

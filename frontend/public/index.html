@@ -488,7 +488,7 @@
 
           </div>
 
-          <button type="button" id="btnHeaderAddPhotoReport" onclick="addFormToPackage('PHOTO_REPORT')" class="hidden px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm cursor-pointer" title="เพิ่ม Photo Report ปั๊มตัวถัดไป">
+          <button type="button" id="btnHeaderAddPhotoReport" onclick="event.stopPropagation(); addFormToPackage('PHOTO_REPORT')" class="hidden px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm cursor-pointer" title="เพิ่ม Photo Report ปั๊มตัวถัดไป">
 
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 
@@ -3076,7 +3076,7 @@
 
             <div class="flex items-center space-x-2">
 
-              <button type="button" onclick="addFormToPackage('PHOTO_REPORT')" class="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition transform hover:scale-[1.02] cursor-pointer" title="เพิ่มใบงาน Photo Report สำหรับปั๊มอีกตัว">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('PHOTO_REPORT')" class="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition transform hover:scale-[1.02] cursor-pointer" title="เพิ่มใบงาน Photo Report สำหรับปั๊มอีกตัว">
 
                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
 
@@ -3788,7 +3788,7 @@
 
   <!-- ================= MODAL: ADD FORM TO WORK ORDER PACKAGE ================= -->
 
-  <div id="modalAddForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4">
+  <div id="modalAddForm" class="hidden fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-2.5 sm:p-4">
 
     <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden border border-slate-200">
 
@@ -3846,7 +3846,7 @@
             </div>
             <div class="mt-4 pt-3 border-t flex items-center justify-between">
               <span class="text-[11px] text-slate-400 font-medium">ปิดงานบริการ</span>
-              <button type="button" onclick="addFormToPackage('FM-EPS-21')" class="bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-amber-200">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('FM-EPS-21')" class="bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-amber-200">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>+ เพิ่มใบนี้</span>
               </button>
@@ -3881,7 +3881,7 @@
 
               <span class="text-[11px] text-slate-400 font-medium">ฟอร์มหลัก ISO</span>
 
-              <button type="button" onclick="addFormToPackage('FM-EPS-23')" class="bg-red-50 hover:bg-red-600 hover:text-white text-red-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-red-200">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('FM-EPS-23')" class="bg-red-50 hover:bg-red-600 hover:text-white text-red-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-red-200">
 
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 
@@ -3923,7 +3923,7 @@
 
               <span class="text-[11px] text-slate-400 font-medium">ตรวจสภาพหน้างาน</span>
 
-              <button type="button" onclick="addFormToPackage('FM-EPS-22')" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-blue-200">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('FM-EPS-22')" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-blue-200">
 
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 
@@ -3965,7 +3965,7 @@
 
               <span class="text-[11px] text-emerald-600 font-semibold">แนะนำสำหรับโอเวอร์ฮอล</span>
 
-              <button type="button" onclick="addFormToPackage('FM-EPS-31')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition shadow-sm">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('FM-EPS-31')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition shadow-sm">
 
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 
@@ -4007,7 +4007,7 @@
 
               <span class="text-[11px] text-slate-400 font-medium">BOM & อะไหล่</span>
 
-              <button type="button" onclick="addFormToPackage('FM-EPS-25')" class="bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-amber-200">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('FM-EPS-25')" class="bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-amber-200">
 
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 
@@ -4049,7 +4049,7 @@
 
               <span class="text-[11px] text-slate-400 font-medium">หลักฐานภาพถ่าย</span>
 
-              <button type="button" onclick="addFormToPackage('PHOTO_REPORT')" class="bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-purple-200">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('PHOTO_REPORT')" class="bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-purple-200">
 
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 
@@ -4091,7 +4091,7 @@
 
               <span class="text-[11px] text-slate-400 font-medium">แบบประเมิน ISO</span>
 
-              <button type="button" onclick="addFormToPackage('FM-EPS-45')" class="bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-rose-200">
+              <button type="button" onclick="event.stopPropagation(); addFormToPackage('FM-EPS-45')" class="bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition border border-rose-200">
 
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
 

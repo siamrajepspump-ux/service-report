@@ -706,35 +706,8 @@ function renderPackageTabs() {
 
 
 
-  // Update modal count badges
-
-  Object.keys(FORM_DEFS).forEach(code => {
-
-    const cnt = state.packageInstances.filter(i => i.code === code).length;
-
-    const el = document.getElementById(`badge-count-${code}`);
-
-    if (el) {
-
-      if (cnt > 0) {
-
-        el.innerText = `มีในชุดแล้ว ${cnt} ใบ`;
-
-        el.className = "text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200";
-
-      } else {
-
-        el.innerText = "ยังไม่มีในชุด";
-
-        el.className = "text-[11px] font-semibold text-slate-400";
-
-      }
-
-    }
-
-  });
-
-
+    // Update modal count badges
+  updateAddFormModalBadges();
 
   if (state.packageInstances.length === 0) {
 
@@ -864,18 +837,28 @@ function renderPackageTabs() {
 
 
 
+function updateAddFormModalBadges() {
+  if (typeof FORM_DEFS === "undefined") return;
+  Object.keys(FORM_DEFS).forEach(code => {
+    const cnt = state.packageInstances ? state.packageInstances.filter(i => i.code === code).length : 0;
+    const el = document.getElementById(`badge-count-${code}`);
+    if (el) {
+      if (cnt > 0) {
+        el.innerText = `มีในชุดนี้ ${cnt} ใบ`;
+        el.className = "text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200";
+      } else {
+        el.innerText = "ยังไม่มีในชุด";
+        el.className = "text-[11px] font-semibold text-slate-400";
+      }
+    }
+  });
+}
+
 function openAddFormModal() {
-
   const modal = document.getElementById("modalAddForm");
-
   if (!modal) return;
-
+  updateAddFormModalBadges();
   modal.classList.remove("hidden");
-
-  renderPackageTabs();
-
-  initIcons();
-
 }
 
 
@@ -1037,8 +1020,6 @@ function addFormToPackage(code, customLabel = "") {
   state.packageInstances.push(newInst);
 
   closeAddFormModal();
-
-  renderPackageTabs();
 
   selectPackageInstance(newId);
 

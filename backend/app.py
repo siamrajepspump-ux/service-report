@@ -2048,6 +2048,16 @@ def submit_and_generate(payload: SubmitPayload):
 
                     pass
 
+        if "covers" not in data:
+            for c_meta in [os.path.join(PHOTOS_DIR, ticket, "covers.json"), os.path.join(DATA_DIR, "photos", ticket, "covers.json")]:
+                if os.path.exists(c_meta):
+                    try:
+                        with open(c_meta, "r", encoding="utf-8") as cf:
+                            data["covers"] = json.load(cf)
+                            break
+                    except Exception:
+                        pass
+
         if "PHOTO_REPORT" in forms_to_gen or len(photos) > 0:
 
             photo_report_path = os.path.join(ticket_out_dir, f"PHOTO_{ticket}.pdf")
@@ -2400,87 +2410,67 @@ def download_pdf(ticket_no: str, filename: str):
 
 
 @app.post("/api/photos/{ticket_no}/generate")
-
 async def generate_single_photo_report(ticket_no: str, payload: Dict[str, Any] = Body(...)):
-
     ticket = ticket_no.strip()
-
     ticket_out_dir = os.path.join(OUTPUT_PDF_DIR, ticket)
-
     os.makedirs(ticket_out_dir, exist_ok=True)
 
-
+    # Populate any missing metadata from saved draft
+    draft_file = os.path.join(REPORTS_DIR, f"{ticket}_draft.json")
+    if os.path.exists(draft_file):
+        try:
+            with open(draft_file, "r", encoding="utf-8") as df:
+                draft_d = json.load(df)
+                for k in ["customer", "plant", "site", "job", "job_no", "pump_brand", "model", "serial_no"]:
+                    if not payload.get(k) and draft_d.get(k):
+                        payload[k] = draft_d[k]
+        except Exception:
+            pass
 
     photos = payload.get("photos", [])
-
     if not photos:
-
-        meta_file = os.path.join(PHOTOS_DIR, ticket, "photos.json")
-
-        if os.path.exists(meta_file):
-
-            try:
-
-                with open(meta_file, "r", encoding="utf-8") as pf:
-
-                    photos = json.load(pf)
-
-            except:
-
-                pass
-
-
+        for p_meta in [os.path.join(PHOTOS_DIR, ticket, "photos.json"), os.path.join(DATA_DIR, "photos", ticket, "photos.json")]:
+            if os.path.exists(p_meta):
+                try:
+                    with open(p_meta, "r", encoding="utf-8") as pf:
+                        photos = json.load(pf)
+                        break
+                except Exception:
+                    pass
 
     if "covers" not in payload:
-
-        covers_file = os.path.join(PHOTOS_DIR, ticket, "covers.json")
-
-        if os.path.exists(covers_file):
-
-            try:
-
-                with open(covers_file, "r", encoding="utf-8") as cf:
-
-                    payload["covers"] = json.load(cf)
-
-            except:
-
-                pass
-
-
+        for c_meta in [os.path.join(PHOTOS_DIR, ticket, "covers.json"), os.path.join(DATA_DIR, "photos", ticket, "covers.json")]:
+            if os.path.exists(c_meta):
+                try:
+                    with open(c_meta, "r", encoding="utf-8") as cf:
+                        payload["covers"] = json.load(cf)
+                        break
+                except Exception:
+                    pass
 
     pdf_out = os.path.join(ticket_out_dir, f"PHOTO_{ticket}.pdf")
-
     excel_out = os.path.join(ticket_out_dir, f"PHOTO_{ticket}.xlsx")
 
-
-
-    pdf_engine.generate_photo_report(payload, photos, pdf_out)
+    try:
+        pdf_engine.generate_photo_report(payload, photos, pdf_out)
+    except Exception as e:
+        print(f"[PhotoReport] Error generating photo pdf: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error generating photo report: {e}")
 
     excel_ok = False
-
     try:
-
         pdf_engine.generate_photo_report_excel(payload, photos, excel_out)
-
         excel_ok = True
-
     except Exception as e:
-
-        print(f"Error generating photo excel: {e}")
-
-
+        print(f"[PhotoReport] Error generating photo excel: {e}")
 
     return {
-
         "ok": True,
-
         "pdf_url": f"/api/download/{ticket}/PHOTO_{ticket}.pdf",
-
         "excel_url": f"/api/download/{ticket}/PHOTO_{ticket}.xlsx" if excel_ok else None
-
     }
-
 
 
 @app.post("/api/photos/{ticket_no}/update_meta")

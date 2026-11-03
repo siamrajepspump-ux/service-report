@@ -24,6 +24,7 @@ TEMPLATES_DIR = os.path.join(DATA_DIR, "templates")
 FROM_FM_DIR = os.path.join(BASE_DIR, "From FM")
 STORAGE_DIR = os.path.join(BASE_DIR, "storage")
 OUTPUT_PDF_DIR = os.path.join(STORAGE_DIR, "output_pdf")
+PHOTOS_DIR = os.path.join(STORAGE_DIR, "photos")
 
 # Fonts
 FONTS_LOCAL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
@@ -1454,15 +1455,20 @@ class IsoPdfEngine:
                     if p_info:
                         img_path = p_info.get("file_path") or p_info.get("path")
                         b64 = p_info.get("base64") or p_info.get("data_url")
-                        if img_path and not os.path.exists(img_path):
-                            fn = p_info.get("filename") or os.path.basename(img_path)
+                        fn = p_info.get("filename") or ""
+                        if not fn and img_path:
+                            fn = str(img_path).replace("\\", "/").split("/")[-1].strip()
+
+                        if not img_path or not os.path.exists(img_path):
                             for alt in [
-                                os.path.join(DATA_DIR, "photos", ticket, fn),
-                                os.path.join(PHOTOS_DIR, ticket, fn),
-                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn),
-                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn)
+                                os.path.join(PHOTOS_DIR, ticket, fn) if fn else "",
+                                os.path.join(STORAGE_DIR, "photos", ticket, fn) if fn else "",
+                                os.path.join(DATA_DIR, "photos", ticket, fn) if fn else "",
+                                os.path.join(BASE_DIR, "storage", "photos", ticket, fn) if fn else "",
+                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn) if fn else "",
+                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn) if fn else "",
                             ]:
-                                if os.path.exists(alt):
+                                if alt and os.path.exists(alt):
                                     img_path = alt
                                     break
                         if img_path and os.path.exists(img_path):
@@ -1654,15 +1660,20 @@ class IsoPdfEngine:
                         caption = p_info.get("caption", "")
                         img_path = p_info.get("file_path") or p_info.get("path")
                         b64 = p_info.get("base64") or p_info.get("data_url")
-                        if img_path and not os.path.exists(img_path):
-                            fn = p_info.get("filename") or os.path.basename(img_path)
+                        fn = p_info.get("filename") or ""
+                        if not fn and img_path:
+                            fn = str(img_path).replace("\\", "/").split("/")[-1].strip()
+
+                        if not img_path or not os.path.exists(img_path):
                             for alt in [
-                                os.path.join(DATA_DIR, "photos", ticket, fn),
-                                os.path.join(PHOTOS_DIR, ticket, fn),
-                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn),
-                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn)
+                                os.path.join(PHOTOS_DIR, ticket, fn) if fn else "",
+                                os.path.join(STORAGE_DIR, "photos", ticket, fn) if fn else "",
+                                os.path.join(DATA_DIR, "photos", ticket, fn) if fn else "",
+                                os.path.join(BASE_DIR, "storage", "photos", ticket, fn) if fn else "",
+                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn) if fn else "",
+                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn) if fn else "",
                             ]:
-                                if os.path.exists(alt):
+                                if alt and os.path.exists(alt):
                                     img_path = alt
                                     break
                         if img_path and os.path.exists(img_path):

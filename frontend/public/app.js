@@ -363,14 +363,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+let _iconRaf = null;
 function initIcons() {
+  if (!window.lucide) return;
+  if (_iconRaf) cancelAnimationFrame(_iconRaf);
+  _iconRaf = requestAnimationFrame(() => {
+    try {
+      window.lucide.createIcons();
+    } catch (_) {}
+    _iconRaf = null;
+  });
+}
 
-  if (window.lucide) {
-
-    window.lucide.createIcons();
-
-  }
-
+let _autoSaveTimer = null;
+function scheduleAutoSaveDraft() {
+  if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    try {
+      const autoTicket = document.getElementById("sr_request_no")?.value?.trim() || state.currentTicket?.TicketNo;
+      if (autoTicket && autoTicket !== "DRAFT") {
+        if (typeof collectReportData === "function" && typeof stripDraftBloat === "function") {
+          const liveData = stripDraftBloat(collectReportData());
+          localStorage.setItem(`siamraj_draft_${autoTicket}`, JSON.stringify(liveData));
+          localStorage.setItem(`siamraj_draft_time_${autoTicket}`, new Date().toISOString());
+        }
+      }
+    } catch (_) {}
+  }, 1000);
 }
 
 
@@ -2030,15 +2049,8 @@ function saveCurrentActiveInstanceData() {
   }
 
 
-  // Auto-sync active data to localStorage so edits are continuously protected
-  try {
-    const autoTicket = document.getElementById("sr_request_no")?.value?.trim() || state.currentTicket?.TicketNo;
-    if (autoTicket && autoTicket !== "DRAFT") {
-      const liveData = collectReportData();
-      localStorage.setItem(`siamraj_draft_${autoTicket}`, JSON.stringify(liveData));
-      localStorage.setItem(`siamraj_draft_time_${autoTicket}`, new Date().toISOString());
-    }
-  } catch (_) {}
+  // Debounced auto-sync to localStorage so UI clicks and tab switches remain instant (0ms)
+  scheduleAutoSaveDraft();
 }
 
 
@@ -3305,7 +3317,8 @@ function handleRadioClick(radio) {
     radio.checked = false;
     radio.dataset.wasChecked = "false";
   } else {
-    const group = document.querySelectorAll(`input[name="${radio.name}"]`);
+    const row = radio.closest("tr") || document;
+    const group = row.querySelectorAll(`input[name="${radio.name}"]`);
     group.forEach(r => r.dataset.wasChecked = "false");
     radio.dataset.wasChecked = "true";
   }

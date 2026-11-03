@@ -3470,11 +3470,21 @@
 
 
 
-            <!-- 14 Evaluation Items Table -->
+            <!-- Mobile Touch-Friendly Rating Cards (Phone Screens < 768px) -->
+            <div id="satMobileCards" class="md:hidden space-y-3.5">
+              <!-- Populated dynamically by renderSatisfactionTable() with large touch buttons -->
+            </div>
 
-            <div class="overflow-x-auto table-scroll-container touch-scroll border border-slate-200 rounded-xl shadow-sm bg-white">
+            <!-- Mobile Total Summary Card -->
+            <div class="md:hidden bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between shadow-sm">
+              <span class="text-xs font-semibold text-slate-700">ผลรวมคะแนนประเมิน:</span>
+              <span id="lblMobileTotalSatScore" class="text-xs font-extrabold text-slate-800">ยังไม่มีการประเมิน (0 / 56)</span>
+            </div>
 
-              <table class="w-full text-sm">
+            <!-- 14 Evaluation Items Table (Desktop / Tablet >= 768px) -->
+            <div class="hidden md:block overflow-x-auto table-scroll-container touch-scroll border border-slate-200 rounded-xl shadow-sm bg-white">
+
+              <table class="w-full min-w-[640px] text-sm">
 
                 <thead class="bg-slate-100/90 text-xs font-bold text-slate-800 border-b border-slate-300">
 
@@ -4295,7 +4305,7 @@
 
 
 
-  <script src="app.js?v=20261102_v14_clean_storage"></script>
+  <script src="app.js?v=20261103_v16_sat_mobile_fix"></script>
 
 
 

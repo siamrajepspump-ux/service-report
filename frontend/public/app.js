@@ -12,7 +12,7 @@ function stripDraftBloat(draft) {
   if (!draft || typeof draft !== "object") return draft;
   const cleanPhoto = (p) => {
     if (!p || typeof p !== "object") return p;
-    const { base64, data_url, ...rest } = p;
+    const { base64, data_url, dataUrl, ...rest } = p;
     return rest;
   };
   const cleaned = { ...draft };
@@ -38,8 +38,8 @@ function stripDraftBloat(draft) {
 
 function cleanupBloatedLocalStorage() {
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
+    const keys = Object.keys(localStorage);
+    for (const k of keys) {
       if (k && k.startsWith("siamraj_draft_") && !k.startsWith("siamraj_draft_time_")) {
         const raw = localStorage.getItem(k);
         if (raw && (raw.length > 50000 || raw.includes("data:image/jpeg;base64,"))) {
@@ -383,13 +383,14 @@ function scheduleAutoSaveDraft() {
       const autoTicket = document.getElementById("sr_request_no")?.value?.trim() || state.currentTicket?.TicketNo;
       if (autoTicket && autoTicket !== "DRAFT") {
         if (typeof collectReportData === "function" && typeof stripDraftBloat === "function") {
-          const liveData = stripDraftBloat(collectReportData());
+          // Pass true so collectReportData flushes data without rescheduling the auto-save timer!
+          const liveData = stripDraftBloat(collectReportData(true));
           localStorage.setItem(`siamraj_draft_${autoTicket}`, JSON.stringify(liveData));
           localStorage.setItem(`siamraj_draft_time_${autoTicket}`, new Date().toISOString());
         }
       }
     } catch (_) {}
-  }, 1000);
+  }, 1500);
 }
 
 
@@ -1380,7 +1381,7 @@ function applyPackageViewMode() {
 
 
 
-function saveCurrentActiveInstanceData() {
+function saveCurrentActiveInstanceData(skipAutoSchedule = false) {
 
   const activeInst = state.packageInstances.find(i => i.id === state.activeInstanceId);
 
@@ -2031,7 +2032,9 @@ function saveCurrentActiveInstanceData() {
 
 
   // Debounced auto-sync to localStorage so UI clicks and tab switches remain instant (0ms)
-  scheduleAutoSaveDraft();
+  if (!skipAutoSchedule) {
+    scheduleAutoSaveDraft();
+  }
 }
 
 
@@ -2958,7 +2961,7 @@ function loadInstanceDataIntoDom(inst) {
 
     const defaultTel = document.getElementById("sr_contact_no")?.value?.trim() || (state.currentTicket?.ContactPhone || "").trim() || "-";
 
-    const defaultDate = document.getElementById("sr_date")?.value || "";
+    const defaultDate = document.getElementById("sr_date")?.value || new Date().toISOString().split("T")[0];
 
 
 
@@ -2998,18 +3001,17 @@ function loadInstanceDataIntoDom(inst) {
       if (checkedRad) checkedRad.checked = false;
     });
 
-    if (d.ratings) {
+    // Check saved ratings from inst.data or fallback to root loadedReportData
+    const effectiveRatings = (d.ratings && Object.keys(d.ratings).length > 0) ? d.ratings : (state.loadedReportData?.ratings || {});
 
-      Object.keys(d.ratings).forEach(id => {
-
-        const val = d.ratings[id];
-
-        const rad = document.querySelector(`input[name="sat_${id}"][value="${val}"]`);
-
-        if (rad) rad.checked = true;
-
+    if (effectiveRatings && Object.keys(effectiveRatings).length > 0) {
+      Object.keys(effectiveRatings).forEach(id => {
+        const val = effectiveRatings[id];
+        if (val !== null && val !== undefined) {
+          const rad = document.querySelector(`input[name="sat_${id}"][value="${val}"]`);
+          if (rad) rad.checked = true;
+        }
       });
-
     }
 
     updateTotalSatScore();
@@ -3379,139 +3381,111 @@ function renderVisualChecklist() {
 
 
 function renderSatisfactionTable() {
-
   const tbody = document.getElementById("satTableTbody");
+  const mobileContainer = document.getElementById("satMobileCards");
 
-  if (!tbody) return;
-
-
-
-  let html = "";
+  let tableHtml = "";
+  let mobileHtml = "";
 
   SATISFACTION_SECTIONS.forEach(sec => {
-
-    // Category Header Row
-
-    html += `
-
+    // Desktop Category Header Row
+    tableHtml += `
       <tr class="bg-slate-100/90 border-t border-b border-slate-300">
-
         <td colspan="6" class="p-2.5 font-bold text-slate-800 text-xs text-left tracking-wide">${sec.category}</td>
-
       </tr>
-
     `;
 
-
+    // Mobile Category Header Badge
+    mobileHtml += `
+      <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm tracking-wide flex items-center space-x-1.5 mt-2">
+        <i data-lucide="check-square" class="w-3.5 h-3.5 text-rose-400"></i>
+        <span>${sec.category}</span>
+      </div>
+    `;
 
     sec.items.forEach(item => {
-
-      html += `
-
+      // Desktop Table Row
+      tableHtml += `
         <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-
           <td class="p-2.5 text-left font-medium text-slate-700 text-xs">
-
             <span class="font-bold text-slate-900 mr-1.5">${item.no}</span>${item.text}
-
           </td>
-
           ${[4, 3, 2, 1, 0].map(score => `
-
             <td class="p-2 text-center cursor-pointer" onclick="selectSatScore('${item.id}', ${score})">
-
               <input type="radio" name="sat_${item.id}" value="${score}"
-
-                onchange="updateTotalSatScore()"
-
+                onchange="updateTotalSatScore(); if(typeof saveCurrentActiveInstanceData==='function')saveCurrentActiveInstanceData();"
                 class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
-
             </td>
-
           `).join("")}
-
         </tr>
-
       `;
 
+      // Mobile Touch-Friendly Card
+      mobileHtml += `
+        <div class="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-sm space-y-2.5">
+          <div class="flex items-start space-x-2">
+            <span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 font-extrabold text-xs border border-rose-200 shrink-0">${item.no}</span>
+            <p class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">${item.text}</p>
+          </div>
+          <div class="grid grid-cols-5 gap-1.5 pt-1">
+            <button type="button" onclick="selectSatScore('${item.id}', 4)" id="btn_sat_${item.id}_4"
+              class="sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-medium transition flex flex-col items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer">
+              <span class="text-xs font-extrabold">4</span>
+              <span class="text-[9px] mt-0.5 leading-tight">ดีมาก</span>
+            </button>
+            <button type="button" onclick="selectSatScore('${item.id}', 3)" id="btn_sat_${item.id}_3"
+              class="sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-medium transition flex flex-col items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300 cursor-pointer">
+              <span class="text-xs font-extrabold">3</span>
+              <span class="text-[9px] mt-0.5 leading-tight">ดี</span>
+            </button>
+            <button type="button" onclick="selectSatScore('${item.id}', 2)" id="btn_sat_${item.id}_2"
+              class="sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-medium transition flex flex-col items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-300 cursor-pointer">
+              <span class="text-xs font-extrabold">2</span>
+              <span class="text-[9px] mt-0.5 leading-tight">ปานกลาง</span>
+            </button>
+            <button type="button" onclick="selectSatScore('${item.id}', 1)" id="btn_sat_${item.id}_1"
+              class="sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-medium transition flex flex-col items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-300 cursor-pointer">
+              <span class="text-xs font-extrabold">1</span>
+              <span class="text-[9px] mt-0.5 leading-tight">พอใช้</span>
+            </button>
+            <button type="button" onclick="selectSatScore('${item.id}', 0)" id="btn_sat_${item.id}_0"
+              class="sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-medium transition flex flex-col items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-300 cursor-pointer">
+              <span class="text-xs font-extrabold">0</span>
+              <span class="text-[9px] mt-0.5 leading-tight">ปรับปรุง</span>
+            </button>
+          </div>
+        </div>
+      `;
     });
-
   });
 
-
-
-  tbody.innerHTML = html;
-
+  if (tbody) tbody.innerHTML = tableHtml;
+  if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
   updateTotalSatScore();
-
+  initIcons();
 }
-
-
 
 function selectSatScore(itemId, score) {
-
   const rad = document.querySelector(`input[name="sat_${itemId}"][value="${score}"]`);
-
   if (rad) {
-
     rad.checked = true;
-
-    updateTotalSatScore();
-
   }
-
+  updateTotalSatScore();
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
 }
-
-
 
 function setAllSatScores(score = 4) {
-
   ALL_SAT_ITEMS.forEach(it => {
-
     const rad = document.querySelector(`input[name="sat_${it.id}"][value="${score}"]`);
-
     if (rad) rad.checked = true;
-
   });
-
   updateTotalSatScore();
-
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
   showToast(`ตั้งค่าระดับคะแนนทุกข้อเป็น ${score} คะแนนเรียบร้อย`);
-
-}
-
-
-
-function updateTotalSatScore() {
-  let total = 0;
-  let hasChecked = false;
-  ALL_SAT_ITEMS.forEach(it => {
-    const checked = document.querySelector(`input[name="sat_${it.id}"]:checked`);
-    if (checked) {
-      total += parseInt(checked.value, 10);
-      hasChecked = true;
-    }
-  });
-
-  const max = 56;
-  const pct = hasChecked ? Math.round((total / max) * 100) : 0;
-
-  const lblTotal = document.getElementById("lblTotalSatScore");
-  const lblPct = document.getElementById("lblPercentSatScore");
-  const lblTableTotal = document.getElementById("lblTableTotalSatScore");
-
-  if (lblTotal) lblTotal.innerText = hasChecked ? total : "-";
-  if (lblPct) {
-    lblPct.innerText = hasChecked ? `${pct}%` : "รอประเมิน";
-    lblPct.className = hasChecked 
-      ? "bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200"
-      : "bg-slate-100 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-200";
-  }
-  if (lblTableTotal) {
-    lblTableTotal.innerText = hasChecked 
-      ? `${total} / ${max} คะแนน (${pct}%)`
-      : `ยังไม่มีการประเมิน (0 / ${max} คะแนน)`;
-  }
 }
 
 function clearAllSatScores() {
@@ -3526,256 +3500,59 @@ function clearAllSatScores() {
   showToast("ล้างคะแนนประเมินเรียบร้อย ให้ลูกค้าเป็นผู้ประเมิน", "info");
 }
 
-
-
-function renderInspectionTable() {
-
-  const tbody = document.getElementById("inspMeasurementsTbody");
-
-  if (!tbody) return;
-
-
-
-  const rows = (state.currentInspRows && state.currentInspRows.length > 0)
-
-    ? state.currentInspRows
-
-    : INSP_DEFAULT_ROWS.map(r => ({
-
-        part: r.part,
-
-        pos: r.pos,
-
-        std_in: "-",
-
-        std_mm: "-",
-
-        cmp: "",
-
-        val_min: null,
-
-        val_max: null
-
-      }));
-
-
-
-  tbody.innerHTML = rows.map((row, idx) => {
-
-    const stdInText = row.std_in || "-";
-
-    const stdMmText = row.std_mm || "-";
-
-    
-
-    // Existing values in DOM if already rendered
-
-    const existingInA = document.getElementById(`insp_in_a_${idx}`)?.value;
-
-    const existingInB = document.getElementById(`insp_in_b_${idx}`)?.value;
-
-    const existingFiA = document.getElementById(`insp_fi_a_${idx}`)?.value;
-
-    const existingFiB = document.getElementById(`insp_fi_b_${idx}`)?.value;
-
-    const existingRem = document.getElementById(`insp_rem_${idx}`)?.value;
-
-
-
-    let defPlaceholder = "";
-
-    if (row.val_mm && !isNaN(row.val_mm)) {
-
-      defPlaceholder = row.val_mm.toFixed(2);
-
-    } else if (row.min) {
-
-      defPlaceholder = row.min;
-
+function updateTotalSatScore() {
+  let total = 0;
+  let hasChecked = false;
+  ALL_SAT_ITEMS.forEach(it => {
+    const checked = document.querySelector(`input[name="sat_${it.id}"]:checked`);
+    const val = checked ? parseInt(checked.value, 10) : null;
+    if (val !== null) {
+      total += val;
+      hasChecked = true;
     }
 
-
-
-    const inA = (existingInA !== undefined && existingInA !== "") ? existingInA : (row.in_a || "-");
-
-    const inB = (existingInB !== undefined && existingInB !== "") ? existingInB : (row.in_b || "-");
-
-    const fiA = (existingFiA !== undefined && existingFiA !== "") ? existingFiA : (row.final_a || "-");
-
-    const fiB = (existingFiB !== undefined && existingFiB !== "") ? existingFiB : (row.final_b || "-");
-
-    const rem = (existingRem !== undefined && existingRem !== "") ? existingRem : (row.remark || "");
-
-
-
-    return `
-
-      <tr class="hover:bg-slate-50 text-center transition" id="insp_row_${idx}">
-
-        <td class="p-2.5 text-left font-semibold text-slate-800">${row.part}</td>
-
-        <td class="p-2 text-slate-600 font-medium">${row.pos}</td>
-
-        <td class="p-2 text-amber-900 font-mono font-bold bg-amber-50/70 border-x text-xs whitespace-nowrap">${stdInText}</td>
-
-        <td class="p-2 text-emerald-900 font-mono font-bold bg-emerald-50/70 border-x text-xs whitespace-nowrap">${stdMmText}</td>
-
-        <td class="p-1 bg-blue-50/30">
-
-          <input type="text" id="insp_in_a_${idx}" value="${inA}" placeholder="-" 
-
-                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
-
-                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
-
-        </td>
-
-        <td class="p-1 bg-blue-50/30">
-
-          <input type="text" id="insp_in_b_${idx}" value="${inB}" placeholder="-" 
-
-                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
-
-                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
-
-        </td>
-
-        <td class="p-1 bg-green-50/30">
-
-          <input type="text" id="insp_fi_a_${idx}" value="${fiA}" placeholder="-" 
-
-                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
-
-                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
-
-        </td>
-
-        <td class="p-1 bg-green-50/30">
-
-          <input type="text" id="insp_fi_b_${idx}" value="${fiB}" placeholder="-" 
-
-                 onfocus="if(this.value==='-')this.value=''" onblur="if(!this.value.trim())this.value='-'"
-
-                 oninput="evaluateInspectionRow(${idx})" class="w-16 p-1 text-center border rounded font-mono text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
-
-        </td>
-
-        <td class="p-2">
-
-          <span id="insp_badge_${idx}" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">-</span>
-
-        </td>
-
-        <td class="p-1">
-
-          <input type="text" id="insp_rem_${idx}" value="${rem}" placeholder="-" class="w-24 p-1 text-center border rounded text-xs focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
-
-        </td>
-
-      </tr>
-
-    `;
-
-  }).join("");
-
-
-
-  rows.forEach((_, idx) => evaluateInspectionRow(idx));
-
-}
-
-
-
-function evaluateInspectionRow(idx) {
-
-  const rows = (state.currentInspRows && state.currentInspRows.length > 0)
-
-    ? state.currentInspRows
-
-    : INSP_DEFAULT_ROWS;
-
-  const row = rows[idx];
-
-  if (!row) return;
-
-
-
-  const badge = document.getElementById(`insp_badge_${idx}`);
-
-  if (!badge) return;
-
-
-
-  const fiA = parseFloat(document.getElementById(`insp_fi_a_${idx}`)?.value || "NaN");
-
-  const fiB = parseFloat(document.getElementById(`insp_fi_b_${idx}`)?.value || "NaN");
-
-  const inA = parseFloat(document.getElementById(`insp_in_a_${idx}`)?.value || "NaN");
-
-  const inB = parseFloat(document.getElementById(`insp_in_b_${idx}`)?.value || "NaN");
-
-
-
-  // Determine which measurements to evaluate: prefer Final measurements if available, else Incoming
-
-  let testVals = [fiA, fiB].filter(v => !isNaN(v));
-
-  if (testVals.length === 0) {
-
-    testVals = [inA, inB].filter(v => !isNaN(v));
-
+    // Sync active styling on mobile rating buttons
+    [4, 3, 2, 1, 0].forEach(score => {
+      const btn = document.getElementById(`btn_sat_${it.id}_${score}`);
+      if (!btn) return;
+      if (val === score) {
+        let activeClass = "bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400";
+        if (score === 3) activeClass = "bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-400";
+        if (score === 2) activeClass = "bg-amber-500 text-white border-amber-500 shadow-sm ring-2 ring-amber-300";
+        if (score === 1) activeClass = "bg-orange-500 text-white border-orange-500 shadow-sm ring-2 ring-orange-300";
+        if (score === 0) activeClass = "bg-rose-600 text-white border-rose-600 shadow-sm ring-2 ring-rose-400";
+        btn.className = `sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-bold transition flex flex-col items-center justify-center cursor-pointer ${activeClass}`;
+      } else {
+        btn.className = "sat-score-btn py-2 px-1 rounded-xl text-center border text-[11px] font-medium transition flex flex-col items-center justify-center bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer";
+      }
+    });
+  });
+
+  const max = 56;
+  const pct = hasChecked ? Math.round((total / max) * 100) : 0;
+
+  const lblTotal = document.getElementById("lblTotalSatScore");
+  const lblPct = document.getElementById("lblPercentSatScore");
+  const lblTableTotal = document.getElementById("lblTableTotalSatScore");
+  const lblMobileTotal = document.getElementById("lblMobileTotalSatScore");
+
+  if (lblTotal) lblTotal.innerText = hasChecked ? total : "-";
+  if (lblPct) {
+    lblPct.innerText = hasChecked ? `${pct}%` : "รอประเมิน";
+    lblPct.className = hasChecked 
+      ? "bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200"
+      : "bg-slate-100 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-200";
   }
-
-
-
-  if (testVals.length === 0 || row.std_mm === "-" || (!row.val_mm && !row.min)) {
-
-    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500";
-
-    badge.innerText = "-";
-
-    return;
-
+  if (lblTableTotal) {
+    lblTableTotal.innerText = hasChecked 
+      ? `${total} / ${max} คะแนน (${pct}%)`
+      : `ยังไม่มีการประเมิน (0 / ${max} คะแนน)`;
   }
-
-
-
-  let pass = true;
-
-  if (row.cmp === "≥" || row.cmp === ">=") {
-
-    pass = testVals.every(v => v >= (row.val_mm - 0.05));
-
-  } else if (row.cmp === "≤" || row.cmp === "<=") {
-
-    pass = testVals.every(v => v <= (row.val_mm + 0.05));
-
-  } else if (row.min !== undefined && row.max !== undefined) {
-
-    const min = parseFloat(row.min);
-
-    const max = parseFloat(row.max);
-
-    pass = testVals.every(v => v >= min && v <= max);
-
+  if (lblMobileTotal) {
+    lblMobileTotal.innerText = hasChecked 
+      ? `${total} / ${max} คะแนน (${pct}%)`
+      : `ยังไม่มีการประเมิน (0 / ${max})`;
   }
-
-
-
-  if (pass) {
-
-    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700";
-
-    badge.innerText = "PASS";
-
-  } else {
-
-    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700";
-
-    badge.innerText = "FAIL";
-
-  }
-
 }
 
 
@@ -4685,6 +4462,18 @@ function applyDraftData(d) {
         if (!fi.data.serial_no && d.serial_no) fi.data.serial_no = d.serial_no;
         if (!fi.data.sheet_serial && d.serial_no) fi.data.sheet_serial = d.serial_no;
         if (!fi.data.visual_checklist && d.visual_checklist) fi.data.visual_checklist = d.visual_checklist;
+      }
+      if (fi.code === "FM-EPS-45") {
+        if (!fi.data) fi.data = {};
+        if ((!fi.data.ratings || Object.keys(fi.data.ratings).length === 0) && d.ratings) {
+          fi.data.ratings = d.ratings;
+        }
+        if (!fi.data.suggestions && d.suggestions) fi.data.suggestions = d.suggestions;
+        if (!fi.data.sat_customer && (d.sat_customer || d.customer)) fi.data.sat_customer = d.sat_customer || d.customer;
+        if (!fi.data.sat_contact_person && (d.sat_contact_person || d.contact_person)) fi.data.sat_contact_person = d.sat_contact_person || d.contact_person;
+        if (!fi.data.sat_contact_no && (d.sat_contact_no || d.contact_no)) fi.data.sat_contact_no = d.sat_contact_no || d.contact_no;
+        if (!fi.data.sat_eval_date && (d.sat_eval_date || d.date)) fi.data.sat_eval_date = d.sat_eval_date || d.date;
+        if (fi.data.total_score === undefined && d.sat_total_score !== undefined) fi.data.total_score = d.sat_total_score;
       }
     });
     state.packageInstances = d.form_instances;
@@ -6839,9 +6628,9 @@ function toggleBomDiagramModal() {
 
 // =============================================================================
 
-function collectReportData() {
+function collectReportData(skipAutoSchedule = true) {
 
-  saveCurrentActiveInstanceData();
+  saveCurrentActiveInstanceData(skipAutoSchedule);
 
   const ticketNo = document.getElementById("sr_request_no")?.value.trim() || "DRAFT";
 
@@ -7043,6 +6832,20 @@ function collectReportData() {
     }
 
   });
+
+  // Explicitly persist FM-EPS-45 data into state.packageInstances so it is never lost on save/reopen
+  const satInst = (state.packageInstances || []).find(i => i.code === "FM-EPS-45");
+  if (satInst) {
+    if (!satInst.data) satInst.data = {};
+    satInst.data.sat_customer = document.getElementById("sat_customer")?.value?.trim() || satInst.data.sat_customer || document.getElementById("sr_customer")?.value?.trim() || "-";
+    satInst.data.sat_contact_person = document.getElementById("sat_contact_person")?.value?.trim() || satInst.data.sat_contact_person || document.getElementById("sr_contact_person")?.value?.trim() || "-";
+    satInst.data.sat_contact_no = document.getElementById("sat_contact_no")?.value?.trim() || satInst.data.sat_contact_no || document.getElementById("sr_contact_no")?.value?.trim() || "-";
+    satInst.data.sat_eval_date = document.getElementById("sat_eval_date")?.value?.trim() || satInst.data.sat_eval_date || document.getElementById("sr_date")?.value?.trim() || "";
+    satInst.data.ratings = ratings;
+    satInst.data.total_score = satTotal;
+    satInst.data.max_score = 56;
+    satInst.data.suggestions = document.getElementById("sat_suggestions")?.value || satInst.data.suggestions || "";
+  }
 
 
 

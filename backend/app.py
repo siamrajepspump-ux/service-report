@@ -1520,6 +1520,19 @@ def save_draft(payload: SaveReportPayload, response: Response):
 
 
 
+@app.post("/api/reports/clear-draft/{ticket_no}")
+@app.delete("/api/reports/clear-draft/{ticket_no}")
+def clear_draft(ticket_no: str):
+    ticket = ticket_no.strip()
+    file_path = os.path.join(REPORTS_DIR, f"{ticket}_draft.json")
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            print(f"[Draft] Cleared draft file for {ticket}")
+        except Exception as e:
+            print(f"[Draft] Error deleting {file_path}: {e}")
+    return {"ok": True, "message": f"Draft for {ticket} cleared"}
+
 @app.get("/api/reports/load-draft/{ticket_no}")
 def load_draft(ticket_no: str, response: Response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"

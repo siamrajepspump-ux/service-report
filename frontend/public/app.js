@@ -1197,11 +1197,19 @@ function renderPackageTabs() {
 
   container.innerHTML = html + `
 
-    <button type="button" onclick="openAddFormModal()" title="เพิ่มใบงานใหม่" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-white transition flex items-center space-x-1 text-xs">
+    <button type="button" onclick="openAddFormModal()" title="เพิ่มใบงานใหม่" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-white transition flex items-center space-x-1 text-xs cursor-pointer">
 
       <i data-lucide="plus" class="w-4 h-4"></i>
 
       <span class="hidden sm:inline">เพิ่มใบงาน</span>
+
+    </button>
+
+    <button type="button" onclick="clearAllFormsInPackage()" title="ลบใบงานทั้งหมดในชุดรายงานนี้" class="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-900/60 border border-slate-700/80 hover:border-rose-600 text-slate-400 hover:text-rose-200 transition flex items-center space-x-1 text-xs cursor-pointer ml-1" title="ลบใบงานทั้งหมด">
+
+      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+
+      <span class="hidden md:inline">ล้างทั้งหมด</span>
 
     </button>
 
@@ -1441,6 +1449,7 @@ function addFormToPackage(code, customLabel = "") {
   closeAddFormModal();
 
   selectPackageInstance(newId);
+  syncDraftAfterFormChange();
 
   showToast(`เพิ่มใบงาน ${def.shortTitle} ${newInst.customLabel ? '(' + newInst.customLabel + ')' : '#' + num} เรียบร้อยแล้ว`);
 
@@ -1482,8 +1491,67 @@ function removeFormFromPackage(instId) {
 
   }
 
+  // Immediately persist updated package state to localStorage and server
+  syncDraftAfterFormChange();
+
   showToast("ลบใบงานออกจากชุดรายงานแล้ว");
 
+}
+
+function clearAllFormsInPackage() {
+  if (!state.packageInstances || state.packageInstances.length === 0) return;
+  if (!confirm(`ต้องการลบใบงานทั้งหมด (${state.packageInstances.length} ใบงาน) ออกจากรายงานนี้ใช่หรือไม่?
+
+ข้อมูลใบงานที่ลบจะถูกล้างออกจากระบบและร่างงานทั้งหมด`)) return;
+
+  state.packageInstances = [];
+  state.activeInstanceId = null;
+
+  const ticketNo = document.getElementById("sr_request_no")?.value.trim() 
+    || document.getElementById("heroRequestInput")?.value.trim()
+    || state.currentTicket?.TicketNo;
+
+  if (ticketNo && ticketNo !== "DRAFT") {
+    try {
+      localStorage.removeItem(`siamraj_draft_${ticketNo}`);
+      localStorage.removeItem(`siamraj_draft_time_${ticketNo}`);
+      fetch(`/api/reports/clear-draft/${encodeURIComponent(ticketNo)}`, { method: "POST" }).catch(() => {});
+    } catch (_) {}
+  }
+
+  renderPackageTabs();
+  applyPackageViewMode();
+  showToast("ลบใบงานทั้งหมดออกจากรายงานนี้แล้ว");
+}
+
+function syncDraftAfterFormChange() {
+  const ticketNo = document.getElementById("sr_request_no")?.value.trim() 
+    || document.getElementById("heroRequestInput")?.value.trim()
+    || state.currentTicket?.TicketNo;
+
+  if (!ticketNo || ticketNo === "DRAFT") return;
+
+  try {
+    if (state.packageInstances.length === 0) {
+      localStorage.removeItem(`siamraj_draft_${ticketNo}`);
+      localStorage.removeItem(`siamraj_draft_time_${ticketNo}`);
+      fetch(`/api/reports/clear-draft/${encodeURIComponent(ticketNo)}`, { method: "POST" }).catch(() => {});
+    } else {
+      const rawData = collectReportData();
+      const cleanData = stripDraftBloat(rawData);
+      cleanData.form_instances = JSON.parse(JSON.stringify(state.packageInstances));
+      cleanData.active_instance_id = state.activeInstanceId;
+      localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(cleanData));
+      localStorage.setItem(`siamraj_draft_time_${ticketNo}`, new Date().toISOString());
+      fetch("/api/reports/save-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket_no: ticketNo, data: cleanData })
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.warn("syncDraftAfterFormChange notice:", err);
+  }
 }
 
 
@@ -5191,12 +5259,12 @@ function applyDraftData(d) {
     d.form_instances = [];
   }
 
-  // Auto-restore FM-EPS-45 if draft contains ratings or satisfaction fields
+  // Auto-restore FM-EPS-45 ONLY if draft contains actual evaluation ratings, satisfaction score, or custom suggestions
+  // (Do NOT check sat_customer because it defaults to customer name on every ticket)
   const hasSatData = (d.ratings && Object.keys(d.ratings).length > 0) || 
-                     (d.sat_customer && d.sat_customer !== "-") || 
                      (d.sat_total_score !== undefined && d.sat_total_score > 0) || 
                      (d.suggestions && d.suggestions.trim().length > 0);
-  if (hasSatData && !d.form_instances.some(i => i.code === "FM-EPS-45")) {
+  if (hasSatData && !d.form_instances.some(i => i.code === "FM-EPS-45") && !d._instances_cleared) {
     d.form_instances.push({
       id: `inst_sat_${Date.now()}`,
       code: "FM-EPS-45",

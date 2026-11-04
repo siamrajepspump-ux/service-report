@@ -644,6 +644,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("exp_mgr_name") && !document.getElementById("exp_mgr_name").value) {
     document.getElementById("exp_mgr_name").value = "ไพศาล";
   }
+  // Initialize default document creation dates to today
+  const initToday = new Date().toISOString().split("T")[0];
+  ["sr_date", "sr_serviced_date", "exp_date", "exp_tech_date", "exp_sr_tech_date", "exp_sales_date", "exp_mgr_date", "parts_receive_date", "sat_eval_date"].forEach(dId => {
+    const el = document.getElementById(dId);
+    if (el && !el.value) el.value = initToday;
+  });
 
 
 
@@ -1234,9 +1240,11 @@ function addFormToPackage(code, customLabel = "") {
 
   let initialData = null;
 
-  const dateVal = document.getElementById("sr_date")?.value || new Date().toISOString().split("T")[0];
-
-  const servDateVal = document.getElementById("sr_serviced_date")?.value || dateVal;
+  // Always use current creation date (วันนี้ ณ วันที่จัดทำเอกสาร) for new forms
+  const todayIso = new Date().toISOString().split("T")[0];
+  const dateVal = todayIso;
+  const servDateVal = dateVal;
+  const todayDmy = (typeof formatIsoToDmy === "function" ? formatIsoToDmy(todayIso) : "") || todayIso;
 
   const startVal = document.getElementById("sr_time_start")?.value || "";
 
@@ -2427,11 +2435,12 @@ function loadInstanceDataIntoDom(inst) {
     const defaultGroup = resolveSalesGroupName(state.currentTicket);
     const defaultIo = state.currentTicket?.SalesOrders || "";
     const defaultProd = document.getElementById("sr_pump_model")?.value || state.currentTicket?.PumpModel || state.currentTicket?.ProductCode || "";
-    const defaultDate = document.getElementById("sr_date")?.value || new Date().toISOString().split("T")[0];
+    const todayIso = new Date().toISOString().split("T")[0];
+    const defaultDate = (d.exp_date && d.exp_date !== "-") ? d.exp_date : todayIso;
     const defaultTech = document.getElementById("techSignerName")?.value || "";
 
     if (document.getElementById("exp_request_no")) document.getElementById("exp_request_no").value = d.exp_request_no !== undefined ? d.exp_request_no : defaultReq;
-    if (document.getElementById("exp_date")) document.getElementById("exp_date").value = d.exp_date !== undefined ? d.exp_date : defaultDate;
+    if (document.getElementById("exp_date")) document.getElementById("exp_date").value = (d.exp_date && d.exp_date !== "-") ? d.exp_date : defaultDate;
     if (document.getElementById("exp_customer")) document.getElementById("exp_customer").value = d.exp_customer !== undefined ? d.exp_customer : defaultCust;
     if (document.getElementById("exp_sales")) document.getElementById("exp_sales").value = (d.exp_sales && d.exp_sales !== "-") ? d.exp_sales : defaultSales;
     if (document.getElementById("exp_group")) document.getElementById("exp_group").value = (d.exp_group && d.exp_group !== "-") ? d.exp_group : defaultGroup;
@@ -2517,12 +2526,12 @@ function loadInstanceDataIntoDom(inst) {
       if (document.getElementById("exp_tech_name")) document.getElementById("exp_tech_name").value = expT;
       if (document.getElementById("exp_sr_tech_name")) document.getElementById("exp_sr_tech_name").value = expSrTech;
     }
-    if (document.getElementById("exp_tech_date")) document.getElementById("exp_tech_date").value = d.exp_tech_date !== undefined ? d.exp_tech_date : defaultDate;
-    if (document.getElementById("exp_sr_tech_date")) document.getElementById("exp_sr_tech_date").value = d.exp_sr_tech_date !== undefined ? d.exp_sr_tech_date : defaultDate;
+    if (document.getElementById("exp_tech_date")) document.getElementById("exp_tech_date").value = (d.exp_tech_date && d.exp_tech_date !== "-") ? d.exp_tech_date : defaultDate;
+    if (document.getElementById("exp_sr_tech_date")) document.getElementById("exp_sr_tech_date").value = (d.exp_sr_tech_date && d.exp_sr_tech_date !== "-") ? d.exp_sr_tech_date : defaultDate;
     if (document.getElementById("exp_sales_name")) document.getElementById("exp_sales_name").value = expSales;
-    if (document.getElementById("exp_sales_date")) document.getElementById("exp_sales_date").value = d.exp_sales_date !== undefined ? d.exp_sales_date : defaultDate;
+    if (document.getElementById("exp_sales_date")) document.getElementById("exp_sales_date").value = (d.exp_sales_date && d.exp_sales_date !== "-") ? d.exp_sales_date : defaultDate;
     if (document.getElementById("exp_mgr_name")) document.getElementById("exp_mgr_name").value = expMgr;
-    if (document.getElementById("exp_mgr_date")) document.getElementById("exp_mgr_date").value = d.exp_mgr_date !== undefined ? d.exp_mgr_date : defaultDate;
+    if (document.getElementById("exp_mgr_date")) document.getElementById("exp_mgr_date").value = (d.exp_mgr_date && d.exp_mgr_date !== "-") ? d.exp_mgr_date : defaultDate;
   } else 
 
 
@@ -2547,9 +2556,9 @@ function loadInstanceDataIntoDom(inst) {
     if (sheetCodeInput) sheetCodeInput.value = inst.data?.sheet_code || inst.data?.pump_code || "";
 
     if (sheetDateInput) {
-
-      sheetDateInput.value = inst.data?.insp_sheet_date || inst.data?.sheet_date || inst.data?.date || formatIsoToDmy(document.getElementById("sr_date")?.value) || "";
-
+      const todayIso = new Date().toISOString().split("T")[0];
+      const todayDmy = (typeof formatIsoToDmy === "function" ? formatIsoToDmy(todayIso) : "") || todayIso;
+      sheetDateInput.value = inst.data?.insp_sheet_date || inst.data?.sheet_date || inst.data?.date || todayDmy;
     }
 
 
@@ -2838,7 +2847,9 @@ function loadInstanceDataIntoDom(inst) {
 
     if (telInput) telInput.value = (savedTel !== undefined && savedTel !== "" ? savedTel : defaultTel);
 
-    if (dateInput) dateInput.value = inst.data?.parts_sheet_date || inst.data?.sheet_date || inst.data?.date || document.getElementById("sr_date")?.value || "";
+    const todayIso = new Date().toISOString().split("T")[0];
+    const defaultPartsDate = inst.data?.parts_sheet_date || inst.data?.sheet_date || inst.data?.date || todayIso;
+    if (dateInput) dateInput.value = defaultPartsDate;
 
 
 
@@ -2993,9 +3004,9 @@ function loadInstanceDataIntoDom(inst) {
 
 
 
-    const defaultCrDate = document.getElementById("sr_date")?.value || new Date().toISOString().split("T")[0];
-
-    const defaultCrServDate = document.getElementById("sr_serviced_date")?.value || defaultCrDate;
+    const todayIso = new Date().toISOString().split("T")[0];
+    const defaultCrDate = (inst.data?.cr_date || inst.data?.date) ? (inst.data?.cr_date || inst.data?.date) : todayIso;
+    const defaultCrServDate = (inst.data?.cr_serviced_date || inst.data?.serviced_date) ? (inst.data?.cr_serviced_date || inst.data?.serviced_date) : defaultCrDate;
 
     const defaultCrStart = document.getElementById("sr_time_start")?.value || "";
 
@@ -3341,7 +3352,8 @@ function loadInstanceDataIntoDom(inst) {
 
     const defaultTel = document.getElementById("sr_contact_no")?.value?.trim() || (state.currentTicket?.ContactPhone || "").trim() || "-";
 
-    const defaultDate = document.getElementById("sr_date")?.value || new Date().toISOString().split("T")[0];
+    const todayIso = new Date().toISOString().split("T")[0];
+    const defaultDate = (d.sat_eval_date || d.eval_date) ? (d.sat_eval_date || d.eval_date) : todayIso;
 
 
 
@@ -4793,7 +4805,8 @@ async function selectTicket(ticketNo) {
       if (document.getElementById("exp_group")) document.getElementById("exp_group").value = salesGroupVal;
     }
 
-    // Default Sr Tech to รณพร and Mgr to ไพศาล in DOM if currently empty
+    // Default Sr Tech to รณพร, Mgr to ไพศาล, and dates to today in DOM if currently empty
+    const docToday = new Date().toISOString().split("T")[0];
     if (document.getElementById("exp_sr_tech_name")) {
       const curSr = document.getElementById("exp_sr_tech_name").value.trim();
       if (!curSr || curSr === "-") {
@@ -4807,6 +4820,10 @@ async function selectTicket(ticketNo) {
         document.getElementById("exp_mgr_name").value = "ไพศาล";
       }
     }
+    ["exp_date", "exp_tech_date", "exp_sr_tech_date", "exp_sales_date", "exp_mgr_date", "sat_eval_date"].forEach(dId => {
+      const el = document.getElementById(dId);
+      if (el && !el.value) el.value = docToday;
+    });
 
     document.getElementById("sr_plant").value = siteVal;
 
@@ -4955,28 +4972,13 @@ async function selectTicket(ticketNo) {
 
 
 
-    // Service Date
-
-    if (t.AppointmentDate) {
-
-      const d = t.AppointmentDate.split(" ")[0].split("T")[0];
-
-      if (d && d !== "nan" && d !== "-") {
-
-        document.getElementById("sr_date").value = d;
-
-      }
-
-    } else {
-
-      const today = new Date().toISOString().split("T")[0];
-
-      if (!document.getElementById("sr_date").value) {
-
-        document.getElementById("sr_date").value = today;
-
-      }
-
+    // Document Date: Always default to today's date (วันที่จัดทำเอกสาร/วันที่กรอกข้อมูล) if not already set
+    const today = new Date().toISOString().split("T")[0];
+    if (!document.getElementById("sr_date").value) {
+      document.getElementById("sr_date").value = today;
+    }
+    if (document.getElementById("sr_serviced_date") && !document.getElementById("sr_serviced_date").value) {
+      document.getElementById("sr_serviced_date").value = today;
     }
 
 
@@ -4991,8 +4993,6 @@ async function selectTicket(ticketNo) {
     if (savedTech && typeof syncTechField === "function") syncTechField("techSignerName", savedTech);
 
 
-
-    const today = new Date().toISOString().split("T")[0];
 
     if (document.getElementById("parts_receive_date") && !document.getElementById("parts_receive_date").value) {
 

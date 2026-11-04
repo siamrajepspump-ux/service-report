@@ -1768,7 +1768,7 @@ class IsoPdfEngine:
         # Line for Request No: x=468.3 .. 561.2 (Center 514.8), baseline y=134.9
         # Line for Date: x=477.7 .. 563.8 (Center 520.8), baseline y=150.0
         req_no = str(data.get("exp_request_no") or data.get("ticket_no") or data.get("request_no") or "").strip()
-        raw_date = data.get("exp_date") or data.get("serviced_date") or data.get("date") or ""
+        raw_date = data.get("exp_date") or data.get("serviced_date") or data.get("date") or datetime.now().strftime("%Y-%m-%d")
         date_str = self._format_date_dmy(raw_date)
 
         if req_no:

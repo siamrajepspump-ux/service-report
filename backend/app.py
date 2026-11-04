@@ -310,11 +310,11 @@ def health_check():
         "version": "2.0.0"
     }
 
+TECHNICIANS_FILE = os.path.join(DATA_DIR, "active_technicians.json")
+
 @app.get("/api/technicians")
 def list_technicians():
-    """Return sorted unique list of technicians from CRM cache and pre-configured staff"""
-    import re
-    load_crm_cache()
+    """Return sorted unique list of active technicians from data/active_technicians.json"""
     base_techs = [
         "นาย กฤษเอก ประชุมพันธ์",
         "นาย จุมพล ไข่แก้ว",
@@ -332,17 +332,26 @@ def list_technicians():
         "นาย โชคอำนวย ดอนแก้ว",
         "นาย ไพศาล สง่าวงษ์"
     ]
-    tech_set = set(base_techs)
-    for t in crm_cache:
-        for f in ["ServiceBy", "Service By", "AssignedBy", "Assigned By"]:
-            val = t.get(f)
-            if val and val != "-":
-                for item in re.split(r"\|##\||,", str(val)):
-                    clean = re.sub(r"\s+", " ", item.replace(" ", " ").strip())
-                    clean = clean.replace("คุประตกูล", "คุประตกุล")
-                    if clean and clean != "-" and len(clean) > 3:
-                        tech_set.add(clean)
-    return {"technicians": sorted(list(tech_set))}
+    if os.path.exists(TECHNICIANS_FILE):
+        try:
+            with open(TECHNICIANS_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, list) and len(loaded) > 0:
+                    return {"technicians": sorted(list(set(str(t).strip() for t in loaded if str(t).strip())))}
+        except Exception as e:
+            print(f"Error reading {TECHNICIANS_FILE}: {e}")
+    return {"technicians": sorted(list(set(base_techs)))}
+
+@app.post("/api/technicians")
+def update_technicians(payload: Dict[str, Any] = Body(...)):
+    """Save updated list of active technicians to data/active_technicians.json"""
+    techs = payload.get("technicians")
+    if not isinstance(techs, list):
+        raise HTTPException(status_code=400, detail="Invalid payload, 'technicians' array required")
+    clean_list = sorted(list(set(str(t).strip() for t in techs if str(t).strip())))
+    with open(TECHNICIANS_FILE, "w", encoding="utf-8") as f:
+        json.dump(clean_list, f, ensure_ascii=False, indent=2)
+    return {"ok": True, "technicians": clean_list}
 
 @app.get("/api/tickets")
 def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25, sort: str = "desc"):

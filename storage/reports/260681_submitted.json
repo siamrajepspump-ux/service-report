@@ -1545,6 +1545,38 @@
           "0": ""
         }
       }
+    },
+    {
+      "id": "inst_sat_260681",
+      "code": "FM-EPS-45",
+      "title": "แบบประเมินความพึงพอใจลูกค้า (Customer Satisfaction)",
+      "num": 1,
+      "customLabel": "",
+      "data": {
+        "sat_customer": "บริษัท เชลล์แห่งประเทศไทย จำกัด",
+        "sat_contact_person": "-",
+        "sat_contact_no": "-",
+        "sat_eval_date": "2026-10-20",
+        "ratings": {
+          "tech_1": 4,
+          "tech_2": 4,
+          "tech_3": 4,
+          "tech_4": 4,
+          "qual_1": 4,
+          "qual_2": 4,
+          "qual_3": 4,
+          "qual_4": 4,
+          "qual_5": 4,
+          "pers_1": 4,
+          "pers_2": 4,
+          "pers_3": 4,
+          "tool_1": 4,
+          "tool_2": 4
+        },
+        "total_score": 56,
+        "max_score": 56,
+        "suggestions": ""
+      }
     }
   ],
   "active_instance_id": "inst_1793596872374_92",

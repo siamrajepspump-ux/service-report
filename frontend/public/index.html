@@ -815,10 +815,10 @@
                 <div class="space-y-2 text-xs">
                   <div class="flex items-center justify-between space-x-2">
                     <label class="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" id="exp_cost_labor" class="w-4 h-4 text-emerald-600 rounded">
+                      <input type="checkbox" id="exp_cost_labor" checked class="w-4 h-4 text-emerald-600 rounded">
                       <span class="text-slate-700 font-medium">ค่าแรงงานบริการ</span>
                     </label>
-                    <input type="text" id="exp_amt_labor" class="w-32 bg-white border border-slate-300 rounded px-2 py-1 text-right text-xs" placeholder="0.00 บาท">
+                    <input type="text" id="exp_amt_labor" value="SD-EPS-01" class="w-32 bg-white border border-slate-300 rounded px-2 py-1 text-right text-xs font-semibold text-blue-700" placeholder="SD-EPS-01">
                   </div>
                   <div class="flex items-center justify-between space-x-2">
                     <label class="flex items-center space-x-2 cursor-pointer">
@@ -833,7 +833,7 @@
                       <span class="text-slate-700 font-medium">ค่าน้ำมัน (ระยะทาง x 5)</span>
                     </label>
                     <div class="flex items-center space-x-1">
-                      <input type="number" id="exp_gas_distance" onchange="calcExpGas()" class="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-right text-xs" placeholder="กม.">
+                      <input type="number" id="exp_gas_distance" oninput="syncDistance('exp_gas_distance', this.value)" onchange="syncDistance('exp_gas_distance', this.value)" class="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-right text-xs" placeholder="กม.">
                       <input type="text" id="exp_amt_gas" class="w-28 bg-white border border-slate-300 rounded px-2 py-1 text-right text-xs font-semibold" placeholder="0.00 บาท">
                     </div>
                   </div>
@@ -908,7 +908,7 @@
                 <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
                   <div class="flex items-center justify-between">
                     <span class="font-medium text-slate-700">ระยะทาง (กม.):</span>
-                    <input type="number" id="exp_distance" class="w-20 border rounded px-2 py-1 text-right font-bold" placeholder="0">
+                    <input type="number" id="exp_distance" oninput="syncDistance('exp_distance', this.value)" onchange="syncDistance('exp_distance', this.value)" class="w-20 border rounded px-2 py-1 text-right font-bold" placeholder="0">
                   </div>
                   <div class="flex items-center justify-between">
                     <span class="font-medium text-slate-700">ช่างบริการ (คน):</span>
@@ -926,84 +926,53 @@
               </div>
             </div>
 
-            <!-- Charge To, Result & Funding -->
+            <!-- Job Result (Charge To and Funding Source hidden per request, exported as '-' in PDF) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- Charge To -->
-              <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">
-                <h5 class="font-bold text-slate-800 border-b pb-1">เบิกค่าใช้จ่ายจาก (Charge To)</h5>
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between">
-                    <label class="flex items-center space-x-1.5 cursor-pointer">
-                      <input type="checkbox" id="exp_charge_sales" class="w-3.5 h-3.5 text-blue-600 rounded">
-                      <span>แผนกขาย (Sales)</span>
-                    </label>
-                    <input type="text" id="exp_charge_sales_amt" class="w-24 bg-white border rounded px-1.5 py-0.5 text-right" placeholder="บาท">
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <label class="flex items-center space-x-1.5 cursor-pointer">
-                      <input type="checkbox" id="exp_charge_service" class="w-3.5 h-3.5 text-blue-600 rounded">
-                      <span>แผนกบริการ (Service)</span>
-                    </label>
-                    <input type="text" id="exp_charge_service_amt" class="w-24 bg-white border rounded px-1.5 py-0.5 text-right" placeholder="บาท">
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <label class="flex items-center space-x-1.5 cursor-pointer">
-                      <input type="checkbox" id="exp_charge_company" class="w-3.5 h-3.5 text-blue-600 rounded">
-                      <span>บริษัท (Company)</span>
-                    </label>
-                    <input type="text" id="exp_charge_company_amt" class="w-24 bg-white border rounded px-1.5 py-0.5 text-right" placeholder="บาท">
-                  </div>
-                </div>
+              <!-- Charge To (Hidden from app UI, outputs '-' in PDF) -->
+              <div class="hidden">
+                <input type="checkbox" id="exp_charge_sales">
+                <input type="text" id="exp_charge_sales_amt">
+                <input type="checkbox" id="exp_charge_service">
+                <input type="text" id="exp_charge_service_amt">
+                <input type="checkbox" id="exp_charge_company">
+                <input type="text" id="exp_charge_company_amt">
               </div>
 
-              <!-- Job Result -->
-              <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">
-                <h5 class="font-bold text-slate-800 border-b pb-1">ผลการทำงาน (Job Result)</h5>
-                <div class="space-y-1">
+              <!-- Job Result (Displayed cleanly) -->
+              <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs col-span-1 md:col-span-2 max-w-lg">
+                <h5 class="font-bold text-slate-800 border-b pb-1 flex items-center justify-between">
+                  <span>ผลการทำงาน (Job Result)</span>
+                </h5>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="checkbox" id="exp_res_completed" class="w-3.5 h-3.5 text-emerald-600 rounded">
-                    <span>งานเรียบร้อย</span>
+                    <span class="font-medium text-slate-700">งานเรียบร้อย</span>
                   </label>
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="checkbox" id="exp_res_in_progress" class="w-3.5 h-3.5 text-amber-600 rounded">
-                    <span>อยู่ระหว่างดำเนินการ</span>
+                    <span class="font-medium text-slate-700">อยู่ระหว่างดำเนินการ</span>
                   </label>
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="checkbox" id="exp_res_pending_approval" class="w-3.5 h-3.5 text-amber-600 rounded">
-                    <span>รออนุมัติ / เสนอราคา</span>
+                    <span class="font-medium text-slate-700">รออนุมัติ / เสนอราคา</span>
                   </label>
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="checkbox" id="exp_res_pending_parts" class="w-3.5 h-3.5 text-amber-600 rounded">
-                    <span>รอสั่งอะไหล่</span>
+                    <span class="font-medium text-slate-700">รอสั่งอะไหล่</span>
                   </label>
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="checkbox" id="exp_res_no_repair" class="w-3.5 h-3.5 text-slate-500 rounded">
-                    <span>ไม่ต้องดำเนินการซ่อม</span>
+                    <span class="font-medium text-slate-700">ไม่ต้องดำเนินการซ่อม</span>
                   </label>
                 </div>
               </div>
 
-              <!-- Funding Source -->
-              <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">
-                <h5 class="font-bold text-slate-800 border-b pb-1">แหล่งงบประมาณ (Fund From)</h5>
-                <div class="space-y-1">
-                  <label class="flex items-center space-x-1.5 cursor-pointer">
-                    <input type="checkbox" id="exp_fund_io_job" class="w-3.5 h-3.5 text-purple-600 rounded">
-                    <span>I/O ของใบงานนี้</span>
-                  </label>
-                  <label class="flex items-center space-x-1.5 cursor-pointer">
-                    <input type="checkbox" id="exp_fund_io_orderer" class="w-3.5 h-3.5 text-purple-600 rounded">
-                    <span>I/O ของผู้สั่งงาน</span>
-                  </label>
-                  <label class="flex items-center space-x-1.5 cursor-pointer">
-                    <input type="checkbox" id="exp_fund_budget" class="w-3.5 h-3.5 text-purple-600 rounded">
-                    <span>งบประมาณของแผนก</span>
-                  </label>
-                  <label class="flex items-center space-x-1.5 cursor-pointer">
-                    <input type="checkbox" id="exp_fund_other" class="w-3.5 h-3.5 text-purple-600 rounded">
-                    <span>อื่นๆ</span>
-                  </label>
-                </div>
+              <!-- Funding Source (Hidden from app UI, outputs '-' in PDF) -->
+              <div class="hidden">
+                <input type="checkbox" id="exp_fund_io_job">
+                <input type="checkbox" id="exp_fund_io_orderer">
+                <input type="checkbox" id="exp_fund_budget">
+                <input type="checkbox" id="exp_fund_other">
               </div>
             </div>
 
@@ -4392,7 +4361,7 @@
 
 
 
-  <script src="app.js?v=20261104_v26_today_doc_creation_dates"></script>
+  <script src="app.js?v=20261104_v27_labor_distance_clean_ui"></script>
 
 
 

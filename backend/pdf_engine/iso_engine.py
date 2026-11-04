@@ -11,6 +11,7 @@ Supported Forms:
 
 import os
 import io
+from datetime import datetime
 import json
 import base64
 import textwrap
@@ -1848,14 +1849,21 @@ class IsoPdfEngine:
         for chk_key, amt_key, cy, y_baseline in exp_cys:
             c_val = data.get(chk_key)
             a_val = str(data.get(amt_key) or "").strip()
+            # Labor fee always defaults to SD-EPS-01 with checkmark
+            if chk_key == "exp_cost_labor":
+                if not a_val or a_val == "-":
+                    a_val = "SD-EPS-01"
+                c_val = True
+
             if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val != "-"):
                 self._insert_tick(page, 314.53, cy, size=8.5, color=(0, 0, 0))
             else:
                 self._insert_dash(page, 314.53, cy, size=8.5)
             self._insert_centered_text(page, 512.65, y_baseline, a_val if a_val else "-", size=9)
 
-        gas_dist = str(data.get("exp_gas_distance") or "").strip()
-        if gas_dist:
+        # Gas distance: sync with exp_distance
+        gas_dist = str(data.get("exp_gas_distance") or data.get("exp_distance") or "").strip()
+        if gas_dist and gas_dist != "-":
             self._insert_text(page, 375.0, 258.9, gas_dist, size=8.5)
 
         # 4. Box 3: Work Summary & Time (Underline centers: cx=242.0, 361.6, 510.0)
@@ -1872,7 +1880,7 @@ class IsoPdfEngine:
             self._insert_centered_text(page, 361.6, y_baseline, v_end if v_end else "-", size=9.5)
             self._insert_centered_text(page, 510.0, y_baseline, v_tot if v_tot else "-", size=9.5)
 
-        self._insert_centered_text(page, 163.2, 398.0, str(data.get("exp_distance") or "-"), size=9.5)
+        self._insert_centered_text(page, 163.2, 398.0, str(data.get("exp_distance") or data.get("exp_gas_distance") or "-"), size=9.5)
         self._insert_centered_text(page, 386.2, 398.0, str(data.get("exp_crew_tech") or "-"), size=9.5)
         self._insert_centered_text(page, 496.3, 398.0, str(data.get("exp_crew_sr_tech") or "-"), size=9.5)
         self._insert_centered_text(page, 427.1, 412.0, str(data.get("exp_crew_eng") or "-"), size=9.5)
@@ -1886,11 +1894,11 @@ class IsoPdfEngine:
         for chk_key, amt_key, cy, y_baseline in charge_items:
             c_val = data.get(chk_key)
             a_val = str(data.get(amt_key) or "").strip()
-            if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val != "-"):
+            if c_val in [True, "true", "True", "1", 1, "yes", "Yes"] or (a_val and a_val not in ["", "-"]):
                 self._insert_tick(page, 87.44, cy, size=8.5, color=(0, 0, 0))
             else:
                 self._insert_dash(page, 87.44, cy, size=8.5)
-            self._insert_centered_text(page, 363.2, y_baseline, a_val if a_val else "-", size=9)
+            self._insert_centered_text(page, 363.2, y_baseline, a_val if (a_val and a_val != "-") else "-", size=9)
 
         # 6. Box 5: Result (Left, cx = 87.44) & Fund from (Right, cx = 314.53)
         result_items = [
@@ -1917,6 +1925,10 @@ class IsoPdfEngine:
                 self._insert_tick(page, 314.53, cy, size=8.5, color=(0, 0, 0))
             else:
                 self._insert_dash(page, 314.53, cy, size=8.5)
+
+        # Other fund text underline at y=554.0 (x=380..520, center 450)
+        fund_other_txt = str(data.get("exp_fund_other_text") or "-").strip()
+        self._insert_centered_text(page, 450.0, 554.0, fund_other_txt if fund_other_txt else "-", size=9)
 
         # 7. Box 6: Additional comments
         comments = str(data.get("exp_comments") or data.get("comments") or "").strip()

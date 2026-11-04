@@ -644,6 +644,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("exp_mgr_name") && !document.getElementById("exp_mgr_name").value) {
     document.getElementById("exp_mgr_name").value = "ไพศาล";
   }
+  if (document.getElementById("exp_cost_labor")) document.getElementById("exp_cost_labor").checked = true;
+  if (document.getElementById("exp_amt_labor") && (!document.getElementById("exp_amt_labor").value || document.getElementById("exp_amt_labor").value === "-")) {
+    document.getElementById("exp_amt_labor").value = "SD-EPS-01";
+  }
   // Initialize default document creation dates to today
   const initToday = new Date().toISOString().split("T")[0];
   ["sr_date", "sr_serviced_date", "exp_date", "exp_tech_date", "exp_sr_tech_date", "exp_sales_date", "exp_mgr_date", "parts_receive_date", "sat_eval_date"].forEach(dId => {
@@ -1271,6 +1275,8 @@ function addFormToPackage(code, customLabel = "") {
       exp_place: plantVal,
       exp_contact: contactVal,
       exp_tel: telVal,
+      exp_cost_labor: true,
+      exp_amt_labor: "SD-EPS-01",
       exp_sr_tech_name: "รณพร",
       exp_mgr_name: "ไพศาล",
       exp_tech_date: dateVal,
@@ -2474,10 +2480,18 @@ function loadInstanceDataIntoDom(inst) {
     costPairs.forEach(([ck, ak]) => {
       const cel = document.getElementById(ck);
       const ael = document.getElementById(ak);
-      if (cel) cel.checked = !!d[ck];
-      if (ael) ael.value = d[ak] || "";
+      if (ck === "exp_cost_labor") {
+        if (cel) cel.checked = (d[ck] !== undefined) ? !!d[ck] : true;
+        if (ael) ael.value = (d[ak] && d[ak] !== "-") ? d[ak] : "SD-EPS-01";
+      } else {
+        if (cel) cel.checked = !!d[ck];
+        if (ael) ael.value = d[ak] || "";
+      }
     });
-    if (document.getElementById("exp_gas_distance")) document.getElementById("exp_gas_distance").value = d.exp_gas_distance || "";
+    // Two-way sync distance on load
+    const activeDist = d.exp_gas_distance || d.exp_distance || "";
+    if (document.getElementById("exp_gas_distance")) document.getElementById("exp_gas_distance").value = activeDist;
+    if (document.getElementById("exp_distance")) document.getElementById("exp_distance").value = activeDist;
 
     // Work summary
     const sumFields = [
@@ -8718,18 +8732,39 @@ function showToast(text, duration = 3000) {
 
 
 
-function calcExpGas() {
-  const dist = parseFloat(document.getElementById("exp_gas_distance")?.value || 0);
+function syncDistance(sourceId, val) {
+  const targetId = (sourceId === "exp_gas_distance") ? "exp_distance" : "exp_gas_distance";
+  const targetEl = document.getElementById(targetId);
+  if (targetEl && targetEl.value !== val) {
+    targetEl.value = val;
+  }
+
+  // Calculate gas cost: distance * 5
+  const dist = parseFloat(val || 0);
+  const gasAmt = document.getElementById("exp_amt_gas");
+  const chk = document.getElementById("exp_cost_gas");
   if (dist > 0) {
     const cost = dist * 5;
-    const gasAmt = document.getElementById("exp_amt_gas");
     if (gasAmt && (!gasAmt.value || gasAmt.dataset.auto === "1")) {
       gasAmt.value = cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       gasAmt.dataset.auto = "1";
     }
-    const chk = document.getElementById("exp_cost_gas");
     if (chk) chk.checked = true;
+  } else {
+    if (gasAmt && gasAmt.dataset.auto === "1") {
+      gasAmt.value = "";
+    }
+    if (chk && !dist) chk.checked = false;
   }
+
+  if (typeof saveCurrentActiveInstanceData === "function") {
+    saveCurrentActiveInstanceData();
+  }
+}
+
+function calcExpGas() {
+  const distVal = document.getElementById("exp_gas_distance")?.value || document.getElementById("exp_distance")?.value || "";
+  syncDistance("exp_gas_distance", distVal);
 }
 
 // =============================================================================

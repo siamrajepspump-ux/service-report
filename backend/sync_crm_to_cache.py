@@ -75,11 +75,26 @@ def sync_crm_cache():
         if sf not in fieldnames:
             fieldnames.append(sf)
 
+    # Deduplicate existing_rows first to ensure strictly 1 row per ticket
+    dedup_rows = []
+    seen_keys = set()
+    for r in existing_rows:
+        primary_k = clean_str(r.get("RequestNo")) or clean_str(r.get("TicketKey")) or clean_str(r.get("Title"))
+        if not primary_k:
+            primary_k = clean_str(r.get("TicketNo"))
+        if primary_k:
+            if primary_k in seen_keys:
+                continue
+            seen_keys.add(primary_k)
+        dedup_rows.append(r)
+    existing_rows = dedup_rows
+
     cache_dict = {}
     for idx, r in enumerate(existing_rows):
-        key = clean_str(r.get("RequestNo")) or clean_str(r.get("TicketNo")) or clean_str(r.get("TicketKey"))
-        if key:
-            cache_dict[key] = idx
+        for k in ["TicketKey", "RequestNo", "Title", "TicketNo", "VtigerTicket"]:
+            val = clean_str(r.get(k))
+            if val and val not in cache_dict:
+                cache_dict[val] = idx
 
     print(f" -> Existing cache loaded: {len(existing_rows)} records (Field count: {len(fieldnames)})")
 
@@ -161,12 +176,22 @@ def sync_crm_cache():
             # Normalize to fieldnames
             clean_item = {fn: row_data.get(fn, "") for fn in fieldnames}
 
-            if req_no in cache_dict:
-                existing_rows[cache_dict[req_no]].update(clean_item)
+            target_idx = None
+            if req_no and req_no in cache_dict:
+                target_idx = cache_dict[req_no]
+            elif vtiger_no and vtiger_no in cache_dict:
+                target_idx = cache_dict[vtiger_no]
+
+            if target_idx is not None:
+                existing_rows[target_idx].update(clean_item)
                 updated_count += 1
             else:
                 existing_rows.append(clean_item)
-                cache_dict[req_no] = len(existing_rows) - 1
+                new_idx = len(existing_rows) - 1
+                if req_no:
+                    cache_dict[req_no] = new_idx
+                if vtiger_no:
+                    cache_dict[vtiger_no] = new_idx
                 new_count += 1
 
     # 4. Write back to crm_tickets_cache.csv

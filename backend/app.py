@@ -275,9 +275,21 @@ def load_crm_cache(force: bool = False) -> List[Dict[str, Any]]:
                     item["Status"] = clean_str(r.get("Status")) or "Open"
                     loaded_items.append(item)
 
-            crm_cache = loaded_items
+            # Deduplicate loaded_items by RequestNo / TicketKey
+            dedup_dict = {}
+            for it in loaded_items:
+                k = it.get("RequestNo") or it.get("TicketNo") or it.get("TicketKey")
+                if not k:
+                    continue
+                if k not in dedup_dict:
+                    dedup_dict[k] = it
+                else:
+                    for field, val in it.items():
+                        if val and not dedup_dict[k].get(field):
+                            dedup_dict[k][field] = val
+            crm_cache = list(dedup_dict.values())
             crm_cache_mtime = current_mtime
-            print(f"[CRM Cache] Loaded {len(crm_cache)} tickets from {target_path} (updated: {time.ctime(current_mtime)})")
+            print(f"[CRM Cache] Loaded {len(crm_cache)} unique tickets from {target_path} (updated: {time.ctime(current_mtime)})")
     except Exception as e:
         print(f"[CRM Cache] Error loading {target_path}: {e}")
     return crm_cache
@@ -338,6 +350,17 @@ def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25,
             return (6, 0)
 
         results.sort(key=sort_rank)
+
+        # Ensure results are strictly unique by RequestNo
+        seen_keys = set()
+        deduped_results = []
+        for r in results:
+            k = r.get("RequestNo") or r.get("TicketNo") or r.get("TicketKey")
+            if k and k in seen_keys:
+                continue
+            seen_keys.add(k)
+            deduped_results.append(r)
+        results = deduped_results
     elif sort == "desc":
         results = list(reversed(crm_cache))
 

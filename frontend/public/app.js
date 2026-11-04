@@ -988,6 +988,17 @@ function addFormToPackage(code, customLabel = "") {
 
     };
 
+  } else if (code === "FM-EPS-45") {
+    initialData = {
+      sat_customer: custVal,
+      sat_contact_person: contactVal,
+      sat_contact_no: telVal,
+      sat_eval_date: dateVal,
+      ratings: {},
+      total_score: 0,
+      max_score: 56,
+      suggestions: ""
+    };
   }
 
 
@@ -4625,12 +4636,12 @@ async function selectTicket(ticketNo) {
     // Load existing draft if present
     const hasDraft = await loadTicketDraft(ticketNo);
 
-    // If draft has instances, select the first one; otherwise leave empty for user to choose
+    // If draft has instances, select active instance or first one; otherwise leave empty for user to choose
     if (state.packageInstances && state.packageInstances.length > 0) {
-      const firstInst = state.packageInstances[0];
+      const activeInst = state.packageInstances.find(i => i.id === state.activeInstanceId) || state.packageInstances[0];
       state.activeInstanceId = null;
       renderPackageTabs();
-      selectPackageInstance(firstInst.id);
+      selectPackageInstance(activeInst.id);
     } else {
       selectPackageInstance(null);
       renderPackageTabs();
@@ -4659,46 +4670,142 @@ async function selectTicket(ticketNo) {
 
 
 async function loadTicketDraft(ticketNo) {
-  let loaded = false;
+  let serverDraft = null;
+  let localDraft = null;
+
+  // 1. Read local storage draft
+  try {
+    const localStr = localStorage.getItem(`siamraj_draft_${ticketNo}`);
+    if (localStr) {
+      localDraft = stripDraftBloat(JSON.parse(localStr));
+    }
+  } catch (le) {
+    console.warn("LocalStorage read warning:", le);
+  }
+
+  // 2. Fetch server draft
   try {
     const res = await fetch(`/api/reports/load-draft/${encodeURIComponent(ticketNo)}?_t=${Date.now()}`, {
       cache: "no-store"
     });
     if (res.ok) {
       const draft = await res.json();
-      const cleanDraft = stripDraftBloat(draft);
-      applyDraftData(cleanDraft);
-      try {
-        localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(cleanDraft));
-        localStorage.setItem(`siamraj_draft_time_${ticketNo}`, new Date().toISOString());
-      } catch (_) {}
-      loaded = true;
-      return true;
+      serverDraft = stripDraftBloat(draft);
     }
   } catch (e) {
     console.warn("Server draft load notice:", e);
   }
 
-  // Fallback to browser localStorage if server disk was reset (e.g. Render restart or rebuild)
-  if (!loaded) {
-    try {
-      const localStr = localStorage.getItem(`siamraj_draft_${ticketNo}`);
-      if (localStr) {
-        const localDraft = JSON.parse(localStr);
-        applyDraftData(localDraft);
-        loaded = true;
-        return true;
-      }
-    } catch (le) {
-      console.warn("LocalStorage fallback load error:", le);
+  // 3. Intelligent merge / preference
+  let chosenDraft = null;
+  if (localDraft && serverDraft) {
+    const localTime = new Date(localDraft._updated_at || localStorage.getItem(`siamraj_draft_time_${ticketNo}`) || 0).getTime();
+    const serverTime = new Date(serverDraft._updated_at || 0).getTime();
+
+    const localHasSat = (localDraft.form_instances || []).some(i => i.code === "FM-EPS-45");
+    const serverHasSat = (serverDraft.form_instances || []).some(i => i.code === "FM-EPS-45");
+
+    if (localTime >= serverTime || (localHasSat && !serverHasSat)) {
+      chosenDraft = localDraft;
+    } else {
+      chosenDraft = serverDraft;
     }
+  } else {
+    chosenDraft = serverDraft || localDraft;
   }
+
+  if (chosenDraft) {
+    applyDraftData(chosenDraft);
+    try {
+      localStorage.setItem(`siamraj_draft_${ticketNo}`, JSON.stringify(chosenDraft));
+      localStorage.setItem(`siamraj_draft_time_${ticketNo}`, chosenDraft._updated_at || new Date().toISOString());
+    } catch (_) {}
+    return true;
+  }
+
   return false;
 }
 
 function applyDraftData(d) {
-  if (d.form_instances && Array.isArray(d.form_instances) && d.form_instances.length > 0) {
-    // Backfill any root fields into FM-EPS-23 and FM-EPS-22 if missing
+  if (!d || typeof d !== "object") return;
+  if (!Array.isArray(d.form_instances)) {
+    d.form_instances = [];
+  }
+
+  // Auto-restore FM-EPS-45 if draft contains ratings or satisfaction fields
+  const hasSatData = (d.ratings && Object.keys(d.ratings).length > 0) || 
+                     (d.sat_customer && d.sat_customer !== "-") || 
+                     (d.sat_total_score !== undefined && d.sat_total_score > 0) || 
+                     (d.suggestions && d.suggestions.trim().length > 0);
+  if (hasSatData && !d.form_instances.some(i => i.code === "FM-EPS-45")) {
+    d.form_instances.push({
+      id: `inst_sat_${Date.now()}`,
+      code: "FM-EPS-45",
+      title: FORM_DEFS["FM-EPS-45"]?.title || "แบบประเมินความพึงพอใจลูกค้า (Customer Satisfaction)",
+      num: 1,
+      customLabel: "",
+      data: {
+        sat_customer: d.sat_customer || d.customer || "",
+        sat_contact_person: d.sat_contact_person || d.contact_person || "",
+        sat_contact_no: d.sat_contact_no || d.contact_no || "",
+        sat_eval_date: d.sat_eval_date || d.date || "",
+        ratings: d.ratings || {},
+        total_score: d.sat_total_score || 0,
+        max_score: 56,
+        suggestions: d.suggestions || d.sat_suggestions || ""
+      }
+    });
+  }
+
+  // Synthesize legacy forms if form_instances is empty
+  if (d.form_instances.length === 0) {
+    if (d.cause || d.repairing || (d.service_subjects && d.service_subjects.length > 0) || d.pump_model) {
+      d.form_instances.push({
+        id: `inst_sr_${Date.now()}`,
+        code: "FM-EPS-23",
+        title: FORM_DEFS["FM-EPS-23"]?.title || "รายงานการบริการ (Service Report)",
+        num: 1,
+        customLabel: "",
+        data: {
+          pump_brand: d.pump_brand || "VIKING",
+          pump_model: d.pump_model || "",
+          serial_no: d.serial_no || "",
+          cause: d.cause || "",
+          repairing: d.repairing || "",
+          service_subjects: d.service_subjects || []
+        }
+      });
+    }
+    if (d.visual_checklist || d.alignment || d.vibration) {
+      d.form_instances.push({
+        id: `inst_cr_${Date.now()}`,
+        code: "FM-EPS-22",
+        title: FORM_DEFS["FM-EPS-22"]?.title || "รายงานการตรวจสภาพเครื่องจักร (Check Report)",
+        num: 1,
+        customLabel: "",
+        data: {
+          visual_checklist: d.visual_checklist || [],
+          alignment: d.alignment || {},
+          vibration: d.vibration || {}
+        }
+      });
+    }
+    if (d.photos && d.photos.length > 0) {
+      d.form_instances.push({
+        id: `inst_photo_${Date.now()}`,
+        code: "PHOTO_REPORT",
+        title: FORM_DEFS["PHOTO_REPORT"]?.title || "รายงานภาพถ่ายประกอบ (Service Photo Report)",
+        num: 1,
+        customLabel: "",
+        data: {
+          photos: d.photos
+        }
+      });
+    }
+  }
+
+  if (d.form_instances && d.form_instances.length > 0) {
+    // Backfill any root fields into instances if missing
     d.form_instances.forEach(fi => {
       if (fi.code === "FM-EPS-23") {
         if (!fi.data) fi.data = {};
@@ -4734,9 +4841,17 @@ function applyDraftData(d) {
         if (fi.data.total_score === undefined && d.sat_total_score !== undefined) fi.data.total_score = d.sat_total_score;
       }
     });
+
     state.packageInstances = d.form_instances;
-    // Always activate FM-EPS-23 (Service Report) first when opening report
-    const targetInst = state.packageInstances.find(i => i.code === "FM-EPS-23") || state.packageInstances[0];
+
+    // Restore active instance: prefer previously active form if saved, or first form
+    let targetInst = null;
+    if (d.active_instance_id) {
+      targetInst = state.packageInstances.find(i => i.id === d.active_instance_id);
+    }
+    if (!targetInst) {
+      targetInst = state.packageInstances[0];
+    }
     state.activeInstanceId = null;
     renderPackageTabs();
     selectPackageInstance(targetInst.id);

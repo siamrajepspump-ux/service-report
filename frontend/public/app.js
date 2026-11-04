@@ -310,6 +310,8 @@ const TECH_FIELD_CONFIG = [
   { id: "exp_sr_tech_name", placeholder: "➕ เพิ่มช่างอาวุโส / วิศวกร..." },
   { id: "insp_tech_incoming", placeholder: "➕ เพิ่มช่างตรวจรับเข้า..." },
   { id: "insp_tech_final", placeholder: "➕ เพิ่มช่างตรวจส่งมอบ..." },
+  { id: "insp_approve_incoming", placeholder: "➕ เลือกผู้อนุมัติรับเข้า (ไพศาล / สนั่น)...", isApprover: true },
+  { id: "insp_approve_final", placeholder: "➕ เลือกผู้อนุมัติส่งมอบ (ไพศาล / สนั่น)...", isApprover: true },
   { id: "parts_receiver_name", placeholder: "➕ เพิ่มผู้รับงาน / ช่าง..." },
   { id: "photo_reported_by", placeholder: "➕ เพิ่มวิศวกร/ช่างผู้จัดทำ..." }
 ];
@@ -409,7 +411,12 @@ function refreshTechDropdownOptions() {
     optDefault.textContent = cfg.placeholder;
     sel.appendChild(optDefault);
 
-    const groups = {
+    const isApprover = !!cfg.isApprover;
+    const groups = isApprover ? {
+      "ผู้อนุมัติตามตำแหน่ง (Engineer & Management)": [],
+      "Senior Technician": [],
+      "Technician": []
+    } : {
       "Senior Technician": [],
       "Technician": [],
       "Engineer / Management": []
@@ -419,13 +426,24 @@ function refreshTechDropdownOptions() {
       const item = typeof t === "string" ? { name: cleanToFirstName(t), position: "" } : t;
       const pos = item.position || "";
       if (pos.includes("Senior")) {
-        groups["Senior Technician"].push(item);
+        groups["Senior Technician"]?.push(item);
       } else if (pos.includes("Technician")) {
-        groups["Technician"].push(item);
+        groups["Technician"]?.push(item);
       } else {
-        groups["Engineer / Management"].push(item);
+        const targetGroup = isApprover
+          ? groups["ผู้อนุมัติตามตำแหน่ง (Engineer & Management)"]
+          : groups["Engineer / Management"];
+        targetGroup?.push(item);
       }
     });
+
+    if (isApprover && groups["ผู้อนุมัติตามตำแหน่ง (Engineer & Management)"]) {
+      // Prioritize ไพศาล (Assist. Manager) and สนั่น (Engineer) at the very top
+      groups["ผู้อนุมัติตามตำแหน่ง (Engineer & Management)"].sort((a, b) => {
+        const prio = { "ไพศาล": 1, "สนั่น": 2, "รณพร": 3 };
+        return (prio[a.name] || 99) - (prio[b.name] || 99);
+      });
+    }
 
     Object.entries(groups).forEach(([groupName, items]) => {
       if (items.length === 0) return;
@@ -470,9 +488,17 @@ function addTechNameToField(inputId, nameToAdd) {
   const input = document.getElementById(inputId);
   if (!input) return;
 
-  const currentNames = parseTechNames(input.value);
-  if (!currentNames.includes(nameToAdd)) {
-    currentNames.push(nameToAdd);
+  const cfg = TECH_FIELD_CONFIG.find(c => c.id === inputId);
+  const isApprover = cfg && cfg.isApprover;
+
+  let currentNames = parseTechNames(input.value);
+  if (isApprover) {
+    // Single-select for approver: selecting a name sets that approver
+    currentNames = [nameToAdd];
+  } else {
+    if (!currentNames.includes(nameToAdd)) {
+      currentNames.push(nameToAdd);
+    }
   }
 
   const newJoinedVal = currentNames.join(", ");
@@ -537,7 +563,12 @@ function renderTechBadges(inputId) {
   container.innerHTML = "";
 
   if (names.length === 0) {
-    container.innerHTML = `<span class="text-[11px] text-slate-400 italic">ยังไม่ได้เลือกช่าง (แตะ Dropdown เพื่อเพิ่ม)</span>`;
+    const cfg = TECH_FIELD_CONFIG.find(c => c.id === inputId);
+    const isApprover = cfg && cfg.isApprover;
+    const emptyMsg = isApprover
+      ? "ยังไม่ได้เลือกผู้อนุมัติ (แตะ Dropdown เพื่อเลือก)"
+      : "ยังไม่ได้เลือกช่าง (แตะ Dropdown เพื่อเพิ่ม)";
+    container.innerHTML = `<span class="text-[11px] text-slate-400 italic">${emptyMsg}</span>`;
     return;
   }
 
@@ -2728,19 +2759,17 @@ function loadInstanceDataIntoDom(inst) {
       }
 
       if (inst.data.approve_incoming_name) {
-
-        const el = document.getElementById("insp_approve_incoming");
-
-        if (el) el.value = inst.data.approve_incoming_name;
-
+        if (typeof syncTechField === "function") syncTechField("insp_approve_incoming", inst.data.approve_incoming_name);
+        else { const el = document.getElementById("insp_approve_incoming"); if (el) el.value = inst.data.approve_incoming_name; }
+      } else {
+        if (typeof syncTechField === "function") syncTechField("insp_approve_incoming", "");
       }
 
       if (inst.data.approve_final_name) {
-
-        const el = document.getElementById("insp_approve_final");
-
-        if (el) el.value = inst.data.approve_final_name;
-
+        if (typeof syncTechField === "function") syncTechField("insp_approve_final", inst.data.approve_final_name);
+        else { const el = document.getElementById("insp_approve_final"); if (el) el.value = inst.data.approve_final_name; }
+      } else {
+        if (typeof syncTechField === "function") syncTechField("insp_approve_final", "");
       }
 
     } else {
@@ -5689,9 +5718,15 @@ function applyDraftData(d) {
     else if (document.getElementById("insp_tech_final")) document.getElementById("insp_tech_final").value = d.tech_final_name;
   }
 
-  if (d.approve_incoming_name && document.getElementById("insp_approve_incoming")) document.getElementById("insp_approve_incoming").value = d.approve_incoming_name;
+  if (d.approve_incoming_name) {
+    if (typeof syncTechField === "function") syncTechField("insp_approve_incoming", d.approve_incoming_name);
+    else if (document.getElementById("insp_approve_incoming")) document.getElementById("insp_approve_incoming").value = d.approve_incoming_name;
+  }
 
-  if (d.approve_final_name && document.getElementById("insp_approve_final")) document.getElementById("insp_approve_final").value = d.approve_final_name;
+  if (d.approve_final_name) {
+    if (typeof syncTechField === "function") syncTechField("insp_approve_final", d.approve_final_name);
+    else if (document.getElementById("insp_approve_final")) document.getElementById("insp_approve_final").value = d.approve_final_name;
+  }
 
 
 

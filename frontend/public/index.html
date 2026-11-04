@@ -2535,29 +2535,41 @@
             </div>
 
             <div class="border rounded-xl p-3 bg-slate-50/60 space-y-2">
-
               <span class="font-bold text-slate-800 block text-xs">ผู้อนุมัติ (Approve By)</span>
-
               <div class="grid grid-cols-2 gap-2">
-
-                <div>
-
-                  <label class="block text-[11px] text-slate-600 mb-0.5">Approve By (Incoming) :</label>
-
-                  <input type="text" id="insp_approve_incoming" placeholder="ชื่อวิศวกรอนุมัติรับเข้า" class="w-full p-1.5 border rounded text-xs bg-white focus:ring-2 focus:ring-red-500">
-
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <label class="block text-[11px] text-slate-600">Approve By (Incoming) :</label>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="clearTechBadges('insp_approve_incoming')" class="text-[9px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                      <button type="button" onclick="toggleTechCustom('insp_approve_incoming')" class="text-[9px] text-red-600 hover:underline cursor-pointer">
+                        <span id="techToggle_insp_approve_incoming">✏️ พิมพ์</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="techBadges_insp_approve_incoming" class="flex flex-wrap gap-1 min-h-[24px] p-1 bg-white border border-slate-200 rounded text-[11px] items-center"></div>
+                  <select id="techSelect_insp_approve_incoming" onchange="onTechSelectAdd('insp_approve_incoming', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
+                    <option value="">➕ เลือกผู้อนุมัติรับเข้า (ไพศาล / สนั่น)...</option>
+                  </select>
+                  <input type="text" id="insp_approve_incoming" placeholder="ชื่อวิศวกรอนุมัติรับเข้า" class="w-full p-1.5 border rounded text-xs bg-white focus:ring-2 focus:ring-red-500 hidden" oninput="onTechInputManual('insp_approve_incoming', this.value)">
                 </div>
-
-                <div>
-
-                  <label class="block text-[11px] text-slate-600 mb-0.5">Approve By (Final) :</label>
-
-                  <input type="text" id="insp_approve_final" placeholder="ชื่อวิศวกรอนุมัติส่งมอบ" class="w-full p-1.5 border rounded text-xs bg-white focus:ring-2 focus:ring-red-500">
-
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <label class="block text-[11px] text-slate-600">Approve By (Final) :</label>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="clearTechBadges('insp_approve_final')" class="text-[9px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                      <button type="button" onclick="toggleTechCustom('insp_approve_final')" class="text-[9px] text-red-600 hover:underline cursor-pointer">
+                        <span id="techToggle_insp_approve_final">✏️ พิมพ์</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="techBadges_insp_approve_final" class="flex flex-wrap gap-1 min-h-[24px] p-1 bg-white border border-slate-200 rounded text-[11px] items-center"></div>
+                  <select id="techSelect_insp_approve_final" onchange="onTechSelectAdd('insp_approve_final', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
+                    <option value="">➕ เลือกผู้อนุมัติส่งมอบ (ไพศาล / สนั่น)...</option>
+                  </select>
+                  <input type="text" id="insp_approve_final" placeholder="ชื่อวิศวกรอนุมัติส่งมอบ" class="w-full p-1.5 border rounded text-xs bg-white focus:ring-2 focus:ring-red-500 hidden" oninput="onTechInputManual('insp_approve_final', this.value)">
                 </div>
-
               </div>
-
             </div>
 
           </div>
@@ -4373,7 +4385,7 @@
 
 
 
-  <script src="app.js?v=20261104_v28_recent_tickets_and_android_camera"></script>
+  <script src="app.js?v=20261104_v29_inspection_approve_dropdowns"></script>
 
 
 

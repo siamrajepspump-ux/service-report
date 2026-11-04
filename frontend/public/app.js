@@ -283,9 +283,234 @@ function formatIsoToDmy(isoStr) {
 
 
 
+
+// =============================================================================
+// TECHNICIAN DROPDOWNS & AUTO-SUGGEST
+// =============================================================================
+const OFFICIAL_TECHNICIANS = [
+  "นาย กฤษเอก ประชุมพันธ์",
+  "นาย จุมพล ไข่แก้ว",
+  "นาย ฉัตรชัย เที่ยงเกตุ",
+  "นาย ณฐวัฒน์ คุ้มหนู",
+  "นาย ธนพล สุภิษะ",
+  "นาย ธีริทธิ์ ตาลพุดซา",
+  "นาย พิชิตชัย แสดใหม่",
+  "นาย พูลศักดิ์ จำปาบุรี",
+  "นาย ภาศกร ธรรมประชา",
+  "นาย รณพร หยวกใจธรรม",
+  "นาย วีรวัฒน์ คุประตกุล",
+  "นาย สนั่น จอมทรักษ์",
+  "นาย โชคชัย เป็นอัน",
+  "นาย โชคอำนวย ดอนแก้ว",
+  "นาย ไพศาล สง่าวงษ์"
+];
+
+let globalTechList = [...OFFICIAL_TECHNICIANS];
+
+const TECH_FIELD_CONFIG = [
+  { id: "techSignerName", placeholder: "-- เลือกช่างผู้บริการ (Serviced By) --", isMaster: true },
+  { id: "exp_tech_name", placeholder: "-- เลือกช่างบริการ (Technician) --" },
+  { id: "exp_sr_tech_name", placeholder: "-- เลือกช่างอาวุโส / วิศวกร --" },
+  { id: "insp_tech_incoming", placeholder: "-- เลือกช่างตรวจรับเข้า (Incoming) --" },
+  { id: "insp_tech_final", placeholder: "-- เลือกช่างตรวจส่งมอบ (Final) --" },
+  { id: "parts_receiver_name", placeholder: "-- เลือกผู้รับงาน / ช่าง --" },
+  { id: "photo_reported_by", placeholder: "-- เลือกวิศวกร/ช่างผู้จัดทำ --" }
+];
+
+async function initAllTechDropdowns() {
+  refreshTechDropdownOptions();
+
+  try {
+    const res = await fetch("/api/technicians");
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.technicians) && data.technicians.length > 0) {
+        const merged = new Set([...OFFICIAL_TECHNICIANS, ...data.technicians]);
+        globalTechList = Array.from(merged).sort((a, b) => a.localeCompare(b, "th"));
+        refreshTechDropdownOptions();
+      }
+    }
+  } catch (err) {
+    console.warn("Using bundled technician list:", err);
+  }
+
+  const savedTech = localStorage.getItem("siamraj_saved_technician");
+  const masterInput = document.getElementById("techSignerName");
+  if (savedTech && masterInput && !masterInput.value) {
+    syncTechField("techSignerName", savedTech, true);
+  }
+}
+
+function refreshTechDropdownOptions() {
+  TECH_FIELD_CONFIG.forEach(cfg => {
+    const sel = document.getElementById(`techSelect_${cfg.id}`);
+    const input = document.getElementById(cfg.id);
+    if (!sel) return;
+
+    const currentVal = input ? input.value.trim() : "";
+    sel.innerHTML = "";
+
+    const optDefault = document.createElement("option");
+    optDefault.value = "";
+    optDefault.textContent = cfg.placeholder;
+    sel.appendChild(optDefault);
+
+    let hasCurrentVal = false;
+    globalTechList.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      if (currentVal && (currentVal === name || currentVal.includes(name))) {
+        opt.selected = true;
+        hasCurrentVal = true;
+      }
+      sel.appendChild(opt);
+    });
+
+    if (currentVal && !hasCurrentVal && currentVal !== "-") {
+      const optCustom = document.createElement("option");
+      optCustom.value = currentVal;
+      optCustom.textContent = `${currentVal} (จากระบบ)`;
+      optCustom.selected = true;
+      sel.appendChild(optCustom);
+    }
+
+    const optManual = document.createElement("option");
+    optManual.value = "__custom__";
+    optManual.textContent = "✏️ กรอกชื่ออื่นเอง...";
+    sel.appendChild(optManual);
+  });
+}
+
+function onTechSelectChange(inputId, val) {
+  const input = document.getElementById(inputId);
+  const sel = document.getElementById(`techSelect_${inputId}`);
+  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
+
+  if (val === "__custom__") {
+    if (input) {
+      input.classList.remove("hidden");
+      input.focus();
+    }
+    if (sel) sel.classList.add("hidden");
+    if (toggleBtn) toggleBtn.innerHTML = "📋 เลือกจาก Dropdown";
+    return;
+  }
+
+  if (input) {
+    input.value = val;
+    input.classList.add("hidden");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  if (sel) sel.classList.remove("hidden");
+  if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
+
+  if (inputId === "techSignerName") {
+    const bannerTechEl = document.getElementById("bannerTech");
+    if (bannerTechEl) {
+      bannerTechEl.innerHTML = val ? `<span class="text-slate-800 font-bold">${val}</span>` : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
+    }
+    if (val) {
+      localStorage.setItem("siamraj_saved_technician", val);
+      ["exp_tech_name", "insp_tech_incoming", "parts_receiver_name", "photo_reported_by"].forEach(otherId => {
+        const otherInput = document.getElementById(otherId);
+        if (otherInput && (!otherInput.value || otherInput.value === "-")) {
+          syncTechField(otherId, val);
+        }
+      });
+    }
+  }
+}
+
+function onTechInputManual(inputId, val) {
+  if (inputId === "techSignerName") {
+    const bannerTechEl = document.getElementById("bannerTech");
+    if (bannerTechEl) {
+      bannerTechEl.innerHTML = val.trim() ? `<span class="text-slate-800 font-bold">${val.trim()}</span>` : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
+    }
+    if (val.trim()) {
+      localStorage.setItem("siamraj_saved_technician", val.trim());
+    }
+  }
+}
+
+function toggleTechCustom(inputId) {
+  const input = document.getElementById(inputId);
+  const sel = document.getElementById(`techSelect_${inputId}`);
+  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
+  if (!input || !sel) return;
+
+  const isHidden = input.classList.contains("hidden");
+  if (isHidden) {
+    input.classList.remove("hidden");
+    sel.classList.add("hidden");
+    input.focus();
+    if (toggleBtn) toggleBtn.innerHTML = "📋 เลือกจาก Dropdown";
+  } else {
+    input.classList.add("hidden");
+    sel.classList.remove("hidden");
+    if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
+    if (input.value) {
+      syncTechField(inputId, input.value);
+    }
+  }
+}
+
+function syncTechField(inputId, val, isInitial = false) {
+  const input = document.getElementById(inputId);
+  const sel = document.getElementById(`techSelect_${inputId}`);
+  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
+  const cleanVal = (val || "").trim();
+
+  if (input) {
+    input.value = cleanVal;
+    input.classList.add("hidden");
+  }
+  if (sel) {
+    sel.classList.remove("hidden");
+    if (!cleanVal || cleanVal === "-") {
+      sel.value = "";
+    } else {
+      let found = false;
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === cleanVal || (cleanVal && sel.options[i].value.includes(cleanVal))) {
+          sel.selectedIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const opt = document.createElement("option");
+        opt.value = cleanVal;
+        opt.textContent = `${cleanVal} (จากระบบ)`;
+        sel.insertBefore(opt, sel.lastElementChild);
+        opt.selected = true;
+      }
+    }
+  }
+  if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
+
+  if (inputId === "techSignerName") {
+    const bannerTechEl = document.getElementById("bannerTech");
+    if (bannerTechEl) {
+      bannerTechEl.innerHTML = cleanVal && cleanVal !== "-"
+        ? `<span class="text-slate-800 font-bold">${cleanVal}</span>`
+        : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
+    }
+  }
+}
+
+window.initAllTechDropdowns = initAllTechDropdowns;
+window.refreshTechDropdownOptions = refreshTechDropdownOptions;
+window.onTechSelectChange = onTechSelectChange;
+window.onTechInputManual = onTechInputManual;
+window.toggleTechCustom = toggleTechCustom;
+window.syncTechField = syncTechField;
+
 document.addEventListener("DOMContentLoaded", () => {
 
   initIcons();
+  initAllTechDropdowns();
 
   initSignaturePads();
 
@@ -2142,9 +2367,15 @@ function loadInstanceDataIntoDom(inst) {
     if (document.getElementById("exp_comments")) document.getElementById("exp_comments").value = d.exp_comments || "";
 
     // Signatures
-    if (document.getElementById("exp_tech_name")) document.getElementById("exp_tech_name").value = d.exp_tech_name !== undefined ? d.exp_tech_name : defaultTech;
+    const expT = d.exp_tech_name !== undefined ? d.exp_tech_name : defaultTech;
+    if (typeof syncTechField === "function") {
+      syncTechField("exp_tech_name", expT);
+      syncTechField("exp_sr_tech_name", d.exp_sr_tech_name || "");
+    } else {
+      if (document.getElementById("exp_tech_name")) document.getElementById("exp_tech_name").value = expT;
+      if (document.getElementById("exp_sr_tech_name")) document.getElementById("exp_sr_tech_name").value = d.exp_sr_tech_name || "";
+    }
     if (document.getElementById("exp_tech_date")) document.getElementById("exp_tech_date").value = d.exp_tech_date !== undefined ? d.exp_tech_date : defaultDate;
-    if (document.getElementById("exp_sr_tech_name")) document.getElementById("exp_sr_tech_name").value = d.exp_sr_tech_name || "";
     if (document.getElementById("exp_sr_tech_date")) document.getElementById("exp_sr_tech_date").value = d.exp_sr_tech_date !== undefined ? d.exp_sr_tech_date : defaultDate;
     if (document.getElementById("exp_sales_name")) document.getElementById("exp_sales_name").value = d.exp_sales_name !== undefined ? d.exp_sales_name : defaultSales;
     if (document.getElementById("exp_sales_date")) document.getElementById("exp_sales_date").value = d.exp_sales_date !== undefined ? d.exp_sales_date : defaultDate;
@@ -2322,19 +2553,13 @@ function loadInstanceDataIntoDom(inst) {
       }
 
       if (inst.data.tech_incoming_name) {
-
-        const el = document.getElementById("insp_tech_incoming");
-
-        if (el) el.value = inst.data.tech_incoming_name;
-
+        if (typeof syncTechField === "function") syncTechField("insp_tech_incoming", inst.data.tech_incoming_name);
+        else { const el = document.getElementById("insp_tech_incoming"); if (el) el.value = inst.data.tech_incoming_name; }
       }
 
       if (inst.data.tech_final_name) {
-
-        const el = document.getElementById("insp_tech_final");
-
-        if (el) el.value = inst.data.tech_final_name;
-
+        if (typeof syncTechField === "function") syncTechField("insp_tech_final", inst.data.tech_final_name);
+        else { const el = document.getElementById("insp_tech_final"); if (el) el.value = inst.data.tech_final_name; }
       }
 
       if (inst.data.approve_incoming_name) {
@@ -2559,7 +2784,10 @@ function loadInstanceDataIntoDom(inst) {
 
       if (inst.data.sale_name) document.getElementById("parts_sale_name").value = inst.data.sale_name;
 
-      if (inst.data.receiver_name) document.getElementById("parts_receiver_name").value = inst.data.receiver_name;
+      if (inst.data.receiver_name) {
+        if (typeof syncTechField === "function") syncTechField("parts_receiver_name", inst.data.receiver_name);
+        else document.getElementById("parts_receiver_name").value = inst.data.receiver_name;
+      }
 
       if (inst.data.receive_date) document.getElementById("parts_receive_date").value = inst.data.receive_date;
 
@@ -2922,9 +3150,8 @@ function loadInstanceDataIntoDom(inst) {
     }
 
     if (document.getElementById("photo_reported_by")) {
-
-      document.getElementById("photo_reported_by").value = d.reported_by || "";
-
+      if (typeof syncTechField === "function") syncTechField("photo_reported_by", d.reported_by || "");
+      else document.getElementById("photo_reported_by").value = d.reported_by || "";
     }
 
     if (document.getElementById("photo_recommended")) {
@@ -4565,13 +4792,12 @@ async function selectTicket(ticketNo) {
 
     // Technician fields: leave completely blank for user to enter manually
 
-    if (document.getElementById("techSignerName")) document.getElementById("techSignerName").value = "";
-
-    if (document.getElementById("insp_tech_incoming")) document.getElementById("insp_tech_incoming").value = "";
-
-    if (document.getElementById("insp_tech_final")) document.getElementById("insp_tech_final").value = "";
-
-    if (document.getElementById("parts_receiver_name")) document.getElementById("parts_receiver_name").value = "";
+    ["techSignerName", "exp_tech_name", "exp_sr_tech_name", "insp_tech_incoming", "insp_tech_final", "parts_receiver_name", "photo_reported_by"].forEach(id => {
+      if (typeof syncTechField === "function") syncTechField(id, "");
+      else if (document.getElementById(id)) document.getElementById(id).value = "";
+    });
+    const savedTech = localStorage.getItem("siamraj_saved_technician");
+    if (savedTech && typeof syncTechField === "function") syncTechField("techSignerName", savedTech);
 
 
 
@@ -4877,15 +5103,7 @@ function applyDraftData(d) {
 
     const val = d.tech_name || d.serviced_by;
 
-    document.getElementById("techSignerName").value = val;
-
-    const bannerTechEl = document.getElementById("bannerTech");
-
-    if (bannerTechEl && val && val !== "-") {
-
-      bannerTechEl.innerHTML = `<span class="text-slate-800 font-bold">${val}</span>`;
-
-    }
+    syncTechField("techSignerName", val);
 
   }
 
@@ -5258,9 +5476,14 @@ function applyDraftData(d) {
 
   if (d.measuring_with && document.getElementById("insp_measuring_with")) document.getElementById("insp_measuring_with").value = d.measuring_with;
 
-  if (d.tech_incoming_name && document.getElementById("insp_tech_incoming")) document.getElementById("insp_tech_incoming").value = d.tech_incoming_name;
-
-  if (d.tech_final_name && document.getElementById("insp_tech_final")) document.getElementById("insp_tech_final").value = d.tech_final_name;
+  if (d.tech_incoming_name) {
+    if (typeof syncTechField === "function") syncTechField("insp_tech_incoming", d.tech_incoming_name);
+    else if (document.getElementById("insp_tech_incoming")) document.getElementById("insp_tech_incoming").value = d.tech_incoming_name;
+  }
+  if (d.tech_final_name) {
+    if (typeof syncTechField === "function") syncTechField("insp_tech_final", d.tech_final_name);
+    else if (document.getElementById("insp_tech_final")) document.getElementById("insp_tech_final").value = d.tech_final_name;
+  }
 
   if (d.approve_incoming_name && document.getElementById("insp_approve_incoming")) document.getElementById("insp_approve_incoming").value = d.approve_incoming_name;
 
@@ -5314,7 +5537,10 @@ function applyDraftData(d) {
 
   if (d.sale_name && document.getElementById("parts_sale_name")) document.getElementById("parts_sale_name").value = d.sale_name;
 
-  if (d.receiver_name && document.getElementById("parts_receiver_name")) document.getElementById("parts_receiver_name").value = d.receiver_name;
+  if (d.receiver_name) {
+    if (typeof syncTechField === "function") syncTechField("parts_receiver_name", d.receiver_name);
+    else if (document.getElementById("parts_receiver_name")) document.getElementById("parts_receiver_name").value = d.receiver_name;
+  }
 
   if (d.receive_date && document.getElementById("parts_receive_date")) document.getElementById("parts_receive_date").value = d.receive_date;
 

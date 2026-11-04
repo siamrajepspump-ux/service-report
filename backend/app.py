@@ -310,6 +310,40 @@ def health_check():
         "version": "2.0.0"
     }
 
+@app.get("/api/technicians")
+def list_technicians():
+    """Return sorted unique list of technicians from CRM cache and pre-configured staff"""
+    import re
+    load_crm_cache()
+    base_techs = [
+        "นาย กฤษเอก ประชุมพันธ์",
+        "นาย จุมพล ไข่แก้ว",
+        "นาย ฉัตรชัย เที่ยงเกตุ",
+        "นาย ณฐวัฒน์ คุ้มหนู",
+        "นาย ธนพล สุภิษะ",
+        "นาย ธีริทธิ์ ตาลพุดซา",
+        "นาย พิชิตชัย แสดใหม่",
+        "นาย พูลศักดิ์ จำปาบุรี",
+        "นาย ภาศกร ธรรมประชา",
+        "นาย รณพร หยวกใจธรรม",
+        "นาย วีรวัฒน์ คุประตกุล",
+        "นาย สนั่น จอมทรักษ์",
+        "นาย โชคชัย เป็นอัน",
+        "นาย โชคอำนวย ดอนแก้ว",
+        "นาย ไพศาล สง่าวงษ์"
+    ]
+    tech_set = set(base_techs)
+    for t in crm_cache:
+        for f in ["ServiceBy", "Service By", "AssignedBy", "Assigned By"]:
+            val = t.get(f)
+            if val and val != "-":
+                for item in re.split(r"\|##\||,", str(val)):
+                    clean = re.sub(r"\s+", " ", item.replace(" ", " ").strip())
+                    clean = clean.replace("คุประตกูล", "คุประตกุล")
+                    if clean and clean != "-" and len(clean) > 3:
+                        tech_set.add(clean)
+    return {"technicians": sorted(list(tech_set))}
+
 @app.get("/api/tickets")
 def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25, sort: str = "desc"):
     """Search and paginate cached CRM tickets by Request No. (primary), Customer, Model, Serial, or TT"""

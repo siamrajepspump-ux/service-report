@@ -1740,13 +1740,15 @@ class IsoPdfEngine:
         doc = pymupdf.open(template)
         page = doc[0]
 
-        # 0. Cleanly redact template date placeholders to prevent clashing slashes / trailing underscores
+        # 0. Cleanly redact template date placeholders & manager block
+        # For Manager: Redact combined signature underline, title and date placeholder area
+        # to ensure "Asst. Service Manager / Service Manager" is not clipped by date redaction box
         date_placeholders = [
             pymupdf.Rect(477.0, 136.0, 565.0, 151.0), # Top Date
             pymupdf.Rect(85.0, 690.0, 140.0, 705.0),   # Tech Date
             pymupdf.Rect(255.0, 690.0, 311.0, 705.0),  # Sr Tech Date
             pymupdf.Rect(430.0, 690.0, 487.0, 705.0),  # Sales Date
-            pymupdf.Rect(430.0, 733.0, 487.0, 748.0)   # Manager Date
+            pymupdf.Rect(400.0, 721.0, 520.0, 750.0)   # Manager block (line, title & date)
         ]
         for r in date_placeholders:
             page.add_redact_annot(r, fill=(1, 1, 1))
@@ -1754,8 +1756,13 @@ class IsoPdfEngine:
 
         # Redraw clean crisp underlines for dates
         page.draw_line(pymupdf.Point(478.0, 150.0), pymupdf.Point(564.0, 150.0), color=(0.4, 0.4, 0.4), width=0.5)
-        for x0, x1, y_line in [(87.1, 138.7, 702.5), (257.8, 309.4, 702.5), (433.2, 484.8, 702.5), (433.2, 484.8, 745.5)]:
+        for x0, x1, y_line in [(87.1, 138.7, 702.5), (257.8, 309.4, 702.5), (433.2, 484.8, 702.5)]:
             page.draw_line(pymupdf.Point(x0, y_line), pymupdf.Point(x1, y_line), color=(0.4, 0.4, 0.4), width=0.5)
+
+        # Manager section: Redraw crisp signature underline, re-insert authentic red title, and draw date underline
+        page.draw_line(pymupdf.Point(403.01, 724.93), pymupdf.Point(515.03, 724.93), color=(0.0, 0.0, 0.0), width=0.73)
+        self._insert_centered_text(page, 459.0, 733.5, "Asst. Service Manager / Service Manager", size=8.8, bold=True, color=(1.0, 0.0, 0.0))
+        page.draw_line(pymupdf.Point(433.2, 745.5), pymupdf.Point(484.8, 745.5), color=(0.4, 0.4, 0.4), width=0.5)
 
         # 1. Header: Request No. & Date
         # Line for Request No: x=468.3 .. 561.2 (Center 514.8), baseline y=134.9

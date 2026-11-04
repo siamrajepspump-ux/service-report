@@ -15,3 +15,8 @@ storage/photos/*
 !storage/photos/.gitkeep
 !storage/photos/260681/
 !storage/photos/260681/**
+
+# Exclude Windows system files even inside whitelisted dirs
+desktop.ini
+**/desktop.ini
+*.ini

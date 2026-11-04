@@ -54,8 +54,26 @@ def sync_crm_cache():
     # 2. Read existing cache into memory (dict by RequestNo / TicketKey)
     with open(CACHE_CSV, mode="r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
-        fieldnames = list(reader.fieldnames)
+        fieldnames = list(reader.fieldnames or [])
         existing_rows = list(reader)
+
+    # Ensure all comprehensive CRM fields are preserved in cache
+    STANDARD_FIELDS = [
+        "TicketKey", "TicketNo", "RequestNo", "VtigerTicket", "CRM ID", "Status",
+        "Category", "Priority", "CreatedDate", "Created Time", "AppointmentDate",
+        "Appointment Date", "Appointment Time", "CompletedDate", "Completed Date",
+        "Customer", "Organization Name", "Site", "Address or Site", "ContactPerson",
+        "Site Contact Person", "ContactPhone", "Site Contact Phone", "SalesOrder",
+        "Sales Orders", "Product", "Model", "SerialNo", "Serial Number", "Group",
+        "Request By Group", "AssignedTo", "Assigned To", "Assigned By", "ServiceBy",
+        "Service By", "ProblemDetail", "Description", "Cause", "Prevention",
+        "Solution", "Type", "Detail", "Start up Commissioning", "Inspection",
+        "Reassembly", "Spare part Changing or Modification", "Repair", "Other",
+        "Resolution_Days", "SyncedAt"
+    ]
+    for sf in STANDARD_FIELDS:
+        if sf not in fieldnames:
+            fieldnames.append(sf)
 
     cache_dict = {}
     for idx, r in enumerate(existing_rows):
@@ -153,7 +171,7 @@ def sync_crm_cache():
 
     # 4. Write back to crm_tickets_cache.csv
     with open(CACHE_CSV, mode="w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(existing_rows)
 

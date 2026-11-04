@@ -346,6 +346,11 @@ function resolveSalesPersonName(val) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function resolveSalesGroupName(t) {
+  if (!t) return "";
+  return String(t.sales_group || t["Request By Group"] || t.RequestByGroup || t.Group || "").trim();
+}
+
 // Clean any full name or formatted name to FIRST NAME ONLY (no นาย, no surname)
 function cleanToFirstName(str) {
   if (!str) return "";
@@ -630,6 +635,15 @@ document.addEventListener("DOMContentLoaded", () => {
   loadBOMOptions();
 
   loadReportsList();
+
+  // Initialize Service Expense defaults (รณพร, ไพศาล)
+  if (document.getElementById("exp_sr_tech_name") && !document.getElementById("exp_sr_tech_name").value) {
+    if (typeof syncTechField === "function") syncTechField("exp_sr_tech_name", "รณพร");
+    else document.getElementById("exp_sr_tech_name").value = "รณพร";
+  }
+  if (document.getElementById("exp_mgr_name") && !document.getElementById("exp_mgr_name").value) {
+    document.getElementById("exp_mgr_name").value = "ไพศาล";
+  }
 
 
 
@@ -1230,7 +1244,33 @@ function addFormToPackage(code, customLabel = "") {
 
 
 
-  if (code === "FM-EPS-22") {
+  if (code === "FM-EPS-21") {
+    const spVal = state.currentTicket?.sales_person || resolveSalesPersonName(state.currentTicket?.AssignedTo || state.currentTicket?.["Assigned To"] || state.currentTicket?.Sales) || "";
+    const sgVal = resolveSalesGroupName(state.currentTicket);
+    const reqVal = state.currentTicket?.TicketNo || state.currentTicket?.RequestNo || document.getElementById("sr_request_no")?.value || "";
+    const prodVal = document.getElementById("sr_pump_model")?.value || state.currentTicket?.PumpModel || state.currentTicket?.ProductCode || "";
+    const ioVal = state.currentTicket?.SalesOrders || "";
+
+    initialData = {
+      exp_request_no: reqVal,
+      exp_date: dateVal,
+      exp_customer: custVal,
+      exp_sales: spVal,
+      exp_sales_name: spVal,
+      exp_group: sgVal,
+      exp_product: prodVal,
+      exp_io: ioVal,
+      exp_place: plantVal,
+      exp_contact: contactVal,
+      exp_tel: telVal,
+      exp_sr_tech_name: "รณพร",
+      exp_mgr_name: "ไพศาล",
+      exp_tech_date: dateVal,
+      exp_sr_tech_date: dateVal,
+      exp_sales_date: dateVal,
+      exp_mgr_date: dateVal
+    };
+  } else if (code === "FM-EPS-22") {
 
     initialData = {
 
@@ -2383,7 +2423,8 @@ function loadInstanceDataIntoDom(inst) {
     const defaultContact = document.getElementById("sr_contact_person")?.value?.trim() || (state.currentTicket?.ContactPerson || state.currentTicket?.["Site Contact Person"] || "").trim() || "-";
     const defaultTel = document.getElementById("sr_contact_no")?.value?.trim() || (state.currentTicket?.ContactPhone || state.currentTicket?.["Site Contact Phone"] || "").trim() || "-";
     const defaultReq = state.currentTicket?.TicketNo || document.getElementById("sr_request_no")?.value || "";
-    const defaultSales = state.currentTicket?.Sales || state.currentTicket?.AssignedBy || "";
+    const defaultSales = state.currentTicket?.sales_person || resolveSalesPersonName(state.currentTicket?.AssignedTo || state.currentTicket?.["Assigned To"] || state.currentTicket?.Sales) || "";
+    const defaultGroup = resolveSalesGroupName(state.currentTicket);
     const defaultIo = state.currentTicket?.SalesOrders || "";
     const defaultProd = document.getElementById("sr_pump_model")?.value || state.currentTicket?.PumpModel || state.currentTicket?.ProductCode || "";
     const defaultDate = document.getElementById("sr_date")?.value || new Date().toISOString().split("T")[0];
@@ -2392,8 +2433,8 @@ function loadInstanceDataIntoDom(inst) {
     if (document.getElementById("exp_request_no")) document.getElementById("exp_request_no").value = d.exp_request_no !== undefined ? d.exp_request_no : defaultReq;
     if (document.getElementById("exp_date")) document.getElementById("exp_date").value = d.exp_date !== undefined ? d.exp_date : defaultDate;
     if (document.getElementById("exp_customer")) document.getElementById("exp_customer").value = d.exp_customer !== undefined ? d.exp_customer : defaultCust;
-    if (document.getElementById("exp_sales")) document.getElementById("exp_sales").value = d.exp_sales !== undefined ? d.exp_sales : defaultSales;
-    if (document.getElementById("exp_group")) document.getElementById("exp_group").value = d.exp_group || "";
+    if (document.getElementById("exp_sales")) document.getElementById("exp_sales").value = (d.exp_sales && d.exp_sales !== "-") ? d.exp_sales : defaultSales;
+    if (document.getElementById("exp_group")) document.getElementById("exp_group").value = (d.exp_group && d.exp_group !== "-") ? d.exp_group : defaultGroup;
     if (document.getElementById("exp_product")) document.getElementById("exp_product").value = d.exp_product !== undefined ? d.exp_product : defaultProd;
     if (document.getElementById("exp_io")) document.getElementById("exp_io").value = d.exp_io !== undefined ? d.exp_io : defaultIo;
     if (document.getElementById("exp_place")) document.getElementById("exp_place").value = d.exp_place !== undefined ? d.exp_place : defaultPlant;
@@ -2464,19 +2505,23 @@ function loadInstanceDataIntoDom(inst) {
     if (document.getElementById("exp_comments")) document.getElementById("exp_comments").value = d.exp_comments || "";
 
     // Signatures
-    const expT = d.exp_tech_name !== undefined ? d.exp_tech_name : defaultTech;
+    const expT = (d.exp_tech_name !== undefined && d.exp_tech_name !== "") ? d.exp_tech_name : defaultTech;
+    const expSrTech = (d.exp_sr_tech_name && d.exp_sr_tech_name !== "-") ? d.exp_sr_tech_name : "รณพร";
+    const expSales = (d.exp_sales_name && d.exp_sales_name !== "-") ? d.exp_sales_name : defaultSales;
+    const expMgr = (d.exp_mgr_name && d.exp_mgr_name !== "-") ? d.exp_mgr_name : "ไพศาล";
+
     if (typeof syncTechField === "function") {
       syncTechField("exp_tech_name", expT);
-      syncTechField("exp_sr_tech_name", d.exp_sr_tech_name || "");
+      syncTechField("exp_sr_tech_name", expSrTech);
     } else {
       if (document.getElementById("exp_tech_name")) document.getElementById("exp_tech_name").value = expT;
-      if (document.getElementById("exp_sr_tech_name")) document.getElementById("exp_sr_tech_name").value = d.exp_sr_tech_name || "";
+      if (document.getElementById("exp_sr_tech_name")) document.getElementById("exp_sr_tech_name").value = expSrTech;
     }
     if (document.getElementById("exp_tech_date")) document.getElementById("exp_tech_date").value = d.exp_tech_date !== undefined ? d.exp_tech_date : defaultDate;
     if (document.getElementById("exp_sr_tech_date")) document.getElementById("exp_sr_tech_date").value = d.exp_sr_tech_date !== undefined ? d.exp_sr_tech_date : defaultDate;
-    if (document.getElementById("exp_sales_name")) document.getElementById("exp_sales_name").value = d.exp_sales_name !== undefined ? d.exp_sales_name : defaultSales;
+    if (document.getElementById("exp_sales_name")) document.getElementById("exp_sales_name").value = expSales;
     if (document.getElementById("exp_sales_date")) document.getElementById("exp_sales_date").value = d.exp_sales_date !== undefined ? d.exp_sales_date : defaultDate;
-    if (document.getElementById("exp_mgr_name")) document.getElementById("exp_mgr_name").value = d.exp_mgr_name || "";
+    if (document.getElementById("exp_mgr_name")) document.getElementById("exp_mgr_name").value = expMgr;
     if (document.getElementById("exp_mgr_date")) document.getElementById("exp_mgr_date").value = d.exp_mgr_date !== undefined ? d.exp_mgr_date : defaultDate;
   } else 
 
@@ -4737,7 +4782,7 @@ async function selectTicket(ticketNo) {
 
     // Auto-populate Sales Person & Sales Group from Request No. CRM data
     const salesPersonVal = t.sales_person || resolveSalesPersonName(t.AssignedTo || t["Assigned To"] || t.Sales) || "";
-    const salesGroupVal = t.sales_group || t["Request By Group"] || t.Group || "";
+    const salesGroupVal = resolveSalesGroupName(t);
 
     if (salesPersonVal) {
       if (document.getElementById("exp_sales")) document.getElementById("exp_sales").value = salesPersonVal;
@@ -4746,6 +4791,21 @@ async function selectTicket(ticketNo) {
     }
     if (salesGroupVal) {
       if (document.getElementById("exp_group")) document.getElementById("exp_group").value = salesGroupVal;
+    }
+
+    // Default Sr Tech to รณพร and Mgr to ไพศาล in DOM if currently empty
+    if (document.getElementById("exp_sr_tech_name")) {
+      const curSr = document.getElementById("exp_sr_tech_name").value.trim();
+      if (!curSr || curSr === "-") {
+        if (typeof syncTechField === "function") syncTechField("exp_sr_tech_name", "รณพร");
+        else document.getElementById("exp_sr_tech_name").value = "รณพร";
+      }
+    }
+    if (document.getElementById("exp_mgr_name")) {
+      const curMgr = document.getElementById("exp_mgr_name").value.trim();
+      if (!curMgr || curMgr === "-") {
+        document.getElementById("exp_mgr_name").value = "ไพศาล";
+      }
     }
 
     document.getElementById("sr_plant").value = siteVal;
@@ -4830,6 +4890,17 @@ async function selectTicket(ticketNo) {
 
         if (!inst.data.contact_no || inst.data.contact_no === "-") inst.data.contact_no = contactPhoneVal;
 
+        if (inst.code === "FM-EPS-21") {
+          if (salesPersonVal) {
+            if (!inst.data.exp_sales || inst.data.exp_sales === "-") inst.data.exp_sales = salesPersonVal;
+            if (!inst.data.exp_sales_name || inst.data.exp_sales_name === "-") inst.data.exp_sales_name = salesPersonVal;
+          }
+          if (salesGroupVal) {
+            if (!inst.data.exp_group || inst.data.exp_group === "-") inst.data.exp_group = salesGroupVal;
+          }
+          if (!inst.data.exp_sr_tech_name || inst.data.exp_sr_tech_name === "-") inst.data.exp_sr_tech_name = "รณพร";
+          if (!inst.data.exp_mgr_name || inst.data.exp_mgr_name === "-") inst.data.exp_mgr_name = "ไพศาล";
+        }
         if (salesPersonVal) {
           if (!inst.data.exp_sales || inst.data.exp_sales === "-") inst.data.exp_sales = salesPersonVal;
           if (!inst.data.exp_sales_name || inst.data.exp_sales_name === "-") inst.data.exp_sales_name = salesPersonVal;

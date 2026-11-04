@@ -350,7 +350,16 @@ SALES_USERS_MAP = {
 }
 
 def resolve_sales_person(t: Dict[str, Any]) -> str:
-    assigned = str(t.get("AssignedTo") or t.get("Assigned To") or t.get("Sales") or "").strip()
+    assigned = str(
+        t.get("AssignedTo") or 
+        t.get("Assigned To") or 
+        t.get("Assigned_To") or 
+        t.get("Sales") or 
+        t.get("SalesPerson") or 
+        t.get("sales_person") or 
+        t.get("Sales Person") or 
+        ""
+    ).strip()
     if not assigned or assigned.lower() in ["-", "nan", "none", "null"]:
         return ""
     if assigned.lower() in SALES_USERS_MAP:
@@ -358,6 +367,17 @@ def resolve_sales_person(t: Dict[str, Any]) -> str:
     if " " in assigned:
         return assigned
     return assigned.title()
+
+def resolve_sales_group(t: Dict[str, Any]) -> str:
+    return str(
+        t.get("Request By Group") or 
+        t.get("RequestByGroup") or 
+        t.get("Request_By_Group") or 
+        t.get("Group") or 
+        t.get("sales_group") or 
+        t.get("SalesGroup") or 
+        ""
+    ).strip()
 
 @app.get("/api/technicians")
 def list_technicians():
@@ -443,7 +463,7 @@ def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25,
     items = [dict(r) for r in results[start:end]]
     for item in items:
         item["sales_person"] = resolve_sales_person(item)
-        item["sales_group"] = str(item.get("Request By Group") or item.get("Group") or "").strip()
+        item["sales_group"] = resolve_sales_group(item)
     return {
         "items": items,
         "total": total,
@@ -464,7 +484,7 @@ def get_ticket(ticket_no: str):
         if t_req == t_clean or t_no == t_clean or t_key == t_clean or t_vtiger == t_clean:
             res = dict(t)
             res["sales_person"] = resolve_sales_person(t)
-            res["sales_group"] = str(t.get("Request By Group") or t.get("Group") or "").strip()
+            res["sales_group"] = resolve_sales_group(t)
             return res
     raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -1763,6 +1783,18 @@ def submit_and_generate(payload: SubmitPayload):
                         v = inst_data.get(k) or inst_data.get(f"exp_{k}")
                         if v:
                             inst_data[k] = v
+                    if not inst_data.get("exp_sr_tech_name"):
+                        inst_data["exp_sr_tech_name"] = "รณพร"
+                    if not inst_data.get("exp_mgr_name"):
+                        inst_data["exp_mgr_name"] = "ไพศาล"
+                    crm_t = next((t for t in crm_cache if str(t.get("RequestNo", "")).lower() == str(ticket).lower()), None)
+                    if crm_t:
+                        if not inst_data.get("exp_sales"):
+                            inst_data["exp_sales"] = resolve_sales_person(crm_t)
+                        if not inst_data.get("exp_sales_name"):
+                            inst_data["exp_sales_name"] = inst_data.get("exp_sales") or resolve_sales_person(crm_t)
+                        if not inst_data.get("exp_group"):
+                            inst_data["exp_group"] = resolve_sales_group(crm_t)
                     out_file = f"EXP_{ticket}{num_suffix}.pdf"
                     out_path = os.path.join(ticket_out_dir, out_file)
                     pdf_engine.fill_fm_eps_21(inst_data, out_path)

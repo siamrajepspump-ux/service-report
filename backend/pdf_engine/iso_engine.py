@@ -1949,7 +1949,9 @@ class IsoPdfEngine:
         self._insert_centered_text(page, 112.9, 700.0, tech_date or "-", size=9)
 
         sr_sig = data.get("exp_sr_tech_sig")
-        sr_name = str(data.get("exp_sr_tech_name") or "").strip()
+        sr_name = str(data.get("exp_sr_tech_name") or "รณพร").strip()
+        if not sr_name or sr_name == "-":
+            sr_name = "รณพร"
         if sr_sig:
             self._insert_signature(page, (235, 635, 335, 674), sr_sig)
         elif sr_name and sr_name != "-":
@@ -1971,7 +1973,9 @@ class IsoPdfEngine:
         self._insert_centered_text(page, 459.0, 700.0, sales_d or "-", size=9)
 
         mgr_sig = data.get("exp_mgr_sig")
-        mgr_n = str(data.get("exp_mgr_name") or "").strip()
+        mgr_n = str(data.get("exp_mgr_name") or "ไพศาล").strip()
+        if not mgr_n or mgr_n == "-":
+            mgr_n = "ไพศาล"
         if mgr_sig:
             self._insert_signature(page, (410, 685, 508, 723), mgr_sig)
         elif mgr_n and mgr_n != "-":

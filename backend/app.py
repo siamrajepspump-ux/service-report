@@ -287,7 +287,14 @@ def load_crm_cache(force: bool = False) -> List[Dict[str, Any]]:
                     for field, val in it.items():
                         if val and not dedup_dict[k].get(field):
                             dedup_dict[k][field] = val
-            crm_cache = list(dedup_dict.values())
+            def get_recency_key(t):
+                d_str = str(t.get("CreatedDate") or t.get("Created Time") or t.get("AppointmentDate") or "").strip()
+                req = str(t.get("RequestNo") or t.get("TicketNo") or t.get("TicketKey") or "").strip()
+                num = int(req) if req.isdigit() else 0
+                year_prefix = int(req[:2]) if (len(req) >= 2 and req[:2].isdigit()) else 0
+                return (d_str, year_prefix, num, req)
+
+            crm_cache = sorted(list(dedup_dict.values()), key=get_recency_key, reverse=True)
             crm_cache_mtime = current_mtime
             print(f"[CRM Cache] Loaded {len(crm_cache)} unique tickets from {target_path} (updated: {time.ctime(current_mtime)})")
     except Exception as e:
@@ -455,6 +462,8 @@ def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25,
             deduped_results.append(r)
         results = deduped_results
     elif sort == "desc":
+        results = crm_cache
+    elif sort == "asc":
         results = list(reversed(crm_cache))
 
     total = len(results)

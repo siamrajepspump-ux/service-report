@@ -3287,9 +3287,8 @@ function loadInstanceDataIntoDom(inst) {
     }
 
     if (document.getElementById("photo_job")) {
-
-      document.getElementById("photo_job").value = d.job || "";
-
+      const defaultJob = d.job || document.getElementById("photo_job")?.value?.trim() || document.getElementById("sr_request_no")?.value?.trim() || (state.currentTicket?.RequestNo || "").trim() || "";
+      document.getElementById("photo_job").value = defaultJob;
     }
 
     if (document.getElementById("photo_date")) {
@@ -4871,7 +4870,7 @@ async function selectTicket(ticketNo) {
 
     if (document.getElementById("photo_plant")) document.getElementById("photo_plant").value = siteVal;
 
-    if (document.getElementById("photo_job")) document.getElementById("photo_job").value = "";
+    if (document.getElementById("photo_job")) document.getElementById("photo_job").value = activeReqNo;
 
     if (document.getElementById("photo_date")) {
 
@@ -5765,104 +5764,159 @@ function applyDraftData(d) {
 
 // =============================================================================
 
-function setupPhotoDropzone() {
-
-  const dropZone = document.getElementById("dropZone");
-
-  const fileInput = document.getElementById("filePhotoInput");
-
-  if (!dropZone || !fileInput) return;
-
-
-
-  dropZone.addEventListener("click", () => fileInput.click());
-
-
-
-  fileInput.addEventListener("change", () => {
-
-    if (fileInput.files.length > 0) {
-
-      handlePhotoUpload(fileInput.files);
-
+async function compressImageFile(file, maxDimension = 1600, quality = 0.82) {
+  // If not image or smaller than 400KB, return as-is
+  if (!file.type || !file.type.startsWith("image/") || file.size < 400 * 1024) {
+    return file;
+  }
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (!width || !height) return resolve(file);
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(file);
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                const compFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                  type: "image/jpeg",
+                  lastModified: Date.now()
+                });
+                resolve(compFile);
+              } else {
+                resolve(file);
+              }
+            },
+            "image/jpeg",
+            quality
+          );
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn("Client compression fallback:", err);
+      resolve(file);
     }
-
   });
-
-
-
-  dropZone.addEventListener("dragover", (e) => {
-
-    e.preventDefault();
-
-    dropZone.classList.add("border-red-600", "bg-red-100/50");
-
-  });
-
-
-
-  dropZone.addEventListener("dragleave", () => {
-
-    dropZone.classList.remove("border-red-600", "bg-red-100/50");
-
-  });
-
-
-
-  dropZone.addEventListener("drop", (e) => {
-
-    e.preventDefault();
-
-    dropZone.classList.remove("border-red-600", "bg-red-100/50");
-
-    if (e.dataTransfer.files.length > 0) {
-
-      handlePhotoUpload(e.dataTransfer.files);
-
-    }
-
-  });
-
 }
 
+function setupPhotoDropzone() {
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("filePhotoInput");
+  const cameraInput = document.getElementById("cameraPhotoInput");
 
+  // 1. Android / Mobile Live Camera Capture listener
+  if (cameraInput) {
+    cameraInput.addEventListener("change", async () => {
+      if (cameraInput.files && cameraInput.files.length > 0) {
+        await handlePhotoUpload(cameraInput.files);
+        // Reset so subsequent snaps with camera trigger change cleanly
+        cameraInput.value = "";
+      }
+    });
+  }
+
+  // 2. Multi-image Gallery Picker listener
+  if (fileInput) {
+    fileInput.addEventListener("change", async () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        await handlePhotoUpload(fileInput.files);
+        fileInput.value = "";
+      }
+    });
+  }
+
+  // 3. Desktop Drag & Drop Zone
+  if (dropZone) {
+    dropZone.addEventListener("click", () => {
+      if (fileInput) fileInput.click();
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("border-purple-600", "bg-purple-100/50");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("border-purple-600", "bg-purple-100/50");
+    });
+
+    dropZone.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("border-purple-600", "bg-purple-100/50");
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        await handlePhotoUpload(e.dataTransfer.files);
+      }
+    });
+  }
+}
 
 async function handlePhotoUpload(files) {
+  if (!files || files.length === 0) return;
 
-  const ticketNo = document.getElementById("sr_request_no")?.value.trim();
+  // Robust ticket number lookup: check all sources so mobile user is NEVER blocked
+  let ticketNo = document.getElementById("sr_request_no")?.value.trim()
+    || document.getElementById("photo_job")?.value.trim()
+    || document.getElementById("heroRequestInput")?.value.trim()
+    || document.getElementById("bannerTicketNo")?.textContent.replace(/[^0-9a-zA-Z]/g, "").trim()
+    || (state.currentTicket && (state.currentTicket.RequestNo || state.currentTicket.TicketNo))
+    || "";
 
   if (!ticketNo) {
+    ticketNo = prompt("กรุณาระบุเลขที่ Request No. หรือ Job No. สำหรับรูปภาพนี้:", "DRAFT") || "DRAFT";
+    ticketNo = ticketNo.trim() || "DRAFT";
+  }
 
-    alert("กรุณาระบุเลขที่งาน (Ticket No.) ก่อนอัปโหลดภาพ");
-
-    return;
-
+  // Sync into photo_job DOM field if empty
+  const photoJobEl = document.getElementById("photo_job");
+  if (photoJobEl && (!photoJobEl.value.trim() || photoJobEl.value.trim() === "-")) {
+    photoJobEl.value = ticketNo;
   }
 
   const category = document.getElementById("photoCategory")?.value || "ทั่วไป / ก่อนทำ";
-
   const caption = document.getElementById("photoCaption")?.value || "";
 
-
-
-  showToast(`กำลังอัปโหลดรูปภาพ ${files.length} รูป...`);
-
-
+  showToast(`กำลังประมวลผลและอัปโหลดรูปภาพ ${files.length} รูป...`);
 
   if (!state.activePhotoReportPhotos) {
-
     state.activePhotoReportPhotos = [];
-
   }
 
-
-
   for (let file of files) {
+    // Client-side compression for high-res phone camera photos (prevents upload timeout)
+    let fileToUpload = file;
+    try {
+      fileToUpload = await compressImageFile(file);
+    } catch (ce) {
+      console.warn("Client compression warning:", ce);
+    }
+
     const formData = new FormData();
     formData.append("ticket_no", ticketNo);
     formData.append("category", category);
     formData.append("caption", caption);
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
 
     try {
       const res = await fetch("/api/photos/upload", {
@@ -8492,15 +8546,10 @@ function closePdfModal() {
 
 
 async function previewPhotoReportPdf() {
-
-  const ticketNo = document.getElementById("sr_request_no")?.value.trim();
-
+  const ticketNo = document.getElementById("sr_request_no")?.value.trim() || document.getElementById("photo_job")?.value.trim() || document.getElementById("heroRequestInput")?.value.trim() || "DRAFT";
   if (!ticketNo) {
-
     alert("กรุณาระบุเลขที่ใบงาน (Ticket No.)");
-
     return;
-
   }
 
   saveCurrentActiveInstanceData();
@@ -8594,15 +8643,10 @@ async function previewPhotoReportPdf() {
 
 
 async function downloadPhotoReportExcel() {
-
-  const ticketNo = document.getElementById("sr_request_no")?.value.trim();
-
+  const ticketNo = document.getElementById("sr_request_no")?.value.trim() || document.getElementById("photo_job")?.value.trim() || document.getElementById("heroRequestInput")?.value.trim() || "DRAFT";
   if (!ticketNo) {
-
     alert("กรุณาระบุเลขที่ใบงาน (Ticket No.)");
-
     return;
-
   }
 
   saveCurrentActiveInstanceData();

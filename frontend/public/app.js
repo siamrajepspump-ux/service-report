@@ -285,37 +285,89 @@ function formatIsoToDmy(isoStr) {
 
 
 // =============================================================================
-// TECHNICIAN DROPDOWNS & AUTO-SUGGEST
+// TECHNICIAN DROPDOWNS (MULTI-SELECT BADGES & FIRST NAME ONLY) & SALES RESOLVER
 // =============================================================================
-const OFFICIAL_TECHNICIANS = [
-  "นาย กฤษเอก ประชุมพันธ์",
-  "นาย จุมพล ไข่แก้ว",
-  "นาย ฉัตรชัย เที่ยงเกตุ",
-  "นาย ณฐวัฒน์ คุ้มหนู",
-  "นาย ธนพล สุภิษะ",
-  "นาย ธีริทธิ์ ตาลพุดซา",
-  "นาย พิชิตชัย แสดใหม่",
-  "นาย พูลศักดิ์ จำปาบุรี",
-  "นาย ภาศกร ธรรมประชา",
-  "นาย รณพร หยวกใจธรรม",
-  "นาย วีรวัฒน์ คุประตกุล",
-  "นาย สนั่น จอมทรักษ์",
-  "นาย โชคชัย เป็นอัน",
-  "นาย โชคอำนวย ดอนแก้ว",
-  "นาย ไพศาล สง่าวงษ์"
+const ACTIVE_TECHNICIANS = [
+  { name: "โชคชัย", fullName: "นาย โชคชัย เป็นอัน", position: "Senior Technician" },
+  { name: "พูลศักดิ์", fullName: "นาย พูลศักดิ์ จำปาบุรี", position: "Senior Technician" },
+  { name: "พิชิตชัย", fullName: "นาย พิชิตชัย แสดใหม่", position: "Senior Technician" },
+  { name: "ธนพล", fullName: "นาย ธนพล สุภิษะ", position: "Senior Technician" },
+  { name: "ฉัตรชัย", fullName: "นาย ฉัตรชัย เที่ยงเกตุ", position: "Technician" },
+  { name: "ธีริทธิ์", fullName: "นาย ธีริทธิ์ ตาลพุดซา", position: "Technician" },
+  { name: "ภาศกร", fullName: "นาย ภาศกร ธรรมประชา", position: "Technician" },
+  { name: "โชคอำนวย", fullName: "นาย โชคอำนวย ดอนแก้ว", position: "Technician" },
+  { name: "วีรวัฒน์", fullName: "นาย วีรวัฒน์ คุประตกุล", position: "Technician" },
+  { name: "สนั่น", fullName: "นาย สนั่น จอมทรักษ์", position: "Engineer" },
+  { name: "รณพร", fullName: "นาย รณพร หยวกใจธรรม", position: "Planner" },
+  { name: "ไพศาล", fullName: "นาย ไพศาล สง่าวงษ์", position: "Assist. Manager" }
 ];
 
-let globalTechList = [...OFFICIAL_TECHNICIANS];
+let globalTechList = [...ACTIVE_TECHNICIANS];
 
 const TECH_FIELD_CONFIG = [
-  { id: "techSignerName", placeholder: "-- เลือกช่างผู้บริการ (Serviced By) --", isMaster: true },
-  { id: "exp_tech_name", placeholder: "-- เลือกช่างบริการ (Technician) --" },
-  { id: "exp_sr_tech_name", placeholder: "-- เลือกช่างอาวุโส / วิศวกร --" },
-  { id: "insp_tech_incoming", placeholder: "-- เลือกช่างตรวจรับเข้า (Incoming) --" },
-  { id: "insp_tech_final", placeholder: "-- เลือกช่างตรวจส่งมอบ (Final) --" },
-  { id: "parts_receiver_name", placeholder: "-- เลือกผู้รับงาน / ช่าง --" },
-  { id: "photo_reported_by", placeholder: "-- เลือกวิศวกร/ช่างผู้จัดทำ --" }
+  { id: "techSignerName", placeholder: "➕ เพิ่มชื่อช่างผู้บริการ (เลือกได้หลายคน)...", isMaster: true },
+  { id: "exp_tech_name", placeholder: "➕ เพิ่มช่างบริการ (เลือกได้หลายคน)..." },
+  { id: "exp_sr_tech_name", placeholder: "➕ เพิ่มช่างอาวุโส / วิศวกร..." },
+  { id: "insp_tech_incoming", placeholder: "➕ เพิ่มช่างตรวจรับเข้า..." },
+  { id: "insp_tech_final", placeholder: "➕ เพิ่มช่างตรวจส่งมอบ..." },
+  { id: "parts_receiver_name", placeholder: "➕ เพิ่มผู้รับงาน / ช่าง..." },
+  { id: "photo_reported_by", placeholder: "➕ เพิ่มวิศวกร/ช่างผู้จัดทำ..." }
 ];
+
+const SALES_PERSON_MAP = {
+  "vipoo": "Vipoo Srisawadi",
+  "nattawut": "Nattawut Junkong",
+  "sujittra": "Sujittra Tungprakobjaroen",
+  "pattamaporn": "Pattamaporn Chadkurupin",
+  "thanaaran": "Thanaaran Sirawattanamongkol",
+  "kanittha_c": "Kanittha Cheryhom",
+  "benjamas": "Benjamas Tanjit",
+  "katewadee": "Katewadee Pratipagorn",
+  "thitima": "Thitima Plaibua",
+  "udomlak": "Udomlak Panya-Apiban",
+  "saovaluck": "Saovaluck Jangjai",
+  "sarawut_v": "Sarawut Viseshasiri",
+  "tanaporn": "Tanaporn Chanchanaroj",
+  "napadol": "Napadol Peoksangthip",
+  "phanuwat": "Phanuwat Murot",
+  "patthamanan": "Patthamanan Pudgajang",
+  "peeraya": "Peeraya Peeploy",
+  "piyanuch": "Piyanuch Janthanarak",
+  "samantha_t": "Samantha Tanittha Nilsandhi"
+};
+
+function resolveSalesPersonName(val) {
+  if (!val) return "";
+  const s = String(val).trim();
+  if (!s || ["-", "nan", "none", "null"].includes(s.toLowerCase())) return "";
+  const lower = s.toLowerCase();
+  if (SALES_PERSON_MAP[lower]) return SALES_PERSON_MAP[lower];
+  if (s.includes(" ")) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Clean any full name or formatted name to FIRST NAME ONLY (no นาย, no surname)
+function cleanToFirstName(str) {
+  if (!str) return "";
+  let s = String(str).replace(/\u00a0/g, " ").trim();
+  s = s.replace(/^(นาย|นางสาว|นาง)\s*/, "").trim();
+  const parts = s.split(/\s+/);
+  return parts[0] || s;
+}
+
+// Parse comma/delimiter string into array of clean first names
+function parseTechNames(str) {
+  if (!str || str === "-") return [];
+  const rawList = String(str).split(/,|\|##\||\/|\n/);
+  const result = [];
+  rawList.forEach(item => {
+    const fn = cleanToFirstName(item);
+    if (fn && fn !== "-" && !result.includes(fn)) {
+      result.push(fn);
+    }
+  });
+  return result;
+}
 
 async function initAllTechDropdowns() {
   refreshTechDropdownOptions();
@@ -325,29 +377,26 @@ async function initAllTechDropdowns() {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.technicians) && data.technicians.length > 0) {
-        const merged = new Set([...OFFICIAL_TECHNICIANS, ...data.technicians]);
-        globalTechList = Array.from(merged).sort((a, b) => a.localeCompare(b, "th"));
+        globalTechList = data.technicians;
         refreshTechDropdownOptions();
       }
     }
   } catch (err) {
-    console.warn("Using bundled technician list:", err);
+    console.warn("Using active technician list:", err);
   }
 
   const savedTech = localStorage.getItem("siamraj_saved_technician");
   const masterInput = document.getElementById("techSignerName");
   if (savedTech && masterInput && !masterInput.value) {
-    syncTechField("techSignerName", savedTech, true);
+    syncTechField("techSignerName", savedTech);
   }
 }
 
 function refreshTechDropdownOptions() {
   TECH_FIELD_CONFIG.forEach(cfg => {
     const sel = document.getElementById(`techSelect_${cfg.id}`);
-    const input = document.getElementById(cfg.id);
     if (!sel) return;
 
-    const currentVal = input ? input.value.trim() : "";
     sel.innerHTML = "";
 
     const optDefault = document.createElement("option");
@@ -355,157 +404,205 @@ function refreshTechDropdownOptions() {
     optDefault.textContent = cfg.placeholder;
     sel.appendChild(optDefault);
 
-    let hasCurrentVal = false;
-    globalTechList.forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      if (currentVal && (currentVal === name || currentVal.includes(name))) {
-        opt.selected = true;
-        hasCurrentVal = true;
+    const groups = {
+      "Senior Technician": [],
+      "Technician": [],
+      "Engineer / Management": []
+    };
+
+    globalTechList.forEach(t => {
+      const item = typeof t === "string" ? { name: cleanToFirstName(t), position: "" } : t;
+      const pos = item.position || "";
+      if (pos.includes("Senior")) {
+        groups["Senior Technician"].push(item);
+      } else if (pos.includes("Technician")) {
+        groups["Technician"].push(item);
+      } else {
+        groups["Engineer / Management"].push(item);
       }
-      sel.appendChild(opt);
     });
 
-    if (currentVal && !hasCurrentVal && currentVal !== "-") {
-      const optCustom = document.createElement("option");
-      optCustom.value = currentVal;
-      optCustom.textContent = `${currentVal} (จากระบบ)`;
-      optCustom.selected = true;
-      sel.appendChild(optCustom);
-    }
+    Object.entries(groups).forEach(([groupName, items]) => {
+      if (items.length === 0) return;
+      const optGroup = document.createElement("optgroup");
+      optGroup.label = groupName;
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        opt.textContent = item.position ? `${item.name} (${item.position})` : item.name;
+        optGroup.appendChild(opt);
+      });
+      sel.appendChild(optGroup);
+    });
 
     const optManual = document.createElement("option");
     optManual.value = "__custom__";
-    optManual.textContent = "✏️ กรอกชื่ออื่นเอง...";
+    optManual.textContent = "✏️ พิมพ์ชื่ออื่นเพิ่ม...";
     sel.appendChild(optManual);
+
+    renderTechBadges(cfg.id);
   });
 }
 
-function onTechSelectChange(inputId, val) {
-  const input = document.getElementById(inputId);
+function onTechSelectAdd(inputId, selectedVal) {
   const sel = document.getElementById(`techSelect_${inputId}`);
-  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
+  if (!selectedVal) return;
 
-  if (val === "__custom__") {
-    if (input) {
-      input.classList.remove("hidden");
-      input.focus();
+  if (selectedVal === "__custom__") {
+    const customName = prompt("พิมพ์ชื่อช่างผู้ปฏิบัติงานที่ต้องการเพิ่ม (ชื่อเท่านั้น ไม่ต้องมี นาย/นามสกุล):");
+    if (customName && customName.trim()) {
+      addTechNameToField(inputId, cleanToFirstName(customName.trim()));
     }
-    if (sel) sel.classList.add("hidden");
-    if (toggleBtn) toggleBtn.innerHTML = "📋 เลือกจาก Dropdown";
+    if (sel) sel.value = "";
     return;
   }
 
-  if (input) {
-    input.value = val;
-    input.classList.add("hidden");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+  addTechNameToField(inputId, selectedVal);
+  if (sel) sel.value = "";
+}
+
+function addTechNameToField(inputId, nameToAdd) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  const currentNames = parseTechNames(input.value);
+  if (!currentNames.includes(nameToAdd)) {
+    currentNames.push(nameToAdd);
   }
-  if (sel) sel.classList.remove("hidden");
-  if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
+
+  const newJoinedVal = currentNames.join(", ");
+  input.value = newJoinedVal;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+
+  renderTechBadges(inputId);
 
   if (inputId === "techSignerName") {
-    const bannerTechEl = document.getElementById("bannerTech");
-    if (bannerTechEl) {
-      bannerTechEl.innerHTML = val ? `<span class="text-slate-800 font-bold">${val}</span>` : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
-    }
-    if (val) {
-      localStorage.setItem("siamraj_saved_technician", val);
+    updateTechBanner(newJoinedVal);
+    if (newJoinedVal) {
+      localStorage.setItem("siamraj_saved_technician", newJoinedVal);
       ["exp_tech_name", "insp_tech_incoming", "parts_receiver_name", "photo_reported_by"].forEach(otherId => {
         const otherInput = document.getElementById(otherId);
         if (otherInput && (!otherInput.value || otherInput.value === "-")) {
-          syncTechField(otherId, val);
+          syncTechField(otherId, newJoinedVal);
         }
       });
     }
   }
 }
 
-function onTechInputManual(inputId, val) {
+function removeTechBadge(inputId, nameToRemove) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  let currentNames = parseTechNames(input.value);
+  currentNames = currentNames.filter(n => n !== nameToRemove);
+
+  const newJoinedVal = currentNames.join(", ");
+  input.value = newJoinedVal;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+
+  renderTechBadges(inputId);
+
   if (inputId === "techSignerName") {
-    const bannerTechEl = document.getElementById("bannerTech");
-    if (bannerTechEl) {
-      bannerTechEl.innerHTML = val.trim() ? `<span class="text-slate-800 font-bold">${val.trim()}</span>` : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
-    }
+    updateTechBanner(newJoinedVal);
+    localStorage.setItem("siamraj_saved_technician", newJoinedVal);
+  }
+}
+
+function clearTechBadges(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  renderTechBadges(inputId);
+
+  if (inputId === "techSignerName") {
+    updateTechBanner("");
+    localStorage.removeItem("siamraj_saved_technician");
+  }
+}
+
+function renderTechBadges(inputId) {
+  const input = document.getElementById(inputId);
+  const container = document.getElementById(`techBadges_${inputId}`);
+  if (!container || !input) return;
+
+  const names = parseTechNames(input.value);
+  container.innerHTML = "";
+
+  if (names.length === 0) {
+    container.innerHTML = `<span class="text-[11px] text-slate-400 italic">ยังไม่ได้เลือกช่าง (แตะ Dropdown เพื่อเพิ่ม)</span>`;
+    return;
+  }
+
+  names.forEach(name => {
+    const badge = document.createElement("span");
+    badge.className = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300 shadow-xs";
+    badge.innerHTML = `<span>${name}</span>
+      <button type="button" onclick="removeTechBadge('${inputId}', '${name}')" class="text-red-500 hover:text-red-900 font-bold ml-1 cursor-pointer leading-none">&times;</button>`;
+    container.appendChild(badge);
+  });
+}
+
+function syncTechField(inputId, val) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  const names = parseTechNames(val);
+  input.value = names.join(", ");
+
+  renderTechBadges(inputId);
+
+  if (inputId === "techSignerName") {
+    updateTechBanner(input.value);
+  }
+}
+
+function updateTechBanner(val) {
+  const bannerTechEl = document.getElementById("bannerTech");
+  if (!bannerTechEl) return;
+  bannerTechEl.innerHTML = val && val !== "-"
+    ? `<span class="text-slate-800 font-bold">${val}</span>`
+    : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
+}
+
+function toggleTechCustom(inputId) {
+  const input = document.getElementById(inputId);
+  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
+  if (!input) return;
+
+  const isHidden = input.classList.contains("hidden");
+  if (isHidden) {
+    input.classList.remove("hidden");
+    input.focus();
+    if (toggleBtn) toggleBtn.innerHTML = "📋 ปิดช่องพิมพ์";
+  } else {
+    input.classList.add("hidden");
+    if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
+    syncTechField(inputId, input.value);
+  }
+}
+
+function onTechInputManual(inputId, val) {
+  renderTechBadges(inputId);
+  if (inputId === "techSignerName") {
+    updateTechBanner(val.trim());
     if (val.trim()) {
       localStorage.setItem("siamraj_saved_technician", val.trim());
     }
   }
 }
 
-function toggleTechCustom(inputId) {
-  const input = document.getElementById(inputId);
-  const sel = document.getElementById(`techSelect_${inputId}`);
-  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
-  if (!input || !sel) return;
-
-  const isHidden = input.classList.contains("hidden");
-  if (isHidden) {
-    input.classList.remove("hidden");
-    sel.classList.add("hidden");
-    input.focus();
-    if (toggleBtn) toggleBtn.innerHTML = "📋 เลือกจาก Dropdown";
-  } else {
-    input.classList.add("hidden");
-    sel.classList.remove("hidden");
-    if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
-    if (input.value) {
-      syncTechField(inputId, input.value);
-    }
-  }
-}
-
-function syncTechField(inputId, val, isInitial = false) {
-  const input = document.getElementById(inputId);
-  const sel = document.getElementById(`techSelect_${inputId}`);
-  const toggleBtn = document.getElementById(`techToggle_${inputId}`);
-  const cleanVal = (val || "").trim();
-
-  if (input) {
-    input.value = cleanVal;
-    input.classList.add("hidden");
-  }
-  if (sel) {
-    sel.classList.remove("hidden");
-    if (!cleanVal || cleanVal === "-") {
-      sel.value = "";
-    } else {
-      let found = false;
-      for (let i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value === cleanVal || (cleanVal && sel.options[i].value.includes(cleanVal))) {
-          sel.selectedIndex = i;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        const opt = document.createElement("option");
-        opt.value = cleanVal;
-        opt.textContent = `${cleanVal} (จากระบบ)`;
-        sel.insertBefore(opt, sel.lastElementChild);
-        opt.selected = true;
-      }
-    }
-  }
-  if (toggleBtn) toggleBtn.innerHTML = "✏️ พิมพ์เอง";
-
-  if (inputId === "techSignerName") {
-    const bannerTechEl = document.getElementById("bannerTech");
-    if (bannerTechEl) {
-      bannerTechEl.innerHTML = cleanVal && cleanVal !== "-"
-        ? `<span class="text-slate-800 font-bold">${cleanVal}</span>`
-        : `<span class="text-amber-700 font-medium text-xs bg-amber-50 px-2 py-0.5 rounded border border-amber-200">กรอกเอง</span>`;
-    }
-  }
-}
-
 window.initAllTechDropdowns = initAllTechDropdowns;
 window.refreshTechDropdownOptions = refreshTechDropdownOptions;
-window.onTechSelectChange = onTechSelectChange;
+window.onTechSelectAdd = onTechSelectAdd;
+window.removeTechBadge = removeTechBadge;
+window.clearTechBadges = clearTechBadges;
 window.onTechInputManual = onTechInputManual;
 window.toggleTechCustom = toggleTechCustom;
 window.syncTechField = syncTechField;
+window.resolveSalesPersonName = resolveSalesPersonName;
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -4638,6 +4735,19 @@ async function selectTicket(ticketNo) {
 
     document.getElementById("sr_customer").value = custVal;
 
+    // Auto-populate Sales Person & Sales Group from Request No. CRM data
+    const salesPersonVal = t.sales_person || resolveSalesPersonName(t.AssignedTo || t["Assigned To"] || t.Sales) || "";
+    const salesGroupVal = t.sales_group || t["Request By Group"] || t.Group || "";
+
+    if (salesPersonVal) {
+      if (document.getElementById("exp_sales")) document.getElementById("exp_sales").value = salesPersonVal;
+      if (document.getElementById("exp_sales_name")) document.getElementById("exp_sales_name").value = salesPersonVal;
+      if (document.getElementById("parts_sale_name")) document.getElementById("parts_sale_name").value = salesPersonVal;
+    }
+    if (salesGroupVal) {
+      if (document.getElementById("exp_group")) document.getElementById("exp_group").value = salesGroupVal;
+    }
+
     document.getElementById("sr_plant").value = siteVal;
 
     document.getElementById("sr_contact_person").value = contactPersonVal;
@@ -4719,6 +4829,16 @@ async function selectTicket(ticketNo) {
         if (!inst.data.contact_person || inst.data.contact_person === "-") inst.data.contact_person = contactPersonVal;
 
         if (!inst.data.contact_no || inst.data.contact_no === "-") inst.data.contact_no = contactPhoneVal;
+
+        if (salesPersonVal) {
+          if (!inst.data.exp_sales || inst.data.exp_sales === "-") inst.data.exp_sales = salesPersonVal;
+          if (!inst.data.exp_sales_name || inst.data.exp_sales_name === "-") inst.data.exp_sales_name = salesPersonVal;
+          if (!inst.data.sale_name || inst.data.sale_name === "-") inst.data.sale_name = salesPersonVal;
+          if (!inst.data.parts_sale_name || inst.data.parts_sale_name === "-") inst.data.parts_sale_name = salesPersonVal;
+        }
+        if (salesGroupVal) {
+          if (!inst.data.exp_group || inst.data.exp_group === "-") inst.data.exp_group = salesGroupVal;
+        }
 
       });
 

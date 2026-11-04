@@ -1020,30 +1020,38 @@
                 <span>ผู้จัดทำและผู้มีอำนาจลงนาม (Signatures)</span>
               </h5>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
                   <div class="flex items-center justify-between">
                     <span class="font-bold text-slate-700">1. ช่างบริการ (Technician)</span>
-                    <button type="button" onclick="toggleTechCustom('exp_tech_name')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
-                      <span id="techToggle_exp_tech_name">✏️ พิมพ์เอง</span>
-                    </button>
+                    <div class="flex items-center space-x-1.5">
+                      <button type="button" onclick="clearTechBadges('exp_tech_name')" class="text-[10px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                      <button type="button" onclick="toggleTechCustom('exp_tech_name')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
+                        <span id="techToggle_exp_tech_name">✏️ พิมพ์</span>
+                      </button>
+                    </div>
                   </div>
-                  <select id="techSelect_exp_tech_name" onchange="onTechSelectChange('exp_tech_name', this.value)" class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-medium bg-white focus:ring-2 focus:ring-red-500">
-                    <option value="">-- เลือกช่างบริการ --</option>
+                  <div id="techBadges_exp_tech_name" class="flex flex-wrap gap-1 min-h-[26px] p-1 bg-slate-50 border border-slate-200 rounded text-xs items-center"></div>
+                  <select id="techSelect_exp_tech_name" onchange="onTechSelectAdd('exp_tech_name', this.value)" class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-medium bg-white focus:ring-2 focus:ring-red-500">
+                    <option value="">➕ เพิ่มช่างบริการ...</option>
                   </select>
-                  <input type="text" id="exp_tech_name" class="w-full border rounded px-2 py-1 text-xs hidden" placeholder="ชื่อ-นามสกุล" oninput="onTechInputManual('exp_tech_name', this.value)">
+                  <input type="text" id="exp_tech_name" class="w-full border rounded px-2 py-1 text-xs hidden" placeholder="ชื่อช่าง" oninput="onTechInputManual('exp_tech_name', this.value)">
                   <input type="date" id="exp_tech_date" class="w-full border rounded px-2 py-1 text-xs">
                 </div>
-                <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
                   <div class="flex items-center justify-between">
                     <span class="font-bold text-slate-700">2. ช่างอาวุโส / วิศวกร</span>
-                    <button type="button" onclick="toggleTechCustom('exp_sr_tech_name')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
-                      <span id="techToggle_exp_sr_tech_name">✏️ พิมพ์เอง</span>
-                    </button>
+                    <div class="flex items-center space-x-1.5">
+                      <button type="button" onclick="clearTechBadges('exp_sr_tech_name')" class="text-[10px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                      <button type="button" onclick="toggleTechCustom('exp_sr_tech_name')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
+                        <span id="techToggle_exp_sr_tech_name">✏️ พิมพ์</span>
+                      </button>
+                    </div>
                   </div>
-                  <select id="techSelect_exp_sr_tech_name" onchange="onTechSelectChange('exp_sr_tech_name', this.value)" class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-medium bg-white focus:ring-2 focus:ring-red-500">
-                    <option value="">-- เลือกช่างอาวุโส/วิศวกร --</option>
+                  <div id="techBadges_exp_sr_tech_name" class="flex flex-wrap gap-1 min-h-[26px] p-1 bg-slate-50 border border-slate-200 rounded text-xs items-center"></div>
+                  <select id="techSelect_exp_sr_tech_name" onchange="onTechSelectAdd('exp_sr_tech_name', this.value)" class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-medium bg-white focus:ring-2 focus:ring-red-500">
+                    <option value="">➕ เพิ่มช่างอาวุโส/วิศวกร...</option>
                   </select>
-                  <input type="text" id="exp_sr_tech_name" class="w-full border rounded px-2 py-1 text-xs hidden" placeholder="ชื่อ-นามสกุล" oninput="onTechInputManual('exp_sr_tech_name', this.value)">
+                  <input type="text" id="exp_sr_tech_name" class="w-full border rounded px-2 py-1 text-xs hidden" placeholder="ชื่อช่างอาวุโส" oninput="onTechInputManual('exp_sr_tech_name', this.value)">
                   <input type="date" id="exp_sr_tech_date" class="w-full border rounded px-2 py-1 text-xs">
                 </div>
                 <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
@@ -2521,27 +2529,35 @@
               <span class="font-bold text-slate-800 block text-xs">ผู้ตรวจสอบ (Inspection Check By)</span>
 
               <div class="grid grid-cols-2 gap-2">
-                <div>
+                <div class="space-y-1">
                   <div class="flex items-center justify-between mb-0.5">
                     <label class="block text-[11px] text-slate-600">Incoming Check By :</label>
-                    <button type="button" onclick="toggleTechCustom('insp_tech_incoming')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
-                      <span id="techToggle_insp_tech_incoming">✏️ พิมพ์เอง</span>
-                    </button>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="clearTechBadges('insp_tech_incoming')" class="text-[9px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                      <button type="button" onclick="toggleTechCustom('insp_tech_incoming')" class="text-[9px] text-red-600 hover:underline cursor-pointer">
+                        <span id="techToggle_insp_tech_incoming">✏️ พิมพ์</span>
+                      </button>
+                    </div>
                   </div>
-                  <select id="techSelect_insp_tech_incoming" onchange="onTechSelectChange('insp_tech_incoming', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
-                    <option value="">-- เลือกช่างตรวจรับเข้า --</option>
+                  <div id="techBadges_insp_tech_incoming" class="flex flex-wrap gap-1 min-h-[24px] p-1 bg-white border border-slate-200 rounded text-[11px] items-center"></div>
+                  <select id="techSelect_insp_tech_incoming" onchange="onTechSelectAdd('insp_tech_incoming', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
+                    <option value="">➕ เพิ่มช่างตรวจรับเข้า...</option>
                   </select>
                   <input type="text" id="insp_tech_incoming" placeholder="ชื่อช่างตรวจรับเข้า" class="w-full p-1.5 border rounded text-xs bg-white focus:ring-2 focus:ring-red-500 hidden" oninput="onTechInputManual('insp_tech_incoming', this.value)">
                 </div>
-                <div>
+                <div class="space-y-1">
                   <div class="flex items-center justify-between mb-0.5">
                     <label class="block text-[11px] text-slate-600">Final Check By :</label>
-                    <button type="button" onclick="toggleTechCustom('insp_tech_final')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
-                      <span id="techToggle_insp_tech_final">✏️ พิมพ์เอง</span>
-                    </button>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="clearTechBadges('insp_tech_final')" class="text-[9px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                      <button type="button" onclick="toggleTechCustom('insp_tech_final')" class="text-[9px] text-red-600 hover:underline cursor-pointer">
+                        <span id="techToggle_insp_tech_final">✏️ พิมพ์</span>
+                      </button>
+                    </div>
                   </div>
-                  <select id="techSelect_insp_tech_final" onchange="onTechSelectChange('insp_tech_final', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
-                    <option value="">-- เลือกช่างตรวจส่งมอบ --</option>
+                  <div id="techBadges_insp_tech_final" class="flex flex-wrap gap-1 min-h-[24px] p-1 bg-white border border-slate-200 rounded text-[11px] items-center"></div>
+                  <select id="techSelect_insp_tech_final" onchange="onTechSelectAdd('insp_tech_final', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
+                    <option value="">➕ เพิ่มช่างตรวจส่งมอบ...</option>
                   </select>
                   <input type="text" id="insp_tech_final" placeholder="ชื่อช่างตรวจส่งมอบ" class="w-full p-1.5 border rounded text-xs bg-white focus:ring-2 focus:ring-red-500 hidden" oninput="onTechInputManual('insp_tech_final', this.value)">
                 </div>
@@ -3027,15 +3043,19 @@
 
             </div>
 
-            <div>
-              <div class="flex items-center justify-between mb-1">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between mb-0.5">
                 <label class="block text-slate-600 font-medium">ผู้รับงาน / ช่าง :</label>
-                <button type="button" onclick="toggleTechCustom('parts_receiver_name')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
-                  <span id="techToggle_parts_receiver_name">✏️ พิมพ์เอง</span>
-                </button>
+                <div class="flex items-center space-x-1.5">
+                  <button type="button" onclick="clearTechBadges('parts_receiver_name')" class="text-[10px] text-slate-400 hover:text-red-600 cursor-pointer">ล้าง</button>
+                  <button type="button" onclick="toggleTechCustom('parts_receiver_name')" class="text-[10px] text-red-600 hover:underline cursor-pointer">
+                    <span id="techToggle_parts_receiver_name">✏️ พิมพ์</span>
+                  </button>
+                </div>
               </div>
-              <select id="techSelect_parts_receiver_name" onchange="onTechSelectChange('parts_receiver_name', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
-                <option value="">-- เลือกผู้รับงาน/ช่าง --</option>
+              <div id="techBadges_parts_receiver_name" class="flex flex-wrap gap-1 min-h-[26px] p-1 bg-white border border-slate-200 rounded text-xs items-center"></div>
+              <select id="techSelect_parts_receiver_name" onchange="onTechSelectAdd('parts_receiver_name', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white font-medium focus:ring-2 focus:ring-red-500">
+                <option value="">➕ เพิ่มผู้รับงาน/ช่าง...</option>
               </select>
               <input type="text" id="parts_receiver_name" placeholder="ชื่อผู้รับงาน/ช่าง" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-500 text-xs hidden" oninput="onTechInputManual('parts_receiver_name', this.value)">
             </div>
@@ -3178,15 +3198,19 @@
 
             </div>
 
-            <div>
-              <div class="flex items-center justify-between mb-1">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between mb-0.5">
                 <label class="block font-medium text-slate-600">Reported By (ผู้จัดทำรายงาน)</label>
-                <button type="button" onclick="toggleTechCustom('photo_reported_by')" class="text-[10px] text-purple-600 hover:underline cursor-pointer">
-                  <span id="techToggle_photo_reported_by">✏️ พิมพ์เอง</span>
-                </button>
+                <div class="flex items-center space-x-1.5">
+                  <button type="button" onclick="clearTechBadges('photo_reported_by')" class="text-[10px] text-slate-400 hover:text-purple-600 cursor-pointer">ล้าง</button>
+                  <button type="button" onclick="toggleTechCustom('photo_reported_by')" class="text-[10px] text-purple-600 hover:underline cursor-pointer">
+                    <span id="techToggle_photo_reported_by">✏️ พิมพ์</span>
+                  </button>
+                </div>
               </div>
-              <select id="techSelect_photo_reported_by" onchange="onTechSelectChange('photo_reported_by', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-purple-500">
-                <option value="">-- เลือกวิศวกร/ช่างผู้จัดทำ --</option>
+              <div id="techBadges_photo_reported_by" class="flex flex-wrap gap-1 min-h-[28px] p-1 bg-white border border-slate-200 rounded text-xs items-center"></div>
+              <select id="techSelect_photo_reported_by" onchange="onTechSelectAdd('photo_reported_by', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-purple-500">
+                <option value="">➕ เพิ่มวิศวกร/ช่างผู้จัดทำ...</option>
               </select>
               <input type="text" id="photo_reported_by" value="" placeholder="ระบุชื่อวิศวกร/ช่างผู้จัดทำ..." class="w-full p-2 border rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-purple-500 hidden" oninput="onTechInputManual('photo_reported_by', this.value)">
             </div>
@@ -3637,17 +3661,21 @@
 
               <div class="mt-3 text-xs">
 
-                <div class="space-y-1">
+                <div class="space-y-1.5" id="techContainer_techSignerName">
                   <div class="flex items-center justify-between">
                     <label class="block text-[11px] font-bold text-slate-700">ชื่อช่างผู้บริการ (Serviced by)</label>
-                    <button type="button" onclick="toggleTechCustom('techSignerName')" class="text-[10px] text-red-600 hover:text-red-700 hover:underline cursor-pointer font-medium">
-                      <span id="techToggle_techSignerName">✏️ พิมพ์เอง</span>
-                    </button>
+                    <div class="flex items-center space-x-2">
+                      <button type="button" onclick="clearTechBadges('techSignerName')" class="text-[10px] text-slate-400 hover:text-red-600 cursor-pointer">ล้างชื่อ</button>
+                      <button type="button" onclick="toggleTechCustom('techSignerName')" class="text-[10px] text-red-600 hover:underline cursor-pointer font-medium">
+                        <span id="techToggle_techSignerName">✏️ พิมพ์เอง</span>
+                      </button>
+                    </div>
                   </div>
-                  <select id="techSelect_techSignerName" onchange="onTechSelectChange('techSignerName', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 shadow-sm">
-                    <option value="">-- เลือกช่างผู้บริการ (Drop Down) --</option>
+                  <div id="techBadges_techSignerName" class="flex flex-wrap gap-1.5 min-h-[30px] p-1.5 bg-white border border-slate-200 rounded-lg items-center"></div>
+                  <select id="techSelect_techSignerName" onchange="onTechSelectAdd('techSignerName', this.value)" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-red-500 shadow-xs">
+                    <option value="">➕ เพิ่มช่างผู้ปฏิบัติงาน (เลือกได้หลายคน)...</option>
                   </select>
-                  <input type="text" id="techSignerName" placeholder="ระบุชื่อ-นามสกุลช่าง (กรอกเอง)" class="w-full p-2 border rounded focus:ring-2 focus:ring-red-500 font-medium text-xs hidden" oninput="onTechInputManual('techSignerName', this.value)">
+                  <input type="text" id="techSignerName" placeholder="ระบุชื่อช่าง เช่น โชคชัย, พิชิตชัย" class="w-full p-2 border rounded focus:ring-2 focus:ring-red-500 font-medium text-xs hidden" oninput="onTechInputManual('techSignerName', this.value)">
                 </div>
 
               </div>
@@ -4364,7 +4392,7 @@
 
 
 
-  <script src="app.js?v=20261104_v23_tech_dropdowns"></script>
+  <script src="app.js?v=20261104_v24_multi_tech_and_sales"></script>
 
 
 

@@ -312,35 +312,66 @@ def health_check():
 
 TECHNICIANS_FILE = os.path.join(DATA_DIR, "active_technicians.json")
 
+DEFAULT_ACTIVE_TECHS = [
+    { "name": "โชคชัย", "fullName": "นาย โชคชัย เป็นอัน", "position": "Senior Technician" },
+    { "name": "พูลศักดิ์", "fullName": "นาย พูลศักดิ์ จำปาบุรี", "position": "Senior Technician" },
+    { "name": "พิชิตชัย", "fullName": "นาย พิชิตชัย แสดใหม่", "position": "Senior Technician" },
+    { "name": "ธนพล", "fullName": "นาย ธนพล สุภิษะ", "position": "Senior Technician" },
+    { "name": "ฉัตรชัย", "fullName": "นาย ฉัตรชัย เที่ยงเกตุ", "position": "Technician" },
+    { "name": "ธีริทธิ์", "fullName": "นาย ธีริทธิ์ ตาลพุดซา", "position": "Technician" },
+    { "name": "ภาศกร", "fullName": "นาย ภาศกร ธรรมประชา", "position": "Technician" },
+    { "name": "โชคอำนวย", "fullName": "นาย โชคอำนวย ดอนแก้ว", "position": "Technician" },
+    { "name": "วีรวัฒน์", "fullName": "นาย วีรวัฒน์ คุประตกุล", "position": "Technician" },
+    { "name": "สนั่น", "fullName": "นาย สนั่น จอมทรักษ์", "position": "Engineer" },
+    { "name": "รณพร", "fullName": "นาย รณพร หยวกใจธรรม", "position": "Planner" },
+    { "name": "ไพศาล", "fullName": "นาย ไพศาล สง่าวงษ์", "position": "Assist. Manager" }
+]
+
+SALES_USERS_MAP = {
+    "vipoo": "Vipoo Srisawadi",
+    "nattawut": "Nattawut Junkong",
+    "sujittra": "Sujittra Tungprakobjaroen",
+    "pattamaporn": "Pattamaporn Chadkurupin",
+    "thanaaran": "Thanaaran Sirawattanamongkol",
+    "kanittha_c": "Kanittha Cheryhom",
+    "benjamas": "Benjamas Tanjit",
+    "katewadee": "Katewadee Pratipagorn",
+    "thitima": "Thitima Plaibua",
+    "udomlak": "Udomlak Panya-Apiban",
+    "saovaluck": "Saovaluck Jangjai",
+    "sarawut_v": "Sarawut Viseshasiri",
+    "tanaporn": "Tanaporn Chanchanaroj",
+    "napadol": "Napadol Peoksangthip",
+    "phanuwat": "Phanuwat Murot",
+    "patthamanan": "Patthamanan Pudgajang",
+    "peeraya": "Peeraya Peeploy",
+    "piyanuch": "Piyanuch Janthanarak",
+    "samantha_t": "Samantha Tanittha Nilsandhi"
+}
+
+def resolve_sales_person(t: Dict[str, Any]) -> str:
+    assigned = str(t.get("AssignedTo") or t.get("Assigned To") or t.get("Sales") or "").strip()
+    if not assigned or assigned.lower() in ["-", "nan", "none", "null"]:
+        return ""
+    if assigned.lower() in SALES_USERS_MAP:
+        return SALES_USERS_MAP[assigned.lower()]
+    if " " in assigned:
+        return assigned
+    return assigned.title()
+
 @app.get("/api/technicians")
 def list_technicians():
     """Return sorted unique list of active technicians from data/active_technicians.json"""
-    base_techs = [
-        "นาย กฤษเอก ประชุมพันธ์",
-        "นาย จุมพล ไข่แก้ว",
-        "นาย ฉัตรชัย เที่ยงเกตุ",
-        "นาย ณฐวัฒน์ คุ้มหนู",
-        "นาย ธนพล สุภิษะ",
-        "นาย ธีริทธิ์ ตาลพุดซา",
-        "นาย พิชิตชัย แสดใหม่",
-        "นาย พูลศักดิ์ จำปาบุรี",
-        "นาย ภาศกร ธรรมประชา",
-        "นาย รณพร หยวกใจธรรม",
-        "นาย วีรวัฒน์ คุประตกุล",
-        "นาย สนั่น จอมทรักษ์",
-        "นาย โชคชัย เป็นอัน",
-        "นาย โชคอำนวย ดอนแก้ว",
-        "นาย ไพศาล สง่าวงษ์"
-    ]
+    techs = DEFAULT_ACTIVE_TECHS
     if os.path.exists(TECHNICIANS_FILE):
         try:
             with open(TECHNICIANS_FILE, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
                 if isinstance(loaded, list) and len(loaded) > 0:
-                    return {"technicians": sorted(list(set(str(t).strip() for t in loaded if str(t).strip())))}
+                    techs = loaded
         except Exception as e:
             print(f"Error reading {TECHNICIANS_FILE}: {e}")
-    return {"technicians": sorted(list(set(base_techs)))}
+    return {"technicians": techs}
 
 @app.post("/api/technicians")
 def update_technicians(payload: Dict[str, Any] = Body(...)):
@@ -348,10 +379,9 @@ def update_technicians(payload: Dict[str, Any] = Body(...)):
     techs = payload.get("technicians")
     if not isinstance(techs, list):
         raise HTTPException(status_code=400, detail="Invalid payload, 'technicians' array required")
-    clean_list = sorted(list(set(str(t).strip() for t in techs if str(t).strip())))
     with open(TECHNICIANS_FILE, "w", encoding="utf-8") as f:
-        json.dump(clean_list, f, ensure_ascii=False, indent=2)
-    return {"ok": True, "technicians": clean_list}
+        json.dump(techs, f, ensure_ascii=False, indent=2)
+    return {"ok": True, "technicians": techs}
 
 @app.get("/api/tickets")
 def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25, sort: str = "desc"):
@@ -410,7 +440,10 @@ def list_tickets(q: Optional[str] = Query(None), page: int = 1, limit: int = 25,
     total = len(results)
     start = (page - 1) * limit
     end = start + limit
-    items = results[start:end]
+    items = [dict(r) for r in results[start:end]]
+    for item in items:
+        item["sales_person"] = resolve_sales_person(item)
+        item["sales_group"] = str(item.get("Request By Group") or item.get("Group") or "").strip()
     return {
         "items": items,
         "total": total,
@@ -429,7 +462,10 @@ def get_ticket(ticket_no: str):
         t_key = str(t.get("TicketKey", "")).strip().lower()
         t_vtiger = str(t.get("VtigerTicket", "")).strip().lower()
         if t_req == t_clean or t_no == t_clean or t_key == t_clean or t_vtiger == t_clean:
-            return t
+            res = dict(t)
+            res["sales_person"] = resolve_sales_person(t)
+            res["sales_group"] = str(t.get("Request By Group") or t.get("Group") or "").strip()
+            return res
     raise HTTPException(status_code=404, detail="Ticket not found")
 
 @app.post("/api/tickets/reload")

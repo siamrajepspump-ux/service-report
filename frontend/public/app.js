@@ -1541,8 +1541,10 @@ function syncDraftAfterFormChange() {
     if (state.packageInstances.length === 0) {
       localStorage.removeItem(`siamraj_draft_${ticketNo}`);
       localStorage.removeItem(`siamraj_draft_time_${ticketNo}`);
+      localStorage.setItem(`siamraj_draft_cleared_${ticketNo}`, "true");
       fetch(`/api/reports/clear-draft/${encodeURIComponent(ticketNo)}`, { method: "POST" }).catch(() => {});
     } else {
+      localStorage.removeItem(`siamraj_draft_cleared_${ticketNo}`);
       const rawData = collectReportData();
       const cleanData = stripDraftBloat(rawData);
       cleanData.form_instances = JSON.parse(JSON.stringify(state.packageInstances));
@@ -5201,20 +5203,16 @@ async function selectTicket(ticketNo) {
     // Load existing draft if present
     const hasDraft = await loadTicketDraft(ticketNo);
 
-    // If draft has instances, select active instance or first one; otherwise initialize default forms (SR + Photo)
+    // If draft has instances, select active instance or first one; otherwise leave empty for user to choose
     if (state.packageInstances && state.packageInstances.length > 0) {
       const activeInst = state.packageInstances.find(i => i.id === state.activeInstanceId) || state.packageInstances[0];
       state.activeInstanceId = null;
       renderPackageTabs();
       selectPackageInstance(activeInst.id);
     } else {
-      // Auto-open standard Service Report (FM-EPS-23) and Photo Report so screen is never blank
-      addFormToPackage("FM-EPS-23");
-      addFormToPackage("PHOTO_REPORT");
+      selectPackageInstance(null);
       renderPackageTabs();
-      if (state.packageInstances && state.packageInstances.length > 0) {
-        selectPackageInstance(state.packageInstances[0].id);
-      }
+      applyPackageViewMode();
     }
 
     loadTicketPhotos(ticketNo);
@@ -5239,6 +5237,11 @@ async function selectTicket(ticketNo) {
 
 
 async function loadTicketDraft(ticketNo) {
+  // If user explicitly cleared this ticket on this device, don't resurrect old server draft
+  if (localStorage.getItem(`siamraj_draft_cleared_${ticketNo}`) === "true") {
+    return false;
+  }
+
   let serverDraft = null;
   let localDraft = null;
 
@@ -5297,79 +5300,82 @@ async function loadTicketDraft(ticketNo) {
 
 function applyDraftData(d) {
   if (!d || typeof d !== "object") return;
-  if (!Array.isArray(d.form_instances)) {
+  const hasExplicitInstances = Array.isArray(d.form_instances);
+  if (!hasExplicitInstances) {
     d.form_instances = [];
   }
 
-  // Auto-restore FM-EPS-45 ONLY if draft contains actual evaluation ratings, satisfaction score, or custom suggestions
-  // (Do NOT check sat_customer because it defaults to customer name on every ticket)
-  const hasSatData = (d.ratings && Object.keys(d.ratings).length > 0) || 
-                     (d.sat_total_score !== undefined && d.sat_total_score > 0) || 
-                     (d.suggestions && d.suggestions.trim().length > 0);
-  if (hasSatData && !d.form_instances.some(i => i.code === "FM-EPS-45") && !d._instances_cleared) {
-    d.form_instances.push({
-      id: `inst_sat_${Date.now()}`,
-      code: "FM-EPS-45",
-      title: FORM_DEFS["FM-EPS-45"]?.title || "แบบประเมินความพึงพอใจลูกค้า (Customer Satisfaction)",
-      num: 1,
-      customLabel: "",
-      data: {
-        sat_customer: d.sat_customer || d.customer || "",
-        sat_contact_person: d.sat_contact_person || d.contact_person || "",
-        sat_contact_no: d.sat_contact_no || d.contact_no || "",
-        sat_eval_date: d.sat_eval_date || d.date || "",
-        ratings: d.ratings || {},
-        total_score: d.sat_total_score || 0,
-        max_score: 56,
-        suggestions: d.suggestions || d.sat_suggestions || ""
-      }
-    });
-  }
+  // Auto-restore FM-EPS-45 ONLY for legacy single-form drafts without form_instances
+  // Do NOT re-inject if draft explicitly had form_instances array (user may have intentionally removed it)
+  if (!hasExplicitInstances) {
+    const hasSatData = (d.ratings && Object.keys(d.ratings).length > 0) || 
+                       (d.sat_total_score !== undefined && d.sat_total_score > 0) || 
+                       (d.suggestions && d.suggestions.trim().length > 0);
+    if (hasSatData && !d._instances_cleared) {
+      d.form_instances.push({
+        id: `inst_sat_${Date.now()}`,
+        code: "FM-EPS-45",
+        title: FORM_DEFS["FM-EPS-45"]?.title || "แบบประเมินความพึงพอใจลูกค้า (Customer Satisfaction)",
+        num: 1,
+        customLabel: "",
+        data: {
+          sat_customer: d.sat_customer || d.customer || "",
+          sat_contact_person: d.sat_contact_person || d.contact_person || "",
+          sat_contact_no: d.sat_contact_no || d.contact_no || "",
+          sat_eval_date: d.sat_eval_date || d.date || "",
+          ratings: d.ratings || {},
+          total_score: d.sat_total_score || 0,
+          max_score: 56,
+          suggestions: d.suggestions || d.sat_suggestions || ""
+        }
+      });
+    }
 
-  // Synthesize legacy forms if form_instances is empty
-  if (d.form_instances.length === 0) {
-    if (d.cause || d.repairing || (d.service_subjects && d.service_subjects.length > 0) || d.pump_model) {
-      d.form_instances.push({
-        id: `inst_sr_${Date.now()}`,
-        code: "FM-EPS-23",
-        title: FORM_DEFS["FM-EPS-23"]?.title || "รายงานการบริการ (Service Report)",
-        num: 1,
-        customLabel: "",
-        data: {
-          pump_brand: d.pump_brand || "VIKING",
-          pump_model: d.pump_model || "",
-          serial_no: d.serial_no || "",
-          cause: d.cause || "",
-          repairing: d.repairing || "",
-          service_subjects: d.service_subjects || []
-        }
-      });
-    }
-    if (d.visual_checklist || d.alignment || d.vibration) {
-      d.form_instances.push({
-        id: `inst_cr_${Date.now()}`,
-        code: "FM-EPS-22",
-        title: FORM_DEFS["FM-EPS-22"]?.title || "รายงานการตรวจสภาพเครื่องจักร (Check Report)",
-        num: 1,
-        customLabel: "",
-        data: {
-          visual_checklist: d.visual_checklist || [],
-          alignment: d.alignment || {},
-          vibration: d.vibration || {}
-        }
-      });
-    }
-    if (d.photos && d.photos.length > 0) {
-      d.form_instances.push({
-        id: `inst_photo_${Date.now()}`,
-        code: "PHOTO_REPORT",
-        title: FORM_DEFS["PHOTO_REPORT"]?.title || "รายงานภาพถ่ายประกอบ (Service Photo Report)",
-        num: 1,
-        customLabel: "",
-        data: {
-          photos: d.photos
-        }
-      });
+    // Synthesize legacy forms if form_instances is empty
+    if (d.form_instances.length === 0) {
+      if (d.cause || d.repairing || (d.service_subjects && d.service_subjects.length > 0) || d.pump_model) {
+        d.form_instances.push({
+          id: `inst_sr_${Date.now()}`,
+          code: "FM-EPS-23",
+          title: FORM_DEFS["FM-EPS-23"]?.title || "รายงานการบริการ (Service Report)",
+          num: 1,
+          customLabel: "",
+          data: {
+            pump_brand: d.pump_brand || "VIKING",
+            pump_model: d.pump_model || "",
+            serial_no: d.serial_no || "",
+            cause: d.cause || "",
+            repairing: d.repairing || "",
+            service_subjects: d.service_subjects || []
+          }
+        });
+      }
+      if (d.visual_checklist || d.alignment || d.vibration) {
+        d.form_instances.push({
+          id: `inst_cr_${Date.now()}`,
+          code: "FM-EPS-22",
+          title: FORM_DEFS["FM-EPS-22"]?.title || "รายงานการตรวจสภาพเครื่องจักร (Check Report)",
+          num: 1,
+          customLabel: "",
+          data: {
+            visual_checklist: d.visual_checklist || [],
+            alignment: d.alignment || {},
+            vibration: d.vibration || {}
+          }
+        });
+      }
+      if (d.photos && d.photos.length > 0) {
+        d.form_instances.push({
+          id: `inst_photo_${Date.now()}`,
+          code: "PHOTO_REPORT",
+          title: FORM_DEFS["PHOTO_REPORT"]?.title || "รายงานภาพถ่ายประกอบ (Service Photo Report)",
+          num: 1,
+          customLabel: "",
+          data: {
+            photos: d.photos
+          }
+        });
+      }
     }
   }
 

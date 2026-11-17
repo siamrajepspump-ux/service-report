@@ -1546,6 +1546,13 @@ def clear_draft(ticket_no: str):
             print(f"[Draft] Cleared draft file for {ticket}")
         except Exception as e:
             print(f"[Draft] Error deleting {file_path}: {e}")
+    sub_path = os.path.join(REPORTS_DIR, f"{ticket}_submitted.json")
+    if os.path.exists(sub_path):
+        try:
+            os.remove(sub_path)
+            print(f"[Draft] Cleared submitted file for {ticket}")
+        except Exception as e:
+            print(f"[Draft] Error deleting {sub_path}: {e}")
     return {"ok": True, "message": f"Draft for {ticket} cleared"}
 
 @app.get("/api/reports/load-draft/{ticket_no}")

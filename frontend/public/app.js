@@ -12,8 +12,12 @@ function stripDraftBloat(draft) {
   if (!draft || typeof draft !== "object") return draft;
   const cleanPhoto = (p) => {
     if (!p || typeof p !== "object") return p;
-    const { base64, data_url, dataUrl, ...rest } = p;
-    return rest;
+    const hasServerRef = p.file_path || (p.url && !p.url.startsWith("blob:") && !p.url.startsWith("data:"));
+    if (hasServerRef) {
+      const { base64, data_url, dataUrl, ...rest } = p;
+      return rest;
+    }
+    return p;
   };
   const cleaned = { ...draft };
   if (Array.isArray(cleaned.photos)) {
@@ -1399,7 +1403,9 @@ function addFormToPackage(code, customLabel = "") {
 
       recommended: "",
 
-      photos: []
+      photos: (state.activePhotoReportPhotos && state.activePhotoReportPhotos.length > 0)
+        ? JSON.parse(JSON.stringify(state.activePhotoReportPhotos))
+        : []
 
     };
 
@@ -3447,8 +3453,11 @@ function loadInstanceDataIntoDom(inst) {
 
 
     // Load photos for this specific instance
-
-    state.activePhotoReportPhotos = d.photos ? JSON.parse(JSON.stringify(d.photos)) : [];
+    if (d.photos && d.photos.length > 0) {
+      state.activePhotoReportPhotos = JSON.parse(JSON.stringify(d.photos));
+    } else if (!state.activePhotoReportPhotos || state.activePhotoReportPhotos.length === 0) {
+      state.activePhotoReportPhotos = [];
+    }
 
     renderPhotoGallery();
 
@@ -5868,58 +5877,98 @@ function applyDraftData(d) {
 // =============================================================================
 
 async function compressImageFile(file, maxDimension = 1600, quality = 0.82) {
-  // If not image or smaller than 400KB, return as-is
-  if (!file.type || !file.type.startsWith("image/") || file.size < 400 * 1024) {
+  if (!file || !file.type || !file.type.startsWith("image/") || file.size < 350 * 1024) {
     return file;
   }
   return new Promise((resolve) => {
+    let resolved = false;
+    const safeResolve = (res) => {
+      if (!resolved) {
+        resolved = true;
+        resolve(res);
+      }
+    };
+    // 4-second timeout safeguard for high-res mobile camera capture
+    const timer = setTimeout(() => {
+      console.warn("Image compression timeout - using original file");
+      safeResolve(file);
+    }, 4000);
+
     try {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          let width = img.width;
-          let height = img.height;
-          if (!width || !height) return resolve(file);
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
-            } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
-            }
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return resolve(file);
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob(
-            (blob) => {
-              if (blob && blob.size < file.size) {
-                const compFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-                  type: "image/jpeg",
-                  lastModified: Date.now()
-                });
-                resolve(compFile);
-              } else {
-                resolve(file);
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              let width = img.width;
+              let height = img.height;
+              if (!width || !height) {
+                clearTimeout(timer);
+                return safeResolve(file);
               }
-            },
-            "image/jpeg",
-            quality
-          );
-        };
-        img.onerror = () => resolve(file);
-        img.src = e.target.result;
+              if (width > maxDimension || height > maxDimension) {
+                if (width > height) {
+                  height = Math.round((height * maxDimension) / width);
+                  width = maxDimension;
+                } else {
+                  width = Math.round((width * maxDimension) / height);
+                  height = maxDimension;
+                }
+              }
+              const canvas = document.createElement("canvas");
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) {
+                clearTimeout(timer);
+                return safeResolve(file);
+              }
+              ctx.drawImage(img, 0, 0, width, height);
+              canvas.toBlob(
+                (blob) => {
+                  clearTimeout(timer);
+                  if (blob && blob.size < file.size) {
+                    try {
+                      const compFile = new File([blob], file.name ? file.name.replace(/\.[^.]+$/, ".jpg") : "photo.jpg", {
+                        type: "image/jpeg",
+                        lastModified: Date.now()
+                      });
+                      safeResolve(compFile);
+                    } catch (fe) {
+                      blob.name = file.name || "photo.jpg";
+                      safeResolve(blob);
+                    }
+                  } else {
+                    safeResolve(file);
+                  }
+                },
+                "image/jpeg",
+                quality
+              );
+            } catch (err) {
+              clearTimeout(timer);
+              safeResolve(file);
+            }
+          };
+          img.onerror = () => {
+            clearTimeout(timer);
+            safeResolve(file);
+          };
+          img.src = e.target.result;
+        } catch (err2) {
+          clearTimeout(timer);
+          safeResolve(file);
+        }
       };
-      reader.onerror = () => resolve(file);
+      reader.onerror = () => {
+        clearTimeout(timer);
+        safeResolve(file);
+      };
       reader.readAsDataURL(file);
-    } catch (err) {
-      console.warn("Client compression fallback:", err);
-      resolve(file);
+    } catch (e) {
+      clearTimeout(timer);
+      safeResolve(file);
     }
   });
 }
@@ -5978,10 +6027,10 @@ function setupPhotoDropzone() {
 async function handlePhotoUpload(files) {
   if (!files || files.length === 0) return;
 
-  // Robust ticket number lookup: check all sources so mobile user is NEVER blocked
-  let ticketNo = document.getElementById("sr_request_no")?.value.trim()
-    || document.getElementById("photo_job")?.value.trim()
-    || document.getElementById("heroRequestInput")?.value.trim()
+  // Prioritize photo_job first so if technician typed job on photo screen, it's used
+  let ticketNo = document.getElementById("photo_job")?.value?.trim()
+    || document.getElementById("sr_request_no")?.value?.trim()
+    || document.getElementById("heroRequestInput")?.value?.trim()
     || document.getElementById("bannerTicketNo")?.textContent.replace(/[^0-9a-zA-Z]/g, "").trim()
     || (state.currentTicket && (state.currentTicket.RequestNo || state.currentTicket.TicketNo))
     || "";
@@ -6007,13 +6056,23 @@ async function handlePhotoUpload(files) {
   }
 
   for (let file of files) {
-    // Client-side compression for high-res phone camera photos (prevents upload timeout)
     let fileToUpload = file;
     try {
       fileToUpload = await compressImageFile(file);
     } catch (ce) {
       console.warn("Client compression warning:", ce);
     }
+
+    // Capture base64 / dataUrl backup so local photo can ALWAYS render in PDF even if offline
+    let dataUrlBackup = "";
+    try {
+      dataUrlBackup = await new Promise((res) => {
+        const fr = new FileReader();
+        fr.onload = (ev) => res(ev.target.result);
+        fr.onerror = () => res("");
+        fr.readAsDataURL(fileToUpload);
+      });
+    } catch (_) {}
 
     const formData = new FormData();
     formData.append("ticket_no", ticketNo);
@@ -6029,51 +6088,56 @@ async function handlePhotoUpload(files) {
       if (res.ok) {
         const data = await res.json();
         if (data.photo) {
+          if (!data.photo.base64 && dataUrlBackup) {
+            data.photo.data_url = dataUrlBackup;
+            data.photo.base64 = dataUrlBackup;
+          }
           state.activePhotoReportPhotos.push(data.photo);
         }
       } else {
-        const objectUrl = URL.createObjectURL(file);
+        const objectUrl = URL.createObjectURL(fileToUpload);
         state.activePhotoReportPhotos.push({
           id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
-          filename: file.name,
+          filename: file.name || "photo.jpg",
           category: category,
           caption: caption,
-          url: objectUrl
+          url: objectUrl,
+          data_url: dataUrlBackup,
+          base64: dataUrlBackup
         });
       }
     } catch (e) {
       console.error(e);
-      const objectUrl = URL.createObjectURL(file);
+      const objectUrl = URL.createObjectURL(fileToUpload);
       state.activePhotoReportPhotos.push({
         id: "local_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
-        filename: file.name,
+        filename: file.name || "photo.jpg",
         category: category,
         caption: caption,
-        url: objectUrl
+        url: objectUrl,
+        data_url: dataUrlBackup,
+        base64: dataUrlBackup
       });
     }
   }
 
-
-
-  // Sync into active instance data
-
-  const activeInst = state.packageInstances.find(i => i.id === state.activeInstanceId);
-
-  if (activeInst && activeInst.code === "PHOTO_REPORT") {
-
-    if (!activeInst.data) activeInst.data = {};
-
-    activeInst.data.photos = JSON.parse(JSON.stringify(state.activePhotoReportPhotos));
-
+  // Ensure a PHOTO_REPORT instance exists in state.packageInstances
+  let photoInst = state.packageInstances.find(i => i.code === "PHOTO_REPORT");
+  if (!photoInst) {
+    addFormToPackage("PHOTO_REPORT");
+    photoInst = state.packageInstances.find(i => i.code === "PHOTO_REPORT");
   }
 
-
+  // Sync into ALL PHOTO_REPORT instances in state.packageInstances
+  state.packageInstances.forEach(inst => {
+    if (inst.code === "PHOTO_REPORT") {
+      if (!inst.data) inst.data = {};
+      inst.data.photos = JSON.parse(JSON.stringify(state.activePhotoReportPhotos));
+    }
+  });
 
   renderPhotoGallery();
-
   showToast("อัปโหลดรูปภาพเข้าใบงานนี้เรียบร้อยแล้ว");
-
 }
 
 
@@ -7590,6 +7654,18 @@ function toggleBomDiagramModal() {
 // =============================================================================
 
 function collectReportData(skipAutoSchedule = true) {
+  // Guarantee PHOTO_REPORT instances always carry active photos
+  if (Array.isArray(state.packageInstances) && state.activePhotoReportPhotos && state.activePhotoReportPhotos.length > 0) {
+    state.packageInstances.forEach(inst => {
+      if (inst.code === "PHOTO_REPORT") {
+        if (!inst.data) inst.data = {};
+        if (!inst.data.photos || inst.data.photos.length === 0) {
+          inst.data.photos = JSON.parse(JSON.stringify(state.activePhotoReportPhotos));
+        }
+      }
+    });
+  }
+
 
   saveCurrentActiveInstanceData(skipAutoSchedule);
 
@@ -8081,7 +8157,7 @@ function collectReportData(skipAutoSchedule = true) {
 
     show_prices: document.getElementById("toggleShowPrices")?.checked || false,
 
-    photos: state.photos,
+    photos: (state.activePhotoReportPhotos && state.activePhotoReportPhotos.length > 0) ? state.activePhotoReportPhotos : (state.photos || []),
 
     form_instances: state.packageInstances,
 
@@ -8692,14 +8768,14 @@ async function previewPhotoReportPdf() {
 
 
 
+  const activePhotos = (instData.photos && instData.photos.length > 0)
+    ? instData.photos
+    : ((state.activePhotoReportPhotos && state.activePhotoReportPhotos.length > 0) ? state.activePhotoReportPhotos : []);
+
   const payload = {
-
     ...instData,
-
     ticket_no: ticketNo,
-
-    photos: instData.photos || state.activePhotoReportPhotos || []
-
+    photos: activePhotos
   };
 
 
@@ -8789,14 +8865,14 @@ async function downloadPhotoReportExcel() {
 
 
 
+  const activePhotos = (instData.photos && instData.photos.length > 0)
+    ? instData.photos
+    : ((state.activePhotoReportPhotos && state.activePhotoReportPhotos.length > 0) ? state.activePhotoReportPhotos : []);
+
   const payload = {
-
     ...instData,
-
     ticket_no: ticketNo,
-
-    photos: instData.photos || state.activePhotoReportPhotos || []
-
+    photos: activePhotos
   };
 
 

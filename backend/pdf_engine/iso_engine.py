@@ -1288,6 +1288,75 @@ class IsoPdfEngine:
         doc.save(output_path)
         doc.close()
         return output_path
+    def _resolve_photo_file(self, p_info: Optional[Dict[str, Any]], ticket: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Resolves a photo entry to either a valid local file path or base64/data_url string.
+        Returns: (file_path, base64_str)
+        """
+        if not p_info or not isinstance(p_info, dict):
+            return None, None
+
+        img_path = p_info.get("file_path") or p_info.get("path")
+        b64 = p_info.get("base64") or p_info.get("data_url") or p_info.get("dataUrl")
+        fn = p_info.get("filename") or ""
+        url = p_info.get("url") or ""
+
+        # If url is a data URL (e.g. data:image/jpeg;base64,...)
+        if url and str(url).startswith("data:image/"):
+            b64 = url
+
+        if not fn and img_path:
+            fn = str(img_path).replace("\\", "/").split("/")[-1].strip()
+
+        # 1. If direct file_path exists on current disk
+        if img_path and os.path.exists(img_path) and os.path.isfile(img_path):
+            return img_path, b64
+
+        # Extract ticket and filename from url if available (e.g. /api/photos/view/260710/photo_123.jpg)
+        url_ticket = ""
+        url_fn = ""
+        if url and "/api/photos/view/" in url:
+            parts = url.split("/api/photos/view/", 1)[1].split("/")
+            if len(parts) >= 2:
+                url_ticket = parts[0].strip()
+                url_fn = parts[1].strip()
+                if not fn:
+                    fn = url_fn
+
+        check_tickets = [ticket, url_ticket, "DRAFT"]
+        check_tickets = [t for t in dict.fromkeys(check_tickets) if t and t != "-"]
+
+        check_fns = [fn, url_fn]
+        if img_path:
+            check_fns.append(str(img_path).replace("\\", "/").split("/")[-1].strip())
+        check_fns = [f for f in dict.fromkeys(check_fns) if f]
+
+        for c_fn in check_fns:
+            for c_t in check_tickets:
+                candidates = [
+                    os.path.join(PHOTOS_DIR, c_t, c_fn),
+                    os.path.join(STORAGE_DIR, "photos", c_t, c_fn),
+                    os.path.join(DATA_DIR, "photos", c_t, c_fn),
+                    os.path.join(BASE_DIR, "storage", "photos", c_t, c_fn),
+                    os.path.join(os.getcwd(), "storage", "photos", c_t, c_fn),
+                    os.path.join(os.getcwd(), "backend", "data", "photos", c_t, c_fn),
+                ]
+                for cand in candidates:
+                    if os.path.exists(cand) and os.path.isfile(cand):
+                        return cand, b64
+
+        # Deep search across all subdirectories of PHOTOS_DIR and DATA_DIR/photos
+        for target_fn in check_fns:
+            for search_dir in [PHOTOS_DIR, os.path.join(DATA_DIR, "photos"), STORAGE_DIR]:
+                if os.path.exists(search_dir):
+                    for root, _, files in os.walk(search_dir):
+                        if target_fn in files:
+                            found_p = os.path.join(root, target_fn)
+                            if os.path.exists(found_p) and os.path.isfile(found_p):
+                                return found_p, b64
+
+        return None, b64
+
     def generate_photo_report(self, data: Dict[str, Any], photos: List[Dict[str, Any]], output_path: str) -> str:
         """
         Generates authentic Siamraj Photo Report matching the company template:
@@ -1458,32 +1527,18 @@ class IsoPdfEngine:
                     p_info = page_photos[i] if i < len(page_photos) else None
 
                     if p_info:
-                        img_path = p_info.get("file_path") or p_info.get("path")
-                        b64 = p_info.get("base64") or p_info.get("data_url")
-                        fn = p_info.get("filename") or ""
-                        if not fn and img_path:
-                            fn = str(img_path).replace("\\", "/").split("/")[-1].strip()
-
-                        if not img_path or not os.path.exists(img_path):
-                            for alt in [
-                                os.path.join(PHOTOS_DIR, ticket, fn) if fn else "",
-                                os.path.join(STORAGE_DIR, "photos", ticket, fn) if fn else "",
-                                os.path.join(DATA_DIR, "photos", ticket, fn) if fn else "",
-                                os.path.join(BASE_DIR, "storage", "photos", ticket, fn) if fn else "",
-                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn) if fn else "",
-                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn) if fn else "",
-                            ]:
-                                if alt and os.path.exists(alt):
-                                    img_path = alt
-                                    break
+                        img_path, b64 = self._resolve_photo_file(p_info, ticket)
                         if img_path and os.path.exists(img_path):
                             try:
                                 inner = pymupdf.Rect(slot["img_rect"].x0 + 1, slot["img_rect"].y0 + 1, slot["img_rect"].x1 - 1, slot["img_rect"].y1 - 1)
                                 page.insert_image(inner, filename=img_path, keep_proportion=True)
                             except Exception as e:
-                                print(f"[PhotoReport] Error inserting image: {e}")
+                                print(f"[PhotoReport] Error inserting image {img_path}: {e}")
                         elif b64:
-                            self._insert_signature(page, (slot["img_rect"].x0, slot["img_rect"].y0, slot["img_rect"].x1, slot["img_rect"].y1), b64)
+                            try:
+                                self._insert_signature(page, (slot["img_rect"].x0 + 1, slot["img_rect"].y0 + 1, slot["img_rect"].x1 - 1, slot["img_rect"].y1 - 1), b64)
+                            except Exception as e:
+                                print(f"[PhotoReport] Error inserting b64 image: {e}")
 
                         caption = p_info.get("caption", "")
                         fig_label = p_info.get("figure") or str(fig_num)
@@ -1663,24 +1718,7 @@ class IsoPdfEngine:
                     if p_info:
                         fig_label = p_info.get("figure") or str(fig_num)
                         caption = p_info.get("caption", "")
-                        img_path = p_info.get("file_path") or p_info.get("path")
-                        b64 = p_info.get("base64") or p_info.get("data_url")
-                        fn = p_info.get("filename") or ""
-                        if not fn and img_path:
-                            fn = str(img_path).replace("\\", "/").split("/")[-1].strip()
-
-                        if not img_path or not os.path.exists(img_path):
-                            for alt in [
-                                os.path.join(PHOTOS_DIR, ticket, fn) if fn else "",
-                                os.path.join(STORAGE_DIR, "photos", ticket, fn) if fn else "",
-                                os.path.join(DATA_DIR, "photos", ticket, fn) if fn else "",
-                                os.path.join(BASE_DIR, "storage", "photos", ticket, fn) if fn else "",
-                                os.path.join(os.getcwd(), "storage", "photos", ticket, fn) if fn else "",
-                                os.path.join(os.getcwd(), "backend", "data", "photos", ticket, fn) if fn else "",
-                            ]:
-                                if alt and os.path.exists(alt):
-                                    img_path = alt
-                                    break
+                        img_path, b64 = self._resolve_photo_file(p_info, ticket)
                         if img_path and os.path.exists(img_path):
                             try:
                                 xl_img = OpenpyxlImage(img_path)
@@ -1692,9 +1730,10 @@ class IsoPdfEngine:
                         elif b64:
                             try:
                                 if "," in b64:
-                                    b64 = b64.split(",", 1)[1]
-                                import io
-                                img_bytes = io.BytesIO(base64.b64decode(b64))
+                                    b64_data = b64.split(",", 1)[1]
+                                else:
+                                    b64_data = b64
+                                img_bytes = io.BytesIO(base64.b64decode(b64_data))
                                 xl_img = OpenpyxlImage(img_bytes)
                                 xl_img.width = 240
                                 xl_img.height = 170

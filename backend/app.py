@@ -1480,6 +1480,21 @@ def save_draft(payload: SaveReportPayload, response: Response):
 
     payload_data["ticket_no"] = ticket
 
+    # Sync any photos uploaded under DRAFT to this ticket folder
+    if ticket and ticket != "DRAFT":
+        draft_dir = os.path.join(PHOTOS_DIR, "DRAFT")
+        target_dir = os.path.join(PHOTOS_DIR, ticket)
+        if os.path.exists(draft_dir):
+            os.makedirs(target_dir, exist_ok=True)
+            for f in os.listdir(draft_dir):
+                if f.startswith("photo_") and os.path.isfile(os.path.join(draft_dir, f)):
+                    tf = os.path.join(target_dir, f)
+                    if not os.path.exists(tf):
+                        try:
+                            shutil.copy2(os.path.join(draft_dir, f), tf)
+                        except Exception:
+                            pass
+
     with open(file_path, "w", encoding="utf-8") as f:
 
         json.dump(payload_data, f, ensure_ascii=False, indent=2)
@@ -1959,26 +1974,23 @@ def submit_and_generate(payload: SubmitPayload):
 
 
                     # Get photos belonging to this specific instance
-
                     inst_photos = inst_data.get("photos", [])
-
+                    if not inst_photos:
+                        inst_photos = data.get("photos") or []
                     if not inst_photos and not is_multi:
-
-                        meta_file = os.path.join(PHOTOS_DIR, ticket, "photos.json")
-                        if not os.path.exists(meta_file):
-                            meta_file = os.path.join(DATA_DIR, "photos", ticket, "photos.json")
-
-                        if os.path.exists(meta_file):
-
-                            try:
-
-                                with open(meta_file, "r", encoding="utf-8") as pf:
-
-                                    inst_photos = json.load(pf)
-
-                            except:
-
-                                pass
+                        for meta_file in [
+                            os.path.join(PHOTOS_DIR, ticket, "photos.json"),
+                            os.path.join(DATA_DIR, "photos", ticket, "photos.json"),
+                            os.path.join(PHOTOS_DIR, "DRAFT", "photos.json"),
+                            os.path.join(DATA_DIR, "photos", "DRAFT", "photos.json")
+                        ]:
+                            if os.path.exists(meta_file):
+                                try:
+                                    with open(meta_file, "r", encoding="utf-8") as pf:
+                                        inst_photos = json.load(pf)
+                                        break
+                                except:
+                                    pass
 
 
 
@@ -2587,7 +2599,12 @@ async def generate_single_photo_report(ticket_no: str, payload: Dict[str, Any] =
 
     photos = payload.get("photos", [])
     if not photos:
-        for p_meta in [os.path.join(PHOTOS_DIR, ticket, "photos.json"), os.path.join(DATA_DIR, "photos", ticket, "photos.json")]:
+        for p_meta in [
+            os.path.join(PHOTOS_DIR, ticket, "photos.json"),
+            os.path.join(DATA_DIR, "photos", ticket, "photos.json"),
+            os.path.join(PHOTOS_DIR, "DRAFT", "photos.json"),
+            os.path.join(DATA_DIR, "photos", "DRAFT", "photos.json")
+        ]:
             if os.path.exists(p_meta):
                 try:
                     with open(p_meta, "r", encoding="utf-8") as pf:
@@ -2595,6 +2612,21 @@ async def generate_single_photo_report(ticket_no: str, payload: Dict[str, Any] =
                         break
                 except Exception:
                     pass
+
+    # If ticket is a real ticket (not DRAFT), copy any photos from DRAFT folder into this ticket's directory
+    if ticket and ticket != "DRAFT":
+        draft_dir = os.path.join(PHOTOS_DIR, "DRAFT")
+        target_dir = os.path.join(PHOTOS_DIR, ticket)
+        if os.path.exists(draft_dir):
+            os.makedirs(target_dir, exist_ok=True)
+            for f in os.listdir(draft_dir):
+                if f.startswith("photo_") and os.path.isfile(os.path.join(draft_dir, f)):
+                    tf = os.path.join(target_dir, f)
+                    if not os.path.exists(tf):
+                        try:
+                            shutil.copy2(os.path.join(draft_dir, f), tf)
+                        except Exception:
+                            pass
 
     if "covers" not in payload:
         for c_meta in [os.path.join(PHOTOS_DIR, ticket, "covers.json"), os.path.join(DATA_DIR, "photos", ticket, "covers.json")]:

@@ -5053,28 +5053,44 @@ async function selectTicket(ticketNo) {
 
 
 
+    // Auto-populate Problem Detail & Solution from CRM if present
+    const crmDesc = t.ProblemDetail || t.Description || "";
+    if (crmDesc) {
+      const srCauseEl = document.getElementById("sr_cause");
+      if (srCauseEl && (!srCauseEl.value.trim() || srCauseEl.value.trim() === "-")) {
+        srCauseEl.value = crmDesc;
+      }
+      const crRecEl = document.getElementById("cr_recommendation");
+      if (crRecEl && (!crRecEl.value.trim() || crRecEl.value.trim() === "-")) {
+        crRecEl.value = crmDesc;
+      }
+    }
+    const crmSol = t.Solution || "";
+    if (crmSol) {
+      const srRepEl = document.getElementById("sr_repairing");
+      if (srRepEl && (!srRepEl.value.trim() || srRepEl.value.trim() === "-")) {
+        srRepEl.value = crmSol;
+      }
+    }
+
+    // Auto-populate Technician from CRM ServiceBy (extract clean first name without นาย/นาง)
+    const rawServiceBy = t.ServiceBy || t["Service By"] || "";
+    let cleanTechName = "";
+    if (rawServiceBy) {
+      cleanTechName = rawServiceBy.replace(/^นาย\s*/, "").replace(/^นางสาว\s*/, "").replace(/^นาง\s*/, "").trim().split(/\s+/)[0];
+    }
+
     // Clear Pump & Equipment fields for manual input per pump
-
     document.getElementById("sr_pump_model").value = "";
-
     document.getElementById("sr_serial_no").value = "";
-
     document.getElementById("sr_pump_code").value = "";
-
     document.getElementById("sr_motor_brand").value = "";
-
     document.getElementById("sr_motor_kw").value = "";
-
     document.getElementById("sr_motor_rpm").value = "";
-
     document.getElementById("sr_motor_max_amp").value = "";
-
     document.getElementById("sr_gear_brand").value = "";
-
     document.getElementById("sr_gear_ratio").value = "";
-
     document.getElementById("sr_gear_model").value = "";
-
     document.getElementById("sr_gear_serial").value = "";
 
 
@@ -5102,14 +5118,27 @@ async function selectTicket(ticketNo) {
 
 
 
-    // Technician fields: leave completely blank for user to enter manually
-
-    ["techSignerName", "exp_tech_name", "exp_sr_tech_name", "insp_tech_incoming", "insp_tech_final", "parts_receiver_name", "photo_reported_by"].forEach(id => {
+    // Technician fields: populate from CRM if available, maintain defaults for Sr Tech and Mgr
+    ["techSignerName", "exp_tech_name", "insp_tech_incoming", "insp_tech_final", "parts_receiver_name", "photo_reported_by"].forEach(id => {
       if (typeof syncTechField === "function") syncTechField(id, "");
       else if (document.getElementById(id)) document.getElementById(id).value = "";
     });
-    const savedTech = localStorage.getItem("siamraj_saved_technician");
-    if (savedTech && typeof syncTechField === "function") syncTechField("techSignerName", savedTech);
+    if (cleanTechName) {
+      if (typeof syncTechField === "function") {
+        syncTechField("techSignerName", cleanTechName);
+        syncTechField("exp_tech_name", cleanTechName);
+      } else {
+        if (document.getElementById("techSignerName")) document.getElementById("techSignerName").value = cleanTechName;
+        if (document.getElementById("exp_tech_name")) document.getElementById("exp_tech_name").value = cleanTechName;
+      }
+    } else {
+      const savedTech = localStorage.getItem("siamraj_saved_technician");
+      if (savedTech && typeof syncTechField === "function") syncTechField("techSignerName", savedTech);
+    }
+    // Maintain Service Expense defaults
+    if (typeof syncTechField === "function") syncTechField("exp_sr_tech_name", "รณพร");
+    else if (document.getElementById("exp_sr_tech_name")) document.getElementById("exp_sr_tech_name").value = "รณพร";
+    if (document.getElementById("exp_mgr_name")) document.getElementById("exp_mgr_name").value = "ไพศาล";
 
 
 
@@ -5172,16 +5201,20 @@ async function selectTicket(ticketNo) {
     // Load existing draft if present
     const hasDraft = await loadTicketDraft(ticketNo);
 
-    // If draft has instances, select active instance or first one; otherwise leave empty for user to choose
+    // If draft has instances, select active instance or first one; otherwise initialize default forms (SR + Photo)
     if (state.packageInstances && state.packageInstances.length > 0) {
       const activeInst = state.packageInstances.find(i => i.id === state.activeInstanceId) || state.packageInstances[0];
       state.activeInstanceId = null;
       renderPackageTabs();
       selectPackageInstance(activeInst.id);
     } else {
-      selectPackageInstance(null);
+      // Auto-open standard Service Report (FM-EPS-23) and Photo Report so screen is never blank
+      addFormToPackage("FM-EPS-23");
+      addFormToPackage("PHOTO_REPORT");
       renderPackageTabs();
-      applyPackageViewMode();
+      if (state.packageInstances && state.packageInstances.length > 0) {
+        selectPackageInstance(state.packageInstances[0].id);
+      }
     }
 
     loadTicketPhotos(ticketNo);
